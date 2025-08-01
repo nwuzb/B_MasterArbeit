@@ -30,8 +30,9 @@ pdflatex -output-directory="$OUTDIR" "$MAIN.tex"
 # Copy PDF to main directory
 cp "$OUTDIR/$MAIN.pdf" .
 
-# Clean up empty files
+# Clean up empty files and directories
 find "$OUTDIR" -type f -size 0 -delete
+find "$OUTDIR" -type d -empty -delete
 
 echo "Compilation complete! PDF saved as $MAIN.pdf"
 echo "Auxiliary files are in $OUTDIR/"

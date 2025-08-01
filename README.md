@@ -4,7 +4,7 @@
 
 ## 项目结构
 
-```
+```text
 MasterArbeit/
 ├── main.tex              # 主文档
 ├── chapters/             # 章节文件
@@ -29,6 +29,7 @@ MasterArbeit/
 ```
 
 这个脚本会：
+
 - 自动创建 `.output` 目录
 - 将辅助文件输出到 `.output` 目录
 - 运行完整的编译流程（pdflatex + bibtex + pdflatex + pdflatex）
@@ -41,6 +42,7 @@ make
 ```
 
 或者查看所有可用命令：
+
 ```bash
 make help
 ```
@@ -63,11 +65,13 @@ latexmk -pdf main.tex
 ## 清理文件
 
 ### 清理辅助文件
+
 ```bash
 make clean
 ```
 
 ### 清理所有文件（包括PDF）
+
 ```bash
 make cleanall
 ```
@@ -86,4 +90,4 @@ make cleanall
 1. 检查 `.output/main.log` 文件中的错误信息
 2. 运行 `make clean` 清理所有辅助文件后重新编译
 3. 确保所有引用的图片文件都在 `pictures/` 目录中
-4. 检查参考文献文件 `library/citations.bib` 的格式是否正确 
+4. 检查参考文献文件 `library/citations.bib` 的格式是否正确.

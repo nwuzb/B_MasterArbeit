@@ -14,6 +14,12 @@
 % PACKAGES FOR THE INSTITUTSVORLAGE
 \usepackage[utf8]{inputenc}
 \usepackage[ngerman]{babel}
+% CHINESE SUPPORT PACKAGES (commented out for now)
+% \usepackage{fontspec}  % For font specification
+% \usepackage{xeCJK}  % For Chinese character support
+% \setCJKmainfont{SimSun}  % Set Chinese main font
+% \setCJKsansfont{SimHei}  % Set Chinese sans font
+% \setCJKmonofont{FangSong}  % Set Chinese mono font
 \usepackage[unicode=true]{hyperref} % label, references, websites and crosslinks in PDF
 \usepackage{setspace} % für Elemente der Titelseite
 \usepackage{tikz} % für Elemente der Titelseite
@@ -72,7 +78,9 @@
 
 \input{chapters/01_Introduction}
 
-\input{chapters/02_motivation}
+\input{chapters/02_RelatedWork}
+
+\input{chapters/03_Data}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%_BIBLIOGRAPHY_%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

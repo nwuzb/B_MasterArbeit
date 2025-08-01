@@ -5,7 +5,7 @@ OUTDIR = .output
 # Main document
 MAIN = main
 
-# LaTeX compiler
+# LaTeX compiler (using pdfLaTeX)
 LATEX = pdflatex
 BIBTEX = bibtex
 
@@ -21,6 +21,7 @@ $(MAIN).pdf: $(MAIN).tex $(OUTDIR)
 	$(LATEX) -output-directory=$(OUTDIR) $(MAIN)
 	cp $(OUTDIR)/$(MAIN).pdf .
 	find $(OUTDIR) -type f -size 0 -delete
+	find $(OUTDIR) -type d -empty -delete
 
 # Clean auxiliary files
 clean:
