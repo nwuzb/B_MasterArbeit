@@ -1,0 +1,498 @@
+\section{Methods}\label{section::Methods}
+
+The core of this study is the proposal of a deep-learning-based model leveraging the You Only Look Once (YOLO11) algorithm combined with a counting algorithm to accurately estimate crowd density in train platform scenarios. As the latest iteration of the YOLO series, YOLO11 retains the efficiency of its predecessors while incorporating optimized network architectures and enhanced training strategies to significantly improve detection accuracy and inference speed \cite{74_yolo11_Jocher_Ultralytics_YOLO_2023}. \\
+As Section 2.6 of the "Related Work" points out the balance of performance and computational volume of YOLO11m, we therefore consider using YOLO11m as our benchmark model for training.
+
+As discussed in the final part of the "Related Work" section, the performance of full-body detection methods is considerably limited in crowded environments. However, head regions, which are less prone to occlusion and possess more distinguishable features, have not yet been sufficiently explored or utilized. Considering that severe occlusion commonly occurs among individuals in high-density scenarios, making it challenging to accurately detect full-body outlines, head regions provide distinct advantages. The human head, typically located at the upper portion of the body, is less likely to be severely occluded and exhibits clearer morphological characteristics. Moreover, the size variations of head regions remain relatively stable and are not significantly affected by changes in posture, thereby reducing the likelihood of false positives and missed detections. 
+
+Therefore, this study employs YOLO11m to identify human heads as the primary basis for accurate crowd counting in densely populated environments.
+
+\subsection{YOLO Model}
+In 2015, Redmon et al. introduced the YOLO algorithm, representing a key breakthrough in the field of object detection \cite{76_redmon2016lookonceunifiedrealtime}. As implied by its name ("You Only Look Once"), this innovative approach detects objects and their locations by processing the entire image only once. Unlike traditional two-stage detection frameworks, YOLO formulates object detection as a regression problem \cite{76_redmon2016lookonceunifiedrealtime}. As illustrated in Figures \ref{fig:yolosystem}  and \ref{fig:yoloarchitecture}, YOLO utilizes a single convolutional neural network to simultaneously predict bounding boxes and class probabilities across the entire image \cite{77_Du_article}. Compared to conventional, more complex approaches, YOLO significantly simplifies the detection pipeline.\\
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{pictures/The YOLO Detection System.png} % 替换为你的图片路径
+    \caption{The YOLOv1 Detection System} % 图片标题
+    \label{fig:yolosystem} % 图片标签，用于引用.如图\ref{fig:example}所示，这是插入的图片。
+\end{figure}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{pictures/The YOLO Architecture.png} % 替换为你的图片路径
+    \caption{The YOLOv1 Architecture} % 图片标题
+    \label{fig:yoloarchitecture} % 图片标签，用于引用.如图\ref{fig:example}所示，这是插入的图片。
+\end{figure}
+YOLO11 is the latest iteration of the YOLO series, built upon the foundational framework established by YOLOv1. Introduced at the YOLOVision2024 (YV24) conference, YOLO11 represents a significant leap forward in real-time object detection technology. As shown in Figure \ref{fig:yolo11architecture}, this new version demonstrates notable enhancements in architecture and training methodologies, effectively surpassing previous limitations in accuracy, speed, and efficiency \cite{75_khanam2024yolov11overviewkeyarchitectural}.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{pictures/Yolo11architecture.png} % 替换为你的图片路径
+    \caption{The YOlO11 Architecture} % 图片标题
+    \label{fig:yolo11architecture} % 图片标签，用于引用.如图\ref{fig:example}所示，这是插入的图片。
+\end{figure}
+
+\subsubsection{Key Network Structure of YOLO11 }
+The YOLO11 architecture primarily comprises three fundamental components. As illustrated in Figure \ref{fig:yolo11architecture}, firstly, the backbone component serves as the primary feature extractor, employing a convolutional neural network to convert the original image data into multi-scale feature maps. Secondly, the neck component acts as an intermediate processing stage, utilizing specialized layers to aggregate and enhance feature representations at various scales. Thirdly, the head component functions as a predictive mechanism, generating the final outputs for object localization and classification based on the refined feature maps .As shown in Figure 5, Khanam et al. gave the key architectural modules in YOLO11 \cite{75_khanam2024yolov11overviewkeyarchitectural}.
+
+\paragraph{1. Backbone Network}
+The backbone is an essential component of the YOLO architecture, responsible for extracting multi-scale features from input images. This process involves stacking convolutional layers and specialized blocks to generate feature maps at varying resolutions. The backbone network processes the input image through sequential convolutional layers, pooling layers, and activation functions, progressively extracting visual features ranging from low-level to high-level representations.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{pictures/key architectural modules in YOLO11.png}
+    \caption{Key Architectural Modules in YOLO11}
+    \label{fig:Keyarchite}
+\end{figure}
+
+\subparagraph{Convolutional Layers}
+YOLO11 maintains a structure similar to previous versions, employing initial convolutional layers for image downsampling. These layers constitute the foundation of feature extraction, progressively reducing spatial dimensions while simultaneously increasing the number of channels.
+
+\subparagraph{SPPF and C2PSA}
+YOLO11 retains the Spatial Pyramid Pooling-Fast (SPPF) block from earlier versions but introduces a novel Cross Stage Partial with Spatial Attention (C2PSA) block immediately afterward \cite{80_ghosh_yolo11_2024}. As shown in Figure \ref{fig:C2PSA}, the C2PSA block is a noteworthy addition that enhances the spatial attention mechanism within feature maps. This spatial attention mechanism allows the model to effectively focus on critical regions in the image. By spatially pooling features, the C2PSA block enables YOLO11 to concentrate on specific regions of interest, potentially improving detection accuracy for objects of varying sizes and positions.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.25\linewidth]{pictures/C2PSA.png}
+    \caption{C2PSA Block}
+    \label{fig:C2PSA}
+\end{figure}
+
+
+\paragraph{2. Neck Network}
+The Neck Network is positioned between the backbone network and the detection head, and its primary role is to aggregate information from feature maps of various scales and transmit them to the detection head for prediction.
+The C3K2 block in YOLO11 introduces a significant improvement by replacing the C2F block in the neck. The C3K2 block is a more computationally efficient implementation of the Cross Stage Partial (CSP) Bottleneck structure. As shown in Figure \ref{fig:C3K2}, it utilizes two smaller convolutions instead of one larger convolution, as employed in YOLOv8\cite{81_noauthor_what_2024}. The "k2" in C3K2 denotes the smaller kernel size, which contributes to accelerated processing speed while maintaining detection performance\cite{75_khanam2024yolov11overviewkeyarchitectural}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\linewidth]{pictures/C3K2.png}
+    \caption{C3K2 Block\cite{83_ultralytics_yolo11_2025}}
+    \label{fig:C3K2}
+\end{figure}
+
+
+\subparagraph{Attention Mechanism}
+A notable enhancement in YOLO11 is its incorporation of spatial attention through the C2PSA module. This attention mechanism enables the model to effectively focus on crucial regions within an image, potentially achieving more accurate detection results, particularly for smaller or partially occluded objects. The integration of C2PSA clearly differentiates YOLO11 from its predecessor, YOLOv8, which lacks this specific attention mechanism \cite{80_ghosh_yolo11_2024}\cite{75_khanam2024yolov11overviewkeyarchitectural}
+
+\paragraph{3. Detection Head}
+
+The Detection Head is responsible for predictions on feature maps across multiple scales, outputting bounding box parameters (center coordinates, width, height), class probabilities, and confidence scores. Typically, YOLO divides the input image into several grid cells, each responsible for predicting targets whose center points fall within that particular cell.
+
+\subparagraph{C3K2 Blocks  }
+In the head component, YOLO11 utilizes multiple C3k2 blocks to efficiently process and refine feature maps. C3k2 blocks are placed along various paths of the detection head to handle multi-scale features at different depths. The behavior of the C3k2 block is flexible depending on the parameter "c3k":  
+\begin{itemize}
+    \item When c3k = False, the C3k2 module behaves similarly to the C2f block, employing a standard bottleneck structure.
+    \item When c3k = True, the bottleneck structure is replaced by a C3 module, enabling deeper and more complex feature extraction.
+\end{itemize}
+
+The main characteristics of the C3k2 block include:  
+Faster Processing: Employing two smaller convolutions instead of a single large convolution reduces computational overhead, thereby speeding up feature extraction.  
+Parameter Efficiency: C3k2 serves as a more compact variant of the CSP bottleneck structure, enhancing efficiency in terms of the number of trainable parameters.
+
+Another noteworthy addition is the C3k module, which allows customizable kernel sizes, further enhancing flexibility. This adaptability of C3k is particularly beneficial for extracting more detailed features from images, thereby contributing to improved detection accuracy.
+
+\subparagraph{CBS Blocks}
+In the YOLO11 head structure, several CBS (Convolution-BatchNorm-SiLU) layers follow the C3k2 blocks \cite{81_noauthor_what_2024}. These layers further refine feature maps through the following mechanisms:  
+\begin{itemize}
+    \item Extraction of relevant features to facilitate accurate object detection.
+    \item Stabilization and normalization of data flow via batch normalization.
+    \item Implementation of nonlinear activation using Sigmoid Linear Unit (SiLU) activation functions, thereby enhancing model performance.
+\end{itemize}
+
+CBS blocks serve as fundamental components within the feature extraction and detection pipeline, ensuring that refined feature maps are appropriately conveyed to subsequent layers for bounding box and class predictions.
+
+Final Convolution and Detection Layers  
+Each detection branch concludes with a set of Conv2D layers, which reduce the feature maps to the number of outputs required for bounding box coordinates and class predictions. The final detection layers integrate these predictions, which include:  
+\begin{itemize}
+    \item Bounding box coordinates for object localization within the image.
+    \item Objectness scores indicating the presence of objects.
+    \item Class scores used to identify the categories of detected objects.
+\end{itemize}
+
+
+\subsection{Crowd Head Feature Extraction}
+We know that in crowded scenarios, such as platforms, only individuals positioned at the outermost edges typically exhibit clearly visible full-body contours. However, head contours remain easily identifiable even in dense, partially occluded crowds. Considering the significant errors introduced by training YOLO11 using full-body bounding boxes under occluded conditions, we employed head annotations as the primary feature representation, training the model using a dataset labeled exclusively with head boundary boxes. Leveraging its deep convolutional neural network architecture, the YOLO11 model can automatically learn and extract robust visual features from crowd images. Our dataset comprises annotated head information from various scenarios, encompassing differences in age, skin color, occlusion levels, and image resolutions. Consequently, training the YOLO11 model on such diverse head data enables the extraction of enriched head-specific features, allowing the model to adaptively learn more discriminative crowd representations. 
+% \textcolor{red}{Comparison of full-body bounding boxes and head bounding boxes.}
+
+
+
+\subsection{Counting Algorithm}
+
+After obtaining the detection results (i.e., bounding boxes and confidence scores) for each person in the image using the YOLO11 model, the most straightforward counting method is to directly count the number of detected bounding boxes \cite{02_noauthor_review_nodate}\cite{68_zhao_detection_2022}. Each bounding box predicted by the model with sufficiently high confidence as "person" corresponds to one individual. Thus, the total number of detected bounding boxes directly represents an estimate of the number of people in the image.
+
+To improve counting accuracy, especially in scenarios involving partial occlusion within crowds, more refined post-processing methods can be employed. For example, Non-Maximum Suppression (NMS) can be applied based on bounding box size and spatial information to merge overlapping boxes, thereby avoiding multiple counts of the same individual. Additionally, setting an appropriate confidence threshold can filter out false positives by retaining only those detections with confidence scores above the specified threshold.
+
+In several studies, such as \cite{41_moreno_rendon_passenger_2023}, researchers have also explored density map-based methods for crowd counting. Typically, this approach employs additional convolutional layers or post-processing steps after the model's output layer to predict the probability of each pixel belonging to the center of a human body, generating a crowd density map. The total number of people is then estimated by integrating this density map. Although the current study primarily employs direct detection based on YOLO11, incorporating density estimation into the YOLO11 framework in the future may further enhance counting performance in highly crowded scenarios.
+
+In summary, this study utilizes a direct detection method based on the YOLO11 model for crowd counting on train station platforms. The YOLO11 model efficiently and accurately detects each person in the image. Subsequently, the total number of detected targets is simply counted, and appropriate post-processing techniques—including NMS and confidence threshold filtering—are applied, thereby achieving an accurate estimation of the crowd size on the train station platforms.
+
+
+
+
+
+
+
+
+\iffalse
+4. Method 
+本研究的核心在于提出一个基于You Only Look Once (YOLOv11) 的深度学习模型，并结合DeepSORT算法及其计数算法，实现对火车站台场景中人群数量的准确估计。如图，是我们提出的系统的整体框架。YOLOv11作为YOLO系列的较新版本，继承了其高效的检测框架，并在网络结构和训练策略上进行了进一步的优化，旨在提升目标检测的精度和速度\cite{74_yolo11_Jocher_Ultralytics_YOLO_2023}。前文Related work部分的最后提到，在拥挤场景下，利用人体完整信息进行检测的效果受限严重，而头部特征作为更易识别且遮挡程度较轻的特征点，尚未被充分深入地探索和利用。因此，考虑到高密度场景下人体之间存在频繁而严重的遮挡，导致个体的整体轮廓难以完整识别，而人体头部通常位于人体上部，受到遮挡的影响较小且外形特征明显，所以更容易准确识别。并且，头部区域尺寸变化相对稳定，不受姿势变化的显著影响，有助于减少模型误检和漏检的概率，从而能够提高模型在高密度人群场景下的检测和计数精度。因此，我们使用Yolo来识别认人的头部作为计数依据。
+
+
+
+
+
+
+4.1 YOLOv11模型
+2015 年，Redmon 等人提出了“YOLO”算法，这是物体检测领域的关键突破\cite{76_redmon2016lookonceunifiedrealtime}。顾名思义，这种创新方法只需一次处理整个图像即可检测物体及其位置。YOLO 的方法不同于传统的两阶段检测过程，它将物体检测定义为一个回归问题\cite{76_redmon2016lookonceunifiedrealtime}。如图The YOLO Detection System.png和The YOLO Architecture.png所示，它采用单个卷积神经网络同时预测整个图像中的边界框和类别概率\cite{77_Du_article}，与更复杂的传统方法相比，它简化了检测流程。
+
+图2：The YOLO Detection System.png、图3：The YOLO Architecture.png
+
+YOLOv11是YOLO系列的最新版本，以YOLOv1奠定的基础为基础。YOLOv11在YOLOVision2024 (YV24) 大会上亮相，代表了实时物体检测技术的重大飞跃。如图4所示，新版本在架构和训练方法方面都有了显著的增强，突破了准确性、速度和效率的界限\cite{75_khanam2024yolov11overviewkeyarchitectural}。
+
+如图4：Yolo 11 architecture.png \cite{80_ghosh_yolo11_2024}
+
+4.1.1 YOLOv11的网络关键结构
+YOLOV11架构的核心由三个基本组件组成。如图4所示，首先，骨干组件充当主要特征提取器，利用卷积神经网络将原始图像数据转换为多尺度特征图。其次，颈部组件充当中间处理阶段，采用专门的层来聚合和增强不同尺度的特征表示。第三，头部组件充当预测机制，根据细化的特征图生成用于对象定位和分类的最终输出\cite{75_khanam2024yolov11overviewkeyarchitectural}。
+如图5：key architectural modules in YOLO11.png  
+
+4.1.1.1 Backbone Network
+主干是 YOLO 架构的重要组成部分，负责从输入图像中提取多种尺度的特征。此过程涉及堆叠卷积层和专用块以生成条种分辦率的特征图。骨干网络通过一系列的卷积层（Convolutional Layers）、池化层（Pooling Layers）以及激活函数（Activation Functions）对输入图像进行处理，逐步提取从低级到高级的视觉特征。
+
+卷积层 
+YOLOV11 保持了与前代产品类似的结构，利用初始卷积层对图像进行下采样。这些层构成了特征提取过程的基础，逐渐减少空间维度，同时增加通道数量。
+SPPF和C2PSA 
+YOLO11 保留了以前版本的 Spatial Pyramid Pooling - Fast （SPPF）块，但在其后引入了新的 Cross Stage Partial with Spatial Attention （C2PSA）块\cite{80_ghosh_yolo11_2024}。如图6所示，C2PSA 块是一个值得注意的新增功能，它增强了特征图中的空间注意力机制。这种空间注意力机制使模型能够更有效地关注图像中的重要区域。通过空间池化特征， C2PSA 块使 YOLO11 能够专注于特定的兴趣区域，从而有可能提高不同大小和位置的物体的检测精度。
+图6 C2PSA.PNG C2PSA模块
+
+4.1.1.2.Neck Network： 
+Neck Network位于骨干网络和检测头（Detection Head）之间，用于聚合来自不同尺度特征图的信息，并传输到头部进行预测.
+C3K2块Yolo11通过用C3K2块在颈部替换颈部的C2F块来引入重大变化。C3k2块是 Cross Stage Partial （CSP） Bottleneck 的计算效率更高的实现。如图7所示，它采用两个较小的卷积，而不是一个大卷积，如 YOLOv8\cite{81_noauthor_what_2024}中所示。C3k2 中的“k2”表示较小的内核大小，这有助于在保持性能的同时加快处理速度\cite{75_khanam2024yolov11overviewkeyarchitectural}。
+图7：C3K2.png C3K2块\cite{83_noauthor_ultralytics_nodate}
+
+
+注意力机制 
+YOLO11 的一个显著新增功能是它通过C2PSA 模块增加了对空间注意力的关注。这种注意力机制使模型能够专注于图像中的关键区域，从而可能实现更准确的检测，尤其是对于较小或部分遮挡的物体。加入C2PSA 使YOLO11 有别于其前身 YOLOv8，后者缺乏这种特定的注意力机制\cite{80_ghosh_yolo11_2024}\cite{75_khanam2024yolov11overviewkeyarchitectural}。
+
+
+4.1.1.3 Detection Head： 负责在不同尺度的特征图上进行预测，输出目标的边界框参数（中心坐标、宽度、高度）、类别概率以及置信度得分。YOLO通常将输入图像划分为若干个网格单元（Grid Cells），每个网格单元负责预测中心落在该单元内的目标。
+
+C3K2块
+在头部部分，YOLOV11利用多个 C3k2 块来高效处理和细化特征图。C3k2块位于头部的多个路径中，用于处理不同深度的多尺度特征。C3k2 块根据 c3k 参数的值表现出灵活性： 
+    •当 c3k = False 时，C3k2 模块的行为与 C2f块类似，采用标准瓶颈结构。 
+    •当 c3k = True时，瓶颈结构被C3模块取代，从而可以进行更深层、更复杂的特征提取。 
+C3k2 区块的主要特征： 
+•处理速度更快：与单个大卷积相比，使用两个较小的卷积可减少计算开销，从而更快地提取特征。 
+•参数效率：C3k2 是 CSP 瓶颈的更紧凑版本，使得架构在可训练参数数量方面更高效。
+另一个值得注意的新增功能是C3k模块，它允许自定义内核大小，从而增强了灵活性。C3k的适应性对于从图像中提取更详细的特征特别有用，有助于提高检测准确性。
+
+CBS区块 YOLOV11 的头部在 C3k2 块之后包含几个 CBS（Convolution-BatchNorm-Silu）\cite{81_noauthor_what_2024}层。这些层通过以下方式进一步细化特征图： 
+    •提取相关特征以进行准确的物体检测。 
+    •通过批量标准化来稳定和规范数据流。
+    •利用 Sigmoid 线性单元（SiLU）激活函数实现非线性，从而提高模型性能。
+CBS 块是特征提取和检测过程中的基础组件，确保细化的特征图传递到后续层进行边界框和分类预测。 
+
+最终的卷积层和检测层 每个检测分支以一组 Conv2D 层结束，这些层将特征減少到边界框坐标和类预测所需的输出数量。最后的检测层整合了这些预测，其中包括： 
+    •用于定位图像中对象的边界框坐标。 
+    • 对象性分数表明对象的存在。 
+    •用于确定检测到的物体的类别的类别分数。
+
+
+4.2 DeepSORT（new）
+在介绍了检测器的方法之后，我们这一小节专注于介绍多目标跟踪器算法DeepSORT。
+在多目标跟踪 (MOT) 领域，目标是跨视频帧检测、定位并保持多个目标的唯一身份。DeepSORT（深度简单在线实时跟踪）算法由Alex Bewley等人于2017年提出，是经典SORT（Simple Online and Realtime Tracking）算法的进一步发展和改进。DeepSORT的核心优势在于其创新性地结合了深度学习（Deep Learning）模型提取的外观特征（Appearance Features）与运动信息（Motion Information），显著提高了目标在复杂场景下，特别是长期遮挡情况下的追踪精度和ID一致性，有效解决了SORT算法中频繁出现ID切换的问题。本节概述了该算法的核心原理、组件和公式，并应用于我们针对火车站台上的人群跟踪任务的实现中。
+
+4.2.1 DeepSORT算法概述与核心组成
+DeepSORT算法采用“先检测后追踪”（Tracking-by-Detection, TBD）的框架，其整体流程如图\cite{212},该算法由三个主要组件构成，分别为深度外观描述符提取模块、卡尔曼滤波器和数据关联模块.
+4.2.2 其工作流程可概括为：
+1. 目标检测 (Object Detection)：在每一帧图像中，使用高性能的目标检测器识别出所有目标，并生成对应的边界框及其置信度。\cite{174}
+2. 运动状态预测 (Motion State Prediction)：对于现有轨迹，利用卡尔曼滤波器预测其在当前帧中的可能位置和运动状态。\cite{174}
+3. 特征提取 (Feature Extraction)：对当前帧中所有检测到的目标，提取其深度外观特征向量。\cite{179}
+4. 数据关联 (Data Association)：通过综合考虑运动信息（马氏距离）和外观信息（余弦距离），使用匈牙利算法将当前帧的检测与预测轨迹进行最佳匹配。此外，还引入了级联匹配策略来优化匹配过程。\cite{104}
+5. 轨迹更新与管理 (Track Update and Management)：根据匹配结果，更新现有轨迹的运动状态和外观特征。对于未匹配的检测，初始化为新轨迹；对于连续多帧未匹配的轨迹，则将其删除
+
+4.2.3 DeepSORT核心模块详解
+
+1. 目标检测器（Object Detector）
+DeepSORT算法的性能高度依赖于前端目标检测器的准确性和实时性。检测器负责在每一帧中识别出目标，并提供其精确的边界框（bounding box）和类别置信度。这些检测结果是追踪算法的初始输入。
+• 常用检测器：
+    ◦ YOLO系列（You Only Look Once）：YOLO系列模型因其卓越的实时性能和检测精度而广受欢迎，常与DeepSORT结合使用。例如，YOLOv5 和YOLOv7 已被广泛用于DeepSORT的改进版本。
+    ◦ Faster R-CNN：作为两阶段检测器的代表，Faster R-CNN在DeepSORT早期版本中被用于检测器。
+    ◦ SSD（Single Shot MultiBox Detector）：SSD是一种单阶段检测器，也曾被应用于DeepSORT中。
+    ◦ CenterNet：一种无锚框（anchor-free）检测器，能够同时输出边界框和身份嵌入信息。
+• 检测器改进：针对特定应用场景，检测器常会进行轻量化或结构改进，例如在YOLOv5s模型中引入MnasNet_P结构、膨胀卷积（Dilated Convolution）和空间金字塔池化（SPP）作为骨干网络，以提高检测精度,我们这里采取上面介绍过的YOLOv11。
+
+2 运动模型与卡尔曼滤波器（Motion Model and Kalman Filter）
+卡尔曼滤波器是DeepSORT中预测目标运动状态的核心组件。它通过迭代的预测和更新过程来估计目标的运动轨迹。
+• 状态向量：经典的DeepSORT使用一个8维状态向量 $\mathbf{x} = [u, v, r, h, u', v', r', h']^T$ 来描述每个目标的状态。其中：
+    ◦ $(u, v)$：边界框中心的坐标。
+    ◦ $r$：边界框的宽高比。
+    ◦ $h$：边界框的高度。
+    ◦ $(u', v', r', h')$：对应于上述四个参数在图像坐标系中的相对速度。
+• 预测与更新：卡尔曼滤波器根据目标在上一时刻的位置和速度信息来预测其在当前时刻的运动轨迹。这是一个迭代的、循环执行的过程。
+1. 预测 (Prediction)：对于当前帧中的每个已检测目标或现有轨迹，卡尔曼滤波器会根据其前一时刻的运动信息，预测其在当前时刻的运动状态（例如，边界框的中心坐标、宽高比、高度及其对应的速度）。这一步骤旨在预估目标在当前帧中的潜在位置。预测公式如下：
+        ▪ $\mathbf{X}k = \mathbf{A}\mathbf{X}{k-1} + \mathbf{B}\mathbf{u}_k$
+        ▪ $\mathbf{P}k = \mathbf{A}\mathbf{P}{k-1}\mathbf{A}^T + \mathbf{Q}$ 其中，$\mathbf{X}k$ 为当前时刻的状态估计，$ \mathbf{X}{k-1}$ 为上一时刻的状态估计，$\mathbf{A}$ 为状态转移矩阵，$\mathbf{B}$ 为控制输入矩阵，$\mathbf{u}_k$ 为控制向量，$\mathbf{P}_k$ 为协方差矩阵，$\mathbf{Q}$ 为过程噪声协方差。
+2. 更新 (Update)：在获得目标检测器的结果后，DeepSORT会将卡尔曼滤波器的预测结果与实际检测结果进行关联。若匹配成功，卡尔曼滤波器将更新轨迹状态，以校正预测值并获得更精确的当前时刻目标状态估计。这一更新过程有助于提高跟踪精度，尤其是在目标被部分遮挡或仅部分检测到的情况下。  
+    ◦ 更新公式：
+        ▪ $\mathbf{G}_k = \mathbf{P}_k\mathbf{H}^T (\mathbf{H}\mathbf{P}_k\mathbf{H}^T + \mathbf{R})^{-1}$
+        ▪ $\mathbf{X}_k = \mathbf{X}_k + \mathbf{G}_k (\mathbf{Z}_k - \mathbf{H}\mathbf{X}_k)$
+        ▪ $\mathbf{P}_k = (\mathbf{I} - \mathbf{G}_k\mathbf{H})\mathbf{P}_k$ 其中，$\mathbf{G}_k$ 为卡尔曼增益，$\mathbf{Z}_k$ 为当前时刻的测量值，$\mathbf{H}$ 为测量矩阵，$\mathbf{R}$ 为测量噪声协方差，$\mathbf{I}$ 为单位矩阵。
+• 局限性：DeepSORT中使用的线性速度模型在处理剧烈变速运动或摄像机移动的场景时可能不够准确。为解决此问题，有研究引入了无迹卡尔曼滤波器（Unscented Kalman Filter, UKF）来处理非线性误差，并引入自适应因子调整观测噪声，我们的场景最算是相机移动的变速运动，但考虑到相机和目标的位置变化主题呈线性，因此我们考虑使用经典DeepSORT方法。
+
+3. 外观特征提取网络（Appearance Feature Extraction Network / Re-ID Model）
+外观特征是DeepSORT解决长期遮挡和ID切换问题的关键。DeepSORT通过一个深度卷积神经网络（CNN）提取每个检测目标的外观描述符。
+• 网络结构：原始DeepSORT的特征提取网络是一个定制的残差CNN，输出一个128维的特征向量。它被描述为一个简单的CNN或小型CNN，并且是预训练的。一些研究中也将其称为鉴别网络（discriminative network）或重识别（Re-ID）模型。该网络结构通常包含卷积层、最大池化层和多个残差块，最后通过全连接层和L2归一化层得到最终特征\cite{116}。具体的，每个结构层的作用如下：
+    ◦ 网络通常包含卷积层（convolutional layers）。用于初步提取低层次特征，部分实现中采用两个卷积层，并在降采样时可通过步长为2的卷积替代传统最大池化层
+    ◦ 包含最大池化层（max pooling layer）。降低空间分辨率，减少计算量。
+    ◦ 包含多个残差块（residual blocks）。例如，有描述提及它由两层卷积层和六个残差块组成。每个残差块本身可能由三个卷积层组成。在通道数逐步增加的同时缓解梯度消失问题。
+    ◦ 最后，通过全连接层（fully-connected layer 或 Dense layer）和L2归一化层得到最终的特征。输出的特征向量：该网络的输出是一个128维的特征向量。这些特征向量通常经过L2归一化处理，以确保其位于单位超球面上，便于计算余弦距离。
+
+如图：ReID-Diagram of DeepSORT\cite{211} CNN-based feature extractor.其中，红色块是简单的卷积层，黄色块是最大池层，蓝色块是残留的块，由三个卷积层组成\cite{213}。最终的绿色块表示具有批归归量的完全连接层和L2归一化。每个块的输出大小在括号中指示。
+
+•训练：此CNN模型通常在大型行人重识别（Person Re-identification, Re-ID）数据集上进行离线训练，例如 MARS 数据集\cite{214} 或 Market-1501 数据集\cite{215}。这些数据集提供了经过标注的行人图像与视频序列，包括身份标签（ID label）与边界框位置（bounding box annotation），从而支持监督学习模型在不同光照、姿态与视角变化条件下的判别能力优化。
+
+
+我们根据我们的场景对原始DeepSORT的特征提取网络进行了替换与优化，采用MobileNet-B0结构重新训练Re-ID模型，以在保证判别力的同时降低计算复杂度。如图MobileNet Body Architecture，是MobileNet-B0的网络架构\cite{217}。
+
+本研究采用基于EfficientNet-B0的特征提取网络：
+骨干网络：使用在ImageNet上预训练的EfficientNet-B0作为特征提取器。
+特征映射：将原网络的分类层替换为128维特征向量输出层。
+特征归一化：对输出特征进行L2归一化，便于相似度计算。
+整体的特征提取和输出的网络架构为：Input(128×128×3) → EfficientNet-B0 → FC(128) → BatchNorm → L2-Normalize → Output(128)
+
+考虑到实际应用中人体检测框尺寸的多样性，本研究采用智能缩放与填充策略：
+    （1）智能缩放算法：对输入的人体区域图像，计算保持长宽比的最优缩放比例，避免图像变形。
+    （2）统一尺寸处理：将缩放后的图像居中放置在128×128像素的黑色画布上，确保所有样本具有统一的输入尺寸。
+    （3）数据增强：采用水平翻转、随机旋转（±15°）、颜色抖动和随机擦除等技术提升模型的泛化能力。
+    该预处理方式确保了训练与推理阶段的数据分布一致性，避免域偏移问题
+
+
+损失函数与训练策略
+采用三元组损失作为训练目标函数：
+$$L_{triplet} = \max(0, d(a,p) - d(a,n) + \alpha)$$
+其中，$d(a,p)$和$d(a,n)$分别为锚点与正样本、锚点与负样本的欧几里得距离，边界参数$\alpha=0.5$。
+训练策略包括：
+AdamW优化器（学习率2×10⁻⁴，权重衰减1×10⁻⁴）
+OneCycleLR学习率调度
+混合精度训练加速
+批次大小32
+
+
+这些的网络设计，使得DeepSORT能够有效提取目标的判别性外观特征，从而在多目标追踪任务中显著减少ID切换的频率并提高追踪的鲁棒性。
+
+
+4 数据关联（Data Association）
+数据关联是DeepSORT的关键环节，旨在将当前帧的检测结果与现有的追踪轨迹进行最佳匹配，从而保持目标身份的连续性。DeepSORT通过结合运动学信息和目标外观信息，引入了复杂的数据关联机制。其级联关联阶段（cascade association phase）多模态相似度度量，该度量包含衡量轨迹运动学兼容性的马氏距离（Mahalanobis distance）余弦距离（cosine distance）。这种方法有效地管理了相似外观或快速运动所带来的歧义\cite{141}。
+• 相似性度量：
+    ◦ 马氏距离（Mahalanobis Distance）：用于衡量检测边界框与卡尔曼滤波器预测轨迹之间的运动兼容性。它考虑了数据之间的协方差，能够有效滤除不太可能的关联。当仅使用马氏距离时，目标被长时间遮挡或快速移动可能导致ID切换。
+        ▪ 计算公式：$D_M(i, j) = (d_j - y_i)^T S_i^{-1} (d_j - y_i)$。 其中，$d_j$ 是第 $j$ 个检测框的位置，$y_i$ 是第 $i$ 条轨迹的预测位置，$S_i^{-1}$ 是检测框与轨迹之间的协方差矩阵的逆\cite{105}。
+    ◦ 余弦距离（Cosine Distance）：用于衡量检测到的目标外观特征向量与现有轨迹中存储的外观特征向量之间的相似度。为处理长期遮挡，DeepSORT为每条轨迹维护一个特征库，存储其最近成功关联的100个外观特征描述符。
+        ▪ 计算公式：$D_C(i, j) = \min {1 - \mathbf{r}_j^T \mathbf{r}_k^{(i)} \mid \mathbf{r}_k^{(i)} \in R_i }$。 其中，$\mathbf{r}_j$ 是第 $j$ 个检测的特征向量，$R_i$ 是第 $i$ 条轨迹的特征库，$\mathbf{r}_k^{(i)}$ 是特征库中的特征向量\cite{105}。
+    ◦ 联合距离：DeepSORT通过线性加权的方式结合马氏距离和余弦距离，形成最终的关联度量。
+        ▪ 计算公式：$c_{i,j} = \lambda \cdot D_M(i,j) + (1 - \lambda) \cdot D_C(i,j)$。 其中 $\lambda$ 是权重系数\cite{105}。
+• 匹配策略：
+    ◦ 级联匹配（Cascade Matching）：这是DeepSORT相较于SORT的重要改进。其核心思想是优先匹配那些最近被看到、拥有更长生命周期且成功关联的轨迹。这有助于解决长期遮挡导致的目标丢失问题，并显著减少ID切换的频率\cite{134}。它通常结合了运动信息（通过马氏距离衡量卡尔曼滤波器预测与检测结果的兼容性）和外观信息（通过余弦距离衡量深度特征的相似性）来构建代价矩阵。
+    ◦ IOU匹配：在级联匹配之后，对于仍未匹配的轨迹和检测框，DeepSORT会进行IOU（Intersection over Union）匹配，以处理由外观突变或部分遮挡引起的变化。
+    ◦ 匈牙利算法（Hungarian Algorithm）：在计算出相似性矩阵后，DeepSORT会将其转换为代价矩阵，并结合运动信息等因素构成最终的关联成本矩阵，然后利用匈牙利算法寻找最优的检测-轨迹匹配方案，以最小化总的关联成本\cite{103}。
+ 
+5 轨迹管理（Track Management）
+DeepSORT包含一套完善的轨迹生命周期管理机制，以确保追踪的鲁棒性。
+• 轨迹初始化：新的检测结果最初被视为“未确认”（Unconfirmed）轨迹。如果一个新轨迹在连续三帧内都成功匹配到检测结果，则被确认为一个新目标并开始持续追踪。
+• 轨迹终止：如果一条轨迹在连续一段时间（例如，超过max_age帧，通常设置为30-70帧）内未能成功匹配到任何检测结果，则认为该目标已离开检测区域或消失，该轨迹将被删除。
+• ID保持与重识别：DeepSORT通过结合运动和外观信息，在目标暂时消失（如被遮挡）后重新出现时，能够尝试重新识别并保留其原始ID。然而，如果目标长时间未被检测到并重新出现时未能成功关联，可能会被分配一个新的ID。
+
+6.DeepSORT 组件在不同场景下的自适应性
+
+在实际应用中，物体的运动模式、检测器的可靠性以及外观特征的稳定性在不同场景下可能存在显著差异。为了确保稳健的多目标跟踪性能，DeepSORT 的多个组件需要进行仔细的自适应。以下小节将对各个模块及其可调参数进行结构化概述。
+
+(1) 卡尔曼滤波器
+卡尔曼滤波器是预测被跟踪物体未来状态的核心运动模型。在 DeepSORT 中，默认假设是恒速模型，适用于以匀速或近匀速运动的物体。然而，在更复杂的运动场景中，应重新考虑以下元素：
+状态空间模型（状态向量 X）：对于加速、转弯或非线性轨迹，必须扩展状态转移矩阵或状态向量本身，以更好地捕捉运动动态。
+过程噪声协方差 (Q)：反映物体运动的不确定性。对于加速度较大或运动模式不规则的物体，需要增大 Q 值以避免低估运动变化。
+测量噪声协方差 (R)：表示检测器的噪声水平。当使用像 YOLO 这样精度有限的检测器时，建议使用较高的 R 值，以应对不确定的测量可靠性。
+
+(2) 门控逻辑
+门控逻辑通过在数据关联之前过滤检测结果来降低计算复杂度并消除不合理的关联。
+马氏距离阈值：应根据物体运动的稳定性进行调整；对于不规则轨迹，可能需要更高的阈值。
+外观门控权重：在运动信息不可靠的场景下，应在门控过程中为外观特征分配更高的权重。
+
+(3) 数据关联
+数据关联通过匈牙利算法进行，该算法基于结合运动和外观信息的代价矩阵。以下参数需要调整：
+代价矩阵权重：运动特征与外观特征的相对重要性应根据场景而定。例如，在高速运动场景中，由于运动预测不可靠，外观特征应具有更高的权重。
+级联匹配：DeepSORT 的一项核心贡献是级联匹配，它优先考虑生命周期较长且观测值较新的轨迹，从而减少长期遮挡下的 ID 切换 \cite{134}。在高度动态的环境中，可以调整匹配优先级以平衡召回率和准确率。
+并合比 (IoU) 匹配：对于级联匹配中未匹配的轨迹和检测，可以使用交并比 (IoU) 匹配作为后备方案。在外观发生变化或部分遮挡的情况下，可能需要放宽 IoU 阈值。
+
+(4) 轨迹管理
+轨迹管理控制轨迹的初始化、维护和终止：
+初始化阈值 (n_init)：对于稳定的场景，较低的阈值即可满足要求。对于不稳定的运动，增加 n_init 可以防止出现虚假轨迹。
+最大轨迹年龄 (max_age)：确定轨迹在不更新的情况下保留的时间。较长的值可以提高对遮挡的鲁棒性，而较短的值则可以加快稳定场景中的轨迹回收速度。
+ID 保留和重新识别：通过联合利用运动和外观线索，DeepSORT 可以在暂时遮挡后重新识别目标。然而，对于长期消失的目标，需要更强大的外观模型来减少 ID 碎片化。
+
+(5) 外观特征提取（Re-ID 模型）
+Re-ID 网络提供具有判别性的外观描述符，以支持鲁棒关联。
+增强特征提取：当运动线索不可靠时，提高 Re-ID 模型的判别能力（例如，采用 CNN-Transformer 混合模型）可以显著减少 ID 切换，尤其是在拥挤或视觉相似的物体场景中。
+
+(6)总结
+总而言之，运动相关参数（状态模型、Q、R）、关联逻辑（门控阈值、代价矩阵加权、级联/IoU 匹配）、轨迹管理策略（n_init、max_age）以及外观提取模块是 DeepSORT 的主要组件，应根据不同的应用场景进行调整。适当调整这些模块可以使跟踪器在各种条件下保持稳健性，包括不规则的物体运动、噪声检测、频繁的遮挡以及目标间外观相似度较高等情况。
+
+4.3 计数算法（Before）
+在获得YOLOv11模型对图像中每个人的检测结果（即边界框和置信度）之后，最直接的计数方法就是统计检测到的边界框的数量、\cite{02_noauthor_review_nodate}\cite{68_zhao_detection_2022}。每个被模型以足够高的置信度预测为“人”的边界框，都被认为对应着一个人。通过简单地计算这些边界框的总数，即可得到图像中人群数量的估计值。
+计数的具体算法
+在这些利用追踪算法进行计数的系统中，具体的计数策略通常是在追踪结果（即目标轨迹）的基础上进行的。其核心思路是判断目标的轨迹是否满足预设的计数条件。
+常见的计数算法（基于追踪结果的逻辑）包括：
+• 虚拟计数线/区域穿越法：这是最直观的计数方法之一。在视频场景中预设一条或多条虚拟的计数线或一个计数区域。当一个被追踪的目标的轨迹穿越这条线或进出该区域时，计数器会相应地增加或减少。例如：  Ya-Wen等人使用的方法是： 在公交车乘客计数中提到设置虚拟计数线和计数区域来统计乘客流量，通过乘客穿越在技术区域内穿过计数计数线计数\cite{22_hsu_passenger_2020}。 Yuhao Ge等人 在番茄计数中明确指出，在获取追踪结果后，使用 OpenCV 创建虚拟计数线来对目标进行计数，并设置目标置信度阈值以避免重复计数\cite{204}。 来自Jiandong Zhao等人的方法则描述了通过分析乘客在上下车区域的轨迹，并结合位置信息判断规则，来统计乘客上下车行为\cite{68_zhao_detection_2022}。
+
+基于上述方法的启发，考虑人群的遮挡，计数线会遗落暂时被遮挡的目标，比如在计数线上有3个人，但是前面两个人挡住了第三个人，计数线只计数了两个值；因此为了实现准确的人流统计，本研究设计了一种基于虚拟计数带的计数方法。该方法通过在视频画面中设置虚拟计数区域，结合目标跟踪结果实现人员的自动计数，首先我们使用跟踪框的几何中心作为目标位置。
+
+虚拟计数带设计
+考虑到实际监控场景中人员相机和人群相对运动的特点，本研究采用双边界计数带设计：
+计数区域定义：在视频画面的左右两侧各设置一个计数带，考虑到连续跟踪的稳定性以及靠近边界的目标画面的畸变造成的ID切换问题，我们如下设置每个计数带的，在左侧计数带，距离画面左边界5%~20%宽度的区域作为左侧计数区域；对于右侧计数带，设置距离画面右边界5%~20%宽度的区域作为计数区域。
+    同时，计数带的位置通过相对坐标定义，确保方法对不同分辨率视频的适应性。
+
+持续帧计数策略
+为了提高计数的鲁棒性，避免因跟踪抖动导致的误计数，本研究采用持续帧计数策略，即持续性检测目标，要求目标需要在计数带内连续出现预设的帧数（默认为2帧）才被确认为有效计数。
+因此我们对目标进行了状态管理，即为每个跟踪目标维护计数状态：统计其连续帧数和是否已计数的状态
+
+中心点定位与边界处理
+中心点计算：使用跟踪框的几何中心作为目标位置：
+边界框修正：对于部分超出画面边界的检测框，采用裁剪策略确保显示的完整性，同时保持原始坐标用于计数逻辑。
+
+计数完整性保证
+为确保计数的完整性，本研究实现了以下机制：
+最后帧补偿：在视频处理结束时，检查最后一帧中仍在计数带内但尚未达到持续帧阈值的目标，将其纳入最终计数，比如目标在在最后一帧不在计数带内，但是视频已停止，因此我们将其纳入最终计数。
+重复计数避免：通过维护已计数目标的ID集合，确保每个目标在整个视频序列中只被计数一次。
+总计数策略：最终人流统计采用左右两侧计数的最大值，我么考虑只计数一侧的目标。因此为了排除火车进站停靠，非停靠站台带来的影响，我们设置只统计一侧的数据作为最后的统计数值。
+
+可视化与验证
+为便于结果验证和分析，系统提供实时的可视化反馈：
+计数带显示：在视频中以半透明黄色区域标示计数带位置
+状态指示：已计数目标以填充式绿色框显示，未计数目标以边框形式显示
+计数信息：实时显示左侧、右侧及总计数结果
+该虚拟区域计数法具有参数化灵活、鲁棒性强、适应性好等特点，能够有效处理复杂监控场景下的人流统计任务。
+
+综上所述，本研究采用基于YOLOv11模型的直接检测方法进行火车站台人群计数。YOLOv11模型负责高效准确地检测图像中的每个人，然后通过设置的虚拟计数带，设置约束和补偿条件，来统计检测到的目标数量，并结合适当的后处理技术，采用NMS和置信度阈值过滤，最终实现对火车站台人群数量的估计。
+
+
+4.评估指标
+
+%=======================  检测评估指标   =================
+\paragraph{检测评估指标} 在静态图像验证集上报告头部检测的 \textbf{mAP@0.5} 与 \textbf{Recall}，用于衡量微调对平台场景的适配收益，评估方法和公式如下。
+In order to comprehensively evaluate the model's performance, the following metrics were adopted in this study:\\
+\textbf{1. Counting Accuracy:} A metric we established to evaluate the overall correctness of the model. In crowd counting tasks, we define this metric as the ratio of detected heads (TP and FP) to the total number of detections (TP and TN). This indicator reflects the overall performance of the model in the detection task. The formula for calculating counting accuracy is as follows:
+\begin{equation}
+    \text{Counting Accuracy} = \frac{TP + FP}{TP + FN}
+\end{equation}
+
+\textbf{2. Recall (R):} Evaluates the model's capability to detect actual heads. The formula for calculating recall is:
+\begin{equation}
+    \text{Recall} = \frac{TP}{TP + FN}
+\end{equation}
+
+\textbf{3. Precision (P): }Provides a comprehensive measure of the detection precision of the model. Precision is calculated as follows:
+\begin{equation}
+    \text{Precison} = \frac{TP}{TP + FP}
+\end{equation}
+
+\textbf{4. mAP50: }Represents the mean average precision (mAP) at an Intersection over Union (IoU) threshold of 0.5. The formula is:
+\begin{equation}
+    \text{mAP50} =  \frac{1}{N}\sum_{i=1}^{N}\text{AP}_i \quad \text{at IoU threshold of 0.5}
+\end{equation}
+
+\textbf{5. mAP50-95:} Represents the mean average precision computed over IoU thresholds ranging from 0.5 to 0.95, with increments of 0.05. The calculation formula is:
+% 实时
+\begin{equation}
+    \text{mAP50-95} = \frac{1}{10}\sum_{t=0.5}^{0.95}\text{mAP}_t
+\end{equation}
+\textbf{6. Mean Absolute Error (MAE):} Measures the average absolute difference between the crowd count estimated by the model and the actual crowd count. MAE is computed as:
+\begin{equation}
+    \text{MAE} = \frac{1}{N}\sum_{i=1}^{N}\left|C_i - \hat{C}_i\right|
+\end{equation}    
+
+where \( N \) represents the number of test images, \( C_i \) is the actual number of people in the \(i\)-th image, and \(\hat{C}_i\) is the model-estimated count.
+\textbf{7. Mean Squared Error (MSE):} Measures the average of squared differences between the model-estimated crowd count and the actual crowd count. The formula for calculating MSE is:
+\begin{equation}
+    \text{MSE} = \frac{1}{N}\sum_{i=1}^{N}(C_i - \hat{C}_i)^2
+\end{equation}
+
+\paragraph{Summary}
+In summary, the detection evaluation metrics provide a comprehensive assessment of the model's performance in accurately detecting and counting people in static images. These metrics help us understand how well the model can generalize to unseen scenarios and how it performs in different density levels of the platform scene.
+
+
+%=======================  跟踪评估指标   =================
+\paragraph{跟踪评估指标} 在 MOT-TPCH 上采用 MOTChallenge 常用指标：\textbf{IDF1}、\textbf{MOTA}、\textbf{ID Switches (IDs)}、\textbf{MT/ML} 等；并给出 \textbf{FPS} 以反映实时性。
+For the quantitative evaluation of multi-object tracking (MOT) performance, we employ the widely adopted metrics implemented in the \texttt{py-motmetrics} library\footnote{\url{https://github.com/cheind/py-motmetrics}}, which is consistent with the CLEAR-MOT and ID-based evaluation protocols. Let $TP$ denote the number of true positives, $FP$ the false positives, $FN$ the false negatives (misses), $IDSW$ the number of identity switches, and $d_i$ the distance (e.g., bounding box overlap or object center distance) between matched ground truth and prediction. The metrics are defined as follows:
+
+\paragraph{CLEAR-MOT metrics}
+\begin{align}
+\text{MOTA} &= 1 - \frac{\sum_t (FN_t + FP_t + IDSW_t)}{\sum_t GT_t}, \\
+\text{MOTP} &= \frac{\sum_{i,t} d_{i,t}}{\sum_t TP_t},
+\end{align}
+where $GT_t$ is the number of ground-truth objects at time $t$, and $d_{i,t}$ denotes the distance between a matched hypothesis and ground truth.
+
+\paragraph{Identity-based metrics}
+\begin{align}
+\text{ID Precision (IDP)} &= \frac{IDTP}{IDTP + IDFP}, \\
+\text{ID Recall (IDR)} &= \frac{IDTP}{IDTP + IDFN}, \\
+\text{IDF1} &= \frac{2 \cdot IDTP}{2 \cdot IDTP + IDFP + IDFN},
+\end{align}
+where $IDTP$, $IDFP$, and $IDFN$ represent identity-based true positives, false positives, and false negatives, respectively.
+
+\paragraph{Additional measures}
+\begin{itemize}
+    \item \textbf{ID Switches ($IDSW$)}: the total number of times a tracked identity changes its assigned label.
+    \item \textbf{Matches}: the number of correct associations between predictions and ground truth.
+    \item \textbf{False Positives ($FP$)}: the number of detections not corresponding to any ground truth object.
+    \item \textbf{Misses ($FN$)}: the number of ground-truth objects not detected.
+    \item \textbf{False Alarms per Frame (FAF)}: average number of false positives per frame,
+    \[
+    \text{FAF} = \frac{\sum_t FP_t}{\text{Number of frames}}.
+    \]
+    \item \textbf{Precision} and \textbf{Recall}: standard definitions,
+    \[
+    \text{Precision} = \frac{TP}{TP+FP}, \quad \text{Recall} = \frac{TP}{TP+FN}.
+    \]
+    \item \textbf{Track quality measures}: a trajectory is considered
+    \begin{itemize}
+        \item \textbf{Mostly Tracked (MT)} if it is tracked for at least 80\% of its lifespan,
+        \item \textbf{Partially Tracked (PT)} if it is tracked between 20\% and 80\%,
+        \item \textbf{Mostly Lost (ML)} if it is tracked for less than 20\%.
+    \end{itemize}
+\end{itemize}
+
+\paragraph{Summary}
+In summary, MOTA and MOTP measure the overall tracking accuracy and precision, IDF1 (with IDP and IDR) evaluates identity preservation, and the additional measures (e.g., ID switches, MT/PT/ML) provide further insights into trajectory-level performance. Together, these metrics allow for a comprehensive and standardized assessment of MOT systems.
+
+\
+
+
+%=======================   计数评估指标  =================
+
+\paragraph{Counting Evaluation Metrics}
+
+To quantitatively evaluate the counting accuracy of the proposed system, we report several commonly used error metrics. 
+Let $\hat{C}_i$ denote the predicted unique count of video $i$, and $C_i$ the corresponding ground-truth count. 
+For $N$ test videos, the following metrics are computed:
+
+\begin{align}
+\text{MAE} &= \frac{1}{N} \sum_{i=1}^{N} \big| \hat{C}_i - C_i \big|, \\
+\text{RMSE} &= \sqrt{\frac{1}{N} \sum_{i=1}^{N} \big(\hat{C}_i - C_i \big)^2}, \\
+\text{MAPE} &= \frac{100\%}{N} \sum_{i=1}^{N} \frac{|\hat{C}_i - C_i|}{C_i}, \\
+\text{ME (Bias)} &= \frac{1}{N} \sum_{i=1}^{N} (\hat{C}_i - C_i).
+\end{align}
+
+\noindent The overall results on the 20 test videos are summarized in Table~\ref{tab:count_metrics}.
+
+\begin{table}[h!]
+\centering
+\caption{Counting accuracy metrics across 20 test videos.}
+\label{tab:count_metrics}
+\begin{tabular}{l c}
+\toprule
+Metric & Value \\
+\midrule
+Mean Absolute Error (MAE) & \num{0.75} \\
+Root Mean Squared Error (RMSE) & \num{1.32} \\
+Mean Absolute Percentage Error (MAPE) & \num{2.24}\% \\
+Mean Error (Bias, ME) & \num{-0.35} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\fi

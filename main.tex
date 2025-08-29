@@ -1,4 +1,4 @@
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%_TEMPLATE_PACKAGES_%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%_TEMPLATE_PACKAGES_%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \documentclass[
 	a4paper,
 	pagesize,
@@ -14,12 +14,6 @@
 % PACKAGES FOR THE INSTITUTSVORLAGE
 \usepackage[utf8]{inputenc}
 \usepackage[ngerman]{babel}
-% CHINESE SUPPORT PACKAGES (commented out for now)
-% \usepackage{fontspec}  % For font specification
-% \usepackage{xeCJK}  % For Chinese character support
-% \setCJKmainfont{SimSun}  % Set Chinese main font
-% \setCJKsansfont{SimHei}  % Set Chinese sans font
-% \setCJKmonofont{FangSong}  % Set Chinese mono font
 \usepackage[unicode=true]{hyperref} % label, references, websites and crosslinks in PDF
 \usepackage{setspace} % für Elemente der Titelseite
 \usepackage{tikz} % für Elemente der Titelseite
@@ -45,11 +39,14 @@
 \usepackage{longtable} % for tables over multiple pages
 \usepackage{pdflscape} % enables landscape mode for multiple pages in PDF (with longtable)
 \usepackage{afterpage} % clears current page by flushing all floats
+\usepackage{float} % for [H] float option
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%我自己添加的格式%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\usepackage{minted} % 导言区 - 代码高亮包
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%_TITLE_PAGE_%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{document}
 
 % Beispielhafte Nutzung der Vorlage für die Titelseite (bitte anpassen):
-\input{Institutsvorlage}
+\input{library/Institutsvorlage.tex}
 
 \titel{Deep Learning based Multi-Object Tracking for Crowd Detection, Tracking and Counting on Railway Platforms} % Titel der Arbeit
 \typ{Masterarbeit} % Typ der Arbeit:  Diplomarbeit, Masterarbeit, Bachelorarbeit
@@ -76,11 +73,12 @@
 \pagenumbering{arabic}  % start regular page numbers from here
 % insert and call your designated chapters here from chapters/... folder
 
+
 \input{chapters/01_Introduction}
-
-\input{chapters/02_RelatedWork}
-
+\input{chapters/02_Related Work}
 \input{chapters/03_Data}
+\input{chapters/04_Methods}
+\input{chapters/05_Experiments}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%_BIBLIOGRAPHY_%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

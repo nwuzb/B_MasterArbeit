@@ -16,16 +16,28 @@
             "args": [
                 ".output/%DOCFILE%"
             ]
+        },
+        {
+            "name": "clean-empty-dirs",
+            "command": "find",
+            "args": [
+                ".output",
+                "-type",
+                "d",
+                "-empty",
+                "-delete"
+            ]
         }
     ],
     "latex-workshop.latex.recipes": [
         {
-            "name": "pdflatex -> bibtex -> pdflatex*2",
+            "name": "pdflatex -> bibtex -> pdflatex*2 -> clean",
             "tools": [
                 "pdflatex",
                 "bibtex",
                 "pdflatex",
-                "pdflatex"
+                "pdflatex",
+                "clean-empty-dirs"
             ]
         }
     ],
@@ -47,5 +59,42 @@
         ".output"
     ],
     "latex-workshop.latex.clean.onBuild.enabled": true,
-    "latex-workshop.latex.clean.onBuild.recipe": "pdflatex -> bibtex -> pdflatex*2"
+    "latex-workshop.latex.clean.onBuild.recipe": "pdflatex -> bibtex -> pdflatex*2 -> clean",
+    "latex-workshop.intellisense.citation.label": "library/citations.bib",
+    "latex-workshop.intellisense.citation.reference": "library/citations.bib",
+    "latex-workshop.intellisense.citation.command": "library/citations.bib",
+    "latex-workshop.intellisense.citation.key": "library/citations.bib",
+    "latex-workshop.intellisense.citation.database": "library/citations.bib",
+    "latex-workshop.intellisense.citation.enabled": true,
+    "latex-workshop.intellisense.citation.include": [
+        "library/citations.bib"
+    ],
+    "latex-workshop.intellisense.citation.exclude": [],
+    "latex-workshop.intellisense.citation.maxItems": 1000,
+    
+    // 编辑器自动换行设置
+    "editor.wordWrap": "on",
+    "editor.wordWrapColumn": 80,
+    "editor.rulers": [80, 120],
+    
+    // 针对特定文件类型的设置
+    "[latex]": {
+        "editor.wordWrap": "on",
+        "editor.wordWrapColumn": 80,
+        "editor.rulers": [80, 120],
+        "editor.lineNumbers": "on",
+        "editor.renderWhitespace": "boundary"
+    },
+    "[tex]": {
+        "editor.wordWrap": "on",
+        "editor.wordWrapColumn": 80,
+        "editor.rulers": [80, 120],
+        "editor.lineNumbers": "on",
+        "editor.renderWhitespace": "boundary"
+    },
+    "[markdown]": {
+        "editor.wordWrap": "on",
+        "editor.wordWrapColumn": 80,
+        "editor.rulers": [80, 120]
+    }
 } 

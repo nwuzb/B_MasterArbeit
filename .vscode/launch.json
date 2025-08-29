@@ -1,0 +1,18 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "LaTeX Workshop",
+            "type": "node",
+            "request": "launch",
+            "program": "${workspaceFolder}/main.tex",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "LATEX_WORKSHOP_BIBLIOGRAPHY_PATH": "library/citations.bib"
+            }
+        }
+    ]
+}
+
+

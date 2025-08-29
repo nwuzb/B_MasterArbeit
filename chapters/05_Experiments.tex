@@ -1,0 +1,231 @@
+\iffalse
+集合实际的代码，专注核心功能及其逻辑实现，帮我写我的毕业硕士论文的Experiments部分，用中文写，注意要承接methods部分（参考：），做到逻辑通顺合理，自说自话也要讲好故事，整个experiments包含以下部分：
+1.概述，对下面将要描述的方法的概括总结，展现其逻辑过程。
+2.我们如何训练yolov11
+参考：（1）训练代码，得到yolo11mpre2.pt
+（2）微调代码,得到fintunefreeze10.pt
+3.我们如何训练REID
+    我们使用自己创建的数据集训练了一个ReID 模型，其架构采用MobileNet-B0，考虑到我们检测目标的大小分布从10x10到120x140,而大部分的目标尺寸落在30x30-90x90这个范围，我们将我们的模型改为，输入维度为96x96.参考：
+4.DeepSORT中的8维基准方案，参考
+5.我们的12维加速度方案，参考
+6.我们的5维ekf方案，参考
+\fi
+
+\section{Experiments}\label{section::Experiments}
+
+
+本章围绕“检测—跟踪—计数”的整体流程，系统评估了所提出的人群头部检测与站台场景多目标跟踪计数方法。我们以YOLO11m作为检测器，结合基于MobileNet-B0 的 ReID 外观描述模型，并在 DeepSORT框架内分别接入三类运动模型以开展实验，包括：8维度匀速基准模型（标准DeepSORT卡尔曼滤波器）；12维度加速度模型以及结合针孔相机集合约束的5维度物理模型。在Data章节所提供的数据上进行评估，其中检测器训练与微调所用的静态图像数据集与多段视频序列互相补充，既涵盖了通用的拥挤场景，也覆盖了列车进站期间不同密度的平台场景。
+
+实验设置
+1.检测器YOLO1m训练与微调：第一阶段使用CrowdHuman数据集训练YOLO11m，第二阶段使用我们整合并标注的 Open Sensor Data for Rail 2023、RailEye3D 与自建 TrainPlatformCrowd 三个来源的共2,000 张头部标注图像进行微调，得到 YOLO11freeze10.pt。
+如图yolopre2_Results Summary，展示了第一阶段训练的结果，如表yolopre2_results所示，我们训练了100epochs，在CrowdHuman数据集上达到了79.4\%的mAP(50),以及54.7%的mAP(50-95)
+\begin{table}[h!]
+    \centering
+    \setlength{\tabcolsep}{12pt} % 调整列间距
+    \renewcommand{\arraystretch}{1.3} % 调整行高
+    \begin{tabular}{|c|c|c|c|c|c|c|}
+    \hline
+    \textbf{Class} & \textbf{Images} & \textbf{Instances} & \textbf{Box(P)} & \textbf{R} & \textbf{mAP50} & \textbf{mAP50--95} \\
+    \hline
+    \rowcolor{blue!20}
+    all & 4370 & 98568 & 0.862 & 0.715 & 0.794 & 0.547 \\
+    \hline
+    \end{tabular}
+    \end{table}
+    \caption{YOLO11m在CrowdHuman数据集上的训练结果}
+    \label{tab:yolopre2_results}
+如图，yolofreeze10_Results Summary，展示了第二阶段训练的结果，如表yolofreeze10_results所示，我们训练了100epochs，在Open Sensor Data for Rail 2023、RailEye3D 与自建 TrainPlatformCrowd 三个来源的共2,000 张头部标注图像上达到了98.0\%的mAP(50),以及81.6%的mAP(50-95)
+
+\begin{table}[h!]
+    \centering
+    \setlength{\tabcolsep}{12pt} % 调整列间距
+    \renewcommand{\arraystretch}{1.3} % 调整行高
+    \begin{tabular}{|c|c|c|c|c|c|c|}
+    \hline
+    \textbf{Class} & \textbf{Images} & \textbf{Instances} & \textbf{Box(P)} & \textbf{R} & \textbf{mAP50} & \textbf{mAP50--95} \\
+    \hline
+    \rowcolor{blue!20}
+    all & 1676 & 9352 & 0.965 & 0.946 & 0.98 & 0.816 \\
+    \hline
+    \end{tabular}
+    \end{table}
+    \caption{YOLO11m在CrowdHuman数据集上的训练结果}
+    \label{tab:yolofreeze10_results}
+
+按 \S\ref{section::Methods} 所述，我们选用YOLO11m作为精度—速度折中版本。第一阶段在CrowdHuman数据集中训练获得通用头部检测能力，第二阶段以 \texttt{backbone=10} 冻结微调策略，得到YOLO11freeze10.pt作为最终检测器权重。跟踪阶段默认使用高置信度阈值 \(\geq 0.7\) 与 IOU阈值为0.5，旨在减少非人头目标进入候选和匹配的，提高跟踪速度和准确性，获得更好的评估结果。
+
+
+2.ReID（MobileNet）实验设置与结果
+数据集：使用10个视频序列构建训练数据集，包含238个有效跟踪目标，每个目标至少包含5帧有效图像，如表ReID_Data_Distribution所示用来训练ReID模型的数据集。数据经过智能缩放与填充预处理，统一为128×128像素尺寸。
+硬件环境：实验在Google Colab平台的NVIDIA L4 GPU（22.2GB显存）上进行，利用12个CPU核心进行并行数据处理。
+训练参数：设置训练轮数为50个epoch，批次大小32，采用混合精度训练技术提升训练效率。
+ReID模型训练过程与结果
+训练收敛性：模型在50个训练轮次内实现良好收敛，三元组损失函数值稳定下降。采用OneCycleLR学习率调度器有效提升了训练效率。
+模型输出：训练完成后同时生成PyTorch格式（.pth）和TensorFlow格式（SavedModel）的模型文件，满足不同部署环境需求。
+特征质量：训练得到的模型能够为每个人体检测区域生成128维的归一化特征向量，为后续的身份匹配提供可靠的特征表示。
+处理一致性：通过智能缩放与填充的预处理方式，确保了训练阶段与实际推理阶段的数据处理完全一致，有效避免了域偏移对模型性能的影响。
+
+
+
+
+3.跟踪与计数评估：在自建的数据集MOT-TPCH上进行评估。该数据集按\ref{section::data}所述经由时间/空间裁剪与去音频处理，分辨率介于 1920\(\times\)1080 与 2304\(\times\)1296/1536\(\times\)864 之间，并标注连续头部轨迹（MOT 格式）。
+其中20个视频序列用于评估，如表P20_MOT-TPCH_Evaluation20所示，该20个视频用来评估3个跟踪算法的MOT评估指标及其计数指标。
+
+
+4.三类运动模型
+
+为验证运动建模对平台场景多目标跟踪稳定性与ID一致性的影响，我们在相同检测与 ReID 设置下，对比以下三种卡尔曼滤波方案（接口均与 DeepSORT 兼容），我们使用MOT-TPCH数据集进行评估，该数据集包含20个视频序列，如图P20_MOT-TPCH_Evaluation20所示，该20个视频用来评估3个跟踪算法的MOT评估指标及其计数指标。
+
+
+
+% ---------------------------------------% 8维匀速基准模型（CV-8D）------------------------------------------------------------
+\paragraph{8维匀速基准模型（CV-8D）。} 该模型假设常速度运动，使用标准线性观测。其实现对应仓库中的 \texttt{deep\_sort/kalman\_filter.py} 的基类实现，作为广泛采用的基准。其中，
+
+\textbf{状态向量为：}
+\begin{equation}
+\mathbf{x}_k = [x, y, a, h, \dot{x}, \dot{y}, \dot{a}, \dot{h}]^T \in \mathbb{R}^{8}
+\end{equation}
+
+\textbf{状态转移矩阵为：}
+\begin{equation}
+\mathbf{F} = \begin{bmatrix}
+1 & 0 & 0 & 0 & \Delta t & 0 & 0 & 0 \\
+0 & 1 & 0 & 0 & 0 & \Delta t & 0 & 0 \\
+0 & 0 & 1 & 0 & 0 & 0 & \Delta t & 0 \\
+0 & 0 & 0 & 1 & 0 & 0 & 0 & \Delta t \\
+0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 \\
+0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\
+0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 \\
+0 & 0 & 0 & 0 & 0 & 0 & 0 & 1
+\end{bmatrix}_{8 \times 8}
+\end{equation}
+
+\textbf{过程噪声协方差矩阵为：}
+\begin{equation}
+\mathbf{Q}_k = \text{diag}(\sigma_{pos}^2 h, \sigma_{pos}^2 h, 10^{-4}, \sigma_{pos}^2 h, \sigma_{vel}^2 h, \sigma_{vel}^2 h, 10^{-10}, \sigma_{vel}^2 h)
+\end{equation}
+其中 $\sigma_{pos} = 1/20$，$\sigma_{vel} = 1/160$。
+
+\textbf{观测向量为：}
+\begin{equation}
+\mathbf{z}_k = [x, y, a, h]^T \in \mathbb{R}^{4}
+\end{equation}
+
+\textbf{观测矩阵为：}
+\begin{equation}
+\mathbf{H} = \begin{bmatrix}
+1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
+0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\
+0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 \\
+0 & 0 & 0 & 1 & 0 & 0 & 0 & 0
+\end{bmatrix}_{4 \times 8}
+\end{equation}
+我们使用CV-8D作为基准模型，在MOT-TPCH数据集上针对20个视频序列进行评估，如表P21_CV-8D_Results所示，我们使用CV-8D模型，在MOT-TPCH数据集上达到了23\%的MOTA，900\%的IDF1，90.0\%的IDP，90.0\%的IDR，90.0\%的IDF1，90.0\%的IDP，90.0\%的IDR。
+如图所示P21_CV-8D_Results_videoFrame，是CV-8D模型的评估视频过程中的某一帧，其中展示了当前统计的左右各计数带的人数，以及当前的计数结果，以及目标被跟踪的情况。
+
+
+% ---------------------------------------% 12维加速度模型（CA-12D）------------------------------------------------------------
+\paragraph{12维加速度模型（CA-12D）。} 在基准模型上扩展加速度分量，状态为 \([x, y, a, h, v_x, v_y, v_a, v_h, a_x, a_y, a_a, a_h]^\top\)，测量仍为 \([x, y, a, h]^\top\)。相较 CV-8D，能更好刻画进站减速、短时加减速与遮挡恢复阶段的状态变化。实现参考 \texttt{deep\_sort/kalman\_filter.py} 中的 \texttt{AccelerationKalmanFilter}（提供速度/加速度平滑与缺帧保守预测）。
+
+
+\textbf{状态向量为：}
+\begin{equation}
+\mathbf{x}_k = [x, y, a, h, \dot{x}, \dot{y}, \dot{a}, \dot{h}, \ddot{x}, \ddot{y}, \ddot{a}, \ddot{h}]^T \in \mathbb{R}^{12}
+\end{equation}
+
+\textbf{状态转移矩阵为：}
+\begin{equation}
+\mathbf{F} = \begin{bmatrix}
+\mathbf{I}_4 & \Delta t \cdot \mathbf{I}_4 & \frac{1}{2}\Delta t^2 \cdot \mathbf{I}_4 \\
+\mathbf{0}_{4 \times 4} & \mathbf{I}_4 & \Delta t \cdot \mathbf{I}_4 \\
+\mathbf{0}_{4 \times 4} & \mathbf{0}_{4 \times 4} & \mathbf{I}_4
+\end{bmatrix}_{12 \times 12}
+\end{equation}
+
+\textbf{运动方程为：}
+\begin{align}
+\mathbf{p}_{k+1} &= \mathbf{p}_k + \mathbf{v}_k \Delta t + \frac{1}{2}\mathbf{a}_k \Delta t^2 \\
+\mathbf{v}_{k+1} &= \alpha_v \mathbf{v}_{k+1}^{pred} + (1-\alpha_v) \mathbf{v}_k, \quad \alpha_v = 0.85 \\
+\mathbf{a}_{k+1} &= \alpha_a \mathbf{a}_{k+1}^{pred} + (1-\alpha_a) \mathbf{a}_k, \quad \alpha_a = 0.7
+\end{align}
+
+\textbf{过程噪声协方差矩阵为：}
+\begin{equation}
+\mathbf{Q}_k = \text{diag}(\sigma_{pos}^2 h, \sigma_{vel}^2 h, \sigma_{acc}^2 h) \otimes \mathbf{I}_4
+\end{equation}
+其中 $\sigma_{pos} = 1/20$，$\sigma_{vel} = 1/160$，$\sigma_{acc} = 1/10$。
+
+\textbf{观测向量为：}
+\begin{equation}
+\mathbf{z}_k = [x, y, a, h]^T \in \mathbb{R}^{4}
+\end{equation}
+
+\textbf{观测矩阵为：}
+\begin{equation}
+\mathbf{H} = [\mathbf{I}_4, \mathbf{0}_{4 \times 4}, \mathbf{0}_{4 \times 4}]_{4 \times 12}
+\end{equation}
+
+
+我们使用CA-12D作为基准模型，在MOT-TPCH数据集上针对20个视频序列进行评估，如表P22_CA-12D_Results所示，我们使用CA-12D模型，在MOT-TPCH数据集上达到了23\%的MOTA，900\%的IDF1，90.0\%的IDP，90.0\%的IDR，90.0\%的IDF1，90.0\%的IDP，90.0\%的IDR。
+如图所示P22_CA-12D_Results_videoFrame，是CA-12D模型的评估视频过程中的某一帧，其中展示了当前统计的左右各计数带的人数，以及当前的计数结果，以及目标被跟踪的情况。
+
+
+
+
+
+% ---------------------------------------% 5维物理模型（Phys-5D）------------------------------------------------------------
+\paragraph{5维物理模型（Phys-5D）。} 融合针孔相机几何约束，将像素高度 \(h\) 与深度 \(Z\) 关联：\(Z = fH/h\)。状态取 \([u, v, h, Z, \dot Z]^\top\)，测量为 \([u, v, h]^\top\)。通过 \((X,Y,Z) \leftrightarrow (u,v,h)\) 的投影/反投影在预测时显式更新 \(Z\) 与 \(h\)，并对 \(\dot Z\) 引入减速度约束以贴合列车相对运动的物理先验。实现参考 \texttt{physical3dkf\_5d.py} 与 \texttt{deep\_sort/custom\_kf5d.py}。
+
+\textbf{状态向量为：}
+\begin{equation}
+\mathbf{x}_k = [u, v, h_{px}, Z, \dot{Z}]^T \in \mathbb{R}^{5}
+\end{equation}
+
+\textbf{几何约束关系：}
+\begin{equation}
+h_{px} = \frac{f \cdot H}{Z}, \quad Z = \frac{f \cdot H}{h_{px}}
+\end{equation}
+其中 $f$ 为相机焦距（像素），$H = 0.3m$ 为行人头高。
+
+\textbf{深度动力学模型：}
+\begin{align}
+Z_{k+1} &= Z_k + \dot{Z}_k \Delta t + \frac{1}{2}a_Z \Delta t^2 \\
+\dot{Z}_{k+1} &= \dot{Z}_k + a_Z \Delta t
+\end{align}
+
+\textbf{自适应减速度约束：}
+\begin{equation}
+a_Z = -\text{sign}(\dot{Z}) \cdot \min\left(a_{max}, \frac{\dot{Z}^2}{2Z}\right), \quad a_{max} = 1.0 \text{m/s}^2
+\end{equation}
+
+\textbf{相机内参配置：}
+根据视频分辨率和裁剪区域：
+\begin{itemize}
+    \item 2K右侧：$f = 795.0$, $(c_x, c_y) = (268.0, 137.0)$
+    \item 2K左侧：$f = 795.0$, $(c_x, c_y) = (1268.0, 137.0)$
+    \item 4K右侧：$f = 1600.3$, $(c_x, c_y) = (515.0, 153.0)$
+    \item 4K左侧：$f = 1600.3$, $(c_x, c_y) = (1789.0, 153.0)$
+\end{itemize}
+
+\textbf{过程噪声协方差矩阵为：}
+\begin{equation}
+\mathbf{Q}_k = \text{diag}(\sigma_{pos}^2 h_{px}, \sigma_{pos}^2 h_{px}, \sigma_{pos}^2 h_{px}, \sigma_{vel}^2 h_{px}, \sigma_{vel}^2 h_{px})
+\end{equation}
+其中 $\sigma_{pos} = 1/2$，$\sigma_{vel} = 1/15$。
+
+\textbf{观测向量为：}
+\begin{equation}
+\mathbf{z}_k = [u, v, h_{px}]^T \in \mathbb{R}^{3}
+\end{equation}
+
+\textbf{观测矩阵为：}
+\begin{equation}
+\mathbf{H} = \begin{bmatrix}
+1 & 0 & 0 & 0 & 0 \\
+0 & 1 & 0 & 0 & 0 \\
+0 & 0 & 1 & 0 & 0
+\end{bmatrix}_{3 \times 5}
+\end{equation}
+
+我们使用Phys-5D作为基准模型，在MOT-TPCH数据集上针对20个视频序列进行评估，如表P23_Phys-5D_Results所示，我们使用Phys-5D模型，在MOT-TPCH数据集上达到了23\%的MOTA，900\%的IDF1，90.0\%的IDP，90.0\%的IDR，90.0\%的IDF1，90.0\%的IDP，90.0\%的IDR。
+如图所示P23_Phys-5D_Results_videoFrame，是Phys-5D模型的评估视频过程中的某一帧，其中展示了当前统计的左右各计数带的人数，以及当前的计数结果，以及目标被跟踪的情况。
