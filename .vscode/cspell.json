@@ -1,0 +1,51 @@
+{
+    "version": "0.2",
+    "language": "en,zh-CN",
+    "languageSettings": [
+        {
+            "languageId": "latex,tex",
+            "dictionaries": ["latex", "chinese", "technical-terms"],
+            "ignoreRegExpList": [
+                "\\\\[a-zA-Z]+\\{[^}]*\\}",
+                "\\\\[a-zA-Z]+",
+                "\\$[^$]*\\$",
+                "\\$\\$[^$]*\\$\\$",
+                "%.*",
+                "\\\\begin\\{[^}]*\\}[\\s\\S]*?\\\\end\\{[^}]*\\}",
+                "[。，、；：？！（）【】「」『』""''…—－～·※]"
+            ]
+        }
+    ],
+    "dictionaries": [
+        "technical-terms"
+    ],
+    "dictionaryDefinitions": [
+        {
+            "name": "technical-terms",
+            "path": "./.vscode/technical-terms.txt"
+        }
+    ],
+    "words": [
+        "LaTeX", "pdflatex", "bibtex", "texlive",
+        "YOLO", "YOLOv", "ReID", "DeepSORT", "EfficientNet", "MobileNet",
+        "MOT", "TPCH", "Phys", "mAP", "IDF", "MOTA", "IoU", "FPS", "MOTP",
+        "CrowdHuman", "RailEye", "TrainPlatformCrowd", "OpenSensor",
+        "Kalman", "bbox", "preprocessing", "hyperparameter", "ablation",
+        "卡尔曼", "滤波", "跟踪", "检测", "计数", "算法", "模型", "数据集",
+        "实验", "评估", "结果", "方法", "性能", "精度", "召回率"
+    ],
+    "ignoreWords": [
+        "zheng", "binzeng", "crowdhuman", "raileye",
+        "yolopre", "yolofreeze", "gbsn", "gkai"
+    ],
+    "ignorePaths": [
+        "*.pdf",
+        "*.png", 
+        "*.jpg",
+        "*.aux",
+        "*.log",
+        "*.bbl",
+        "*.blg",
+        "_minted-*/**"
+    ]
+}

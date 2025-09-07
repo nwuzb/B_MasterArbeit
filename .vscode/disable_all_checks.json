@@ -1,0 +1,58 @@
+{
+    "name": "完全禁用LaTeX检查",
+    "description": "用于替换settings.json中的LaTeX相关设置，彻底禁用所有标记和检查",
+    "latex_settings": {
+        "[latex]": {
+            "editor.wordWrap": "on",
+            "editor.wordWrapColumn": 80,
+            "editor.rulers": [80, 120],
+            "editor.lineNumbers": "on",
+            "editor.renderWhitespace": "boundary",
+            "cSpell.enabled": false,
+            "ltex.enabled": false,
+            "editor.quickSuggestions": false,
+            "editor.suggest.showWords": false,
+            "editor.suggest.showSnippets": false,
+            "problems.decorations.enabled": false,
+            "editor.renderValidationDecorations": "off",
+            "editor.wordBasedSuggestions": false,
+            "editor.parameterHints.enabled": false,
+            "editor.hover.enabled": false,
+            "editor.lightbulb.enabled": false
+        },
+        "[tex]": {
+            "editor.wordWrap": "on",
+            "editor.wordWrapColumn": 80,
+            "editor.rulers": [80, 120],
+            "editor.lineNumbers": "on",
+            "editor.renderWhitespace": "boundary",
+            "cSpell.enabled": false,
+            "ltex.enabled": false,
+            "editor.quickSuggestions": false,
+            "editor.suggest.showWords": false,
+            "editor.suggest.showSnippets": false,
+            "problems.decorations.enabled": false,
+            "editor.renderValidationDecorations": "off",
+            "editor.wordBasedSuggestions": false,
+            "editor.parameterHints.enabled": false,
+            "editor.hover.enabled": false,
+            "editor.lightbulb.enabled": false
+        }
+    },
+    "global_disable": {
+        "ltex.enabled": false,
+        "ltex.checkFrequency": "manual",
+        "latex-workshop.linting.enabled": false,
+        "latex-workshop.intellisense.triggers.latex": [],
+        "problems.decorations.enabled": false,
+        "editor.renderValidationDecorations": "off",
+        "cSpell.enabled": false,
+        "cSpell.autoFormatConfigFile": false,
+        "cSpell.showStatus": false,
+        "cSpell.showCommandsInEditorContextMenu": false,
+        "grammarly.selectors": [],
+        "languageToolLinter.enabled": false,
+        "spellright.statusBarIndicator": false,
+        "spellright.enabled": false
+    }
+}

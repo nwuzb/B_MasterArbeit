@@ -1,0 +1,77 @@
+# 技术术语词典
+# LaTeX和论文相关
+LaTeX
+pdfLaTeX
+XeLaTeX
+bibtex
+texlive
+documentclass
+usepackage
+CJKutf8
+CJKspace
+amsmath
+amsfonts
+
+# 深度学习和计算机视觉
+YOLO
+YOLOv
+ReID
+DeepSORT
+EfficientNet
+MobileNet
+CNN
+RNN
+LSTM
+transformer
+convolution
+pooling
+dropout
+BatchNorm
+ReLU
+
+# 多目标跟踪
+MOT
+MOTA
+MOTP
+IDF
+IDP
+IDR
+IoU
+NMS
+bbox
+centroid
+Kalman
+Hungarian
+JDE
+FairMOT
+ByteTrack
+
+# 数据集
+CrowdHuman
+RailEye
+TrainPlatformCrowd
+OpenSensor
+COCO
+ImageNet
+MOTChallenge
+
+# 评估指标
+mAP
+AP
+AR
+FPS
+FPN
+ROC
+AUC
+precision
+recall
+F1-score
+
+# 项目特定术语
+Phys
+TPCH
+yolopre
+yolofreeze
+gbsn
+gkai
+Institutsvorlage

@@ -14,6 +14,24 @@
 % PACKAGES FOR THE INSTITUTSVORLAGE
 \usepackage[utf8]{inputenc}
 \usepackage[ngerman]{babel}
+% CHINESE LANGUAGE SUPPORT FOR PDFLATEX
+\usepackage{CJKutf8}
+\usepackage{CJKspace}
+% Enable CJK support at document start
+\AtBeginDocument{\begin{CJK}{UTF8}{gbsn}}
+\AtEndDocument{\end{CJK}}
+% Define Chinese font families
+\newcommand{\songti}{\CJKfamily{gbsn}}  % 宋体
+\newcommand{\heiti}{\CJKfamily{gkai}}   % 楷体 (as substitute for 黑体)
+\newcommand{\kaishu}{\CJKfamily{gkai}}  % 楷体
+% Commands for inline Chinese text (for mixed content)
+\newcommand{\zh}[1]{#1}  % Simplified since CJK is globally enabled
+\newcommand{\zhbold}[1]{\textbf{#1}}
+% For table environments with Chinese text
+\usepackage{array}
+\newcolumntype{C}{>{\centering\arraybackslash}p{3cm}}
+% Enhanced Chinese punctuation support
+\CJKspace
 \usepackage[unicode=true]{hyperref} % label, references, websites and crosslinks in PDF
 \usepackage{setspace} % für Elemente der Titelseite
 \usepackage{tikz} % für Elemente der Titelseite
@@ -27,6 +45,9 @@
 % UTILITY PACKAGES
 \usepackage{cite}
 \usepackage{comment} % enables block comments via \begin{comment} ... \end{comment} environment
+\usepackage{amsmath} % for mathematical environments like align, bmatrix
+\usepackage{amsfonts} % for mathematical fonts like \mathbb
+\usepackage{amssymb} % for additional mathematical symbols
 \usepackage{amsthm} % for definitions, lemmas, etc. - also for defining your own stuff, eg below:
     %\theoremstyle{definition}  % defines a new theorem called definition
     %\newtheorem{definition}{Definition}[section]   % definition setup and call
@@ -35,6 +56,7 @@
 \usepackage{caption}    % better captions for figures
 \usepackage{subcaption} % captions for subfigures
 % PRESENTATION PACKAGES
+\usepackage[table]{xcolor} % for colored tables and rows
 \usepackage{booktabs} % for professional tables
 \usepackage{longtable} % for tables over multiple pages
 \usepackage{pdflscape} % enables landscape mode for multiple pages in PDF (with longtable)

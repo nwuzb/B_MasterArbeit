@@ -1,0 +1,87 @@
+\documentclass[a4paper,12pt]{article}
+
+% CHINESE LANGUAGE SUPPORT FOR PDFLATEX
+\usepackage[utf8]{inputenc}
+\usepackage{CJKutf8}
+\usepackage{CJKspace}
+
+% Enable CJK support at document start
+\AtBeginDocument{\begin{CJK}{UTF8}{gbsn}}
+\AtEndDocument{\end{CJK}}
+
+% Define Chinese font families
+\newcommand{\songti}{\CJKfamily{gbsn}}  % 宋体
+\newcommand{\heiti}{\CJKfamily{gkai}}   % 楷体 (as substitute for 黑体)
+\newcommand{\kaishu}{\CJKfamily{gkai}}  % 楷体
+
+% Commands for inline Chinese text
+\newcommand{\zh}[1]{#1}
+\newcommand{\zhbold}[1]{\textbf{#1}}
+
+\usepackage{booktabs}
+
+\begin{document}
+
+\title{中文支持测试文档}
+\author{测试作者}
+\date{\today}
+\maketitle
+
+\section{中文文本测试}
+
+这是一个中文文本测试。我们正在测试LaTeX中的中文显示是否正常。
+
+\subsection{不同字体测试}
+
+\songti{这是宋体文本示例。}
+
+\heiti{这是楷体文本示例（作为黑体的替代）。}
+
+\zhbold{这是加粗的中文文本。}
+
+\subsection{表格中的中文}
+
+\begin{table}[h]
+\centering
+\caption{中文表格测试}
+\begin{tabular}{|c|c|c|}
+\hline
+\textbf{序号} & \textbf{名称} & \textbf{描述} \\
+\hline
+1 & 检测器 & YOLO11模型 \\
+\hline
+2 & 跟踪器 & DeepSORT算法 \\
+\hline
+3 & 计数方法 & 虚拟计数带 \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{列表中的中文}
+
+\begin{itemize}
+\item 第一项：检测器训练
+\item 第二项：ReID模型优化
+\item 第三项：跟踪算法改进
+\item 第四项：计数精度提升
+\end{itemize}
+
+\subsection{数学公式与中文}
+
+在深度学习中，损失函数定义为：
+
+$$L = \frac{1}{N}\sum_{i=1}^{N} \ell(y_i, \hat{y}_i)$$
+
+其中，$N$是样本数量，$y_i$是真实标签，$\hat{y}_i$是预测结果。
+
+\section{混合语言测试}
+
+This is English text mixed with 中文内容. We can seamlessly 混合使用 English and Chinese in the same paragraph.
+
+\section{特殊符号测试}
+
+中文标点符号：、。，；：？！""''
+
+数字与中文：123个目标，96×96像素，mAP@0.5指标
+
+\end{document}

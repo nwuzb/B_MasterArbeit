@@ -96,5 +96,108 @@
         "editor.wordWrap": "on",
         "editor.wordWrapColumn": 80,
         "editor.rulers": [80, 120]
+    },
+    
+    // 中文和多语言支持设置
+    "cSpell.enabled": true,
+    "cSpell.language": "en,zh-CN",
+    "cSpell.languageSettings": [
+        {
+            "languageId": "latex,tex",
+            "locale": "en,zh-CN",
+            "dictionaries": ["latex", "chinese-simplified"]
+        }
+    ],
+    "cSpell.words": [
+        "LaTeX", "pdflatex", "bibtex", "YOLO", "ReID", "DeepSORT", 
+        "MOT", "TPCH", "Phys", "mAP", "IDF", "MOTA", "IoU", "FPS",
+        "CrowdHuman", "RailEye", "TrainPlatformCrowd", "OpenSensor"
+    ],
+    "cSpell.ignoreRegExpList": [
+        "\\\\[a-zA-Z]+\\{[^}]*\\}",
+        "\\\\[a-zA-Z]+",
+        "\\$[^$]*\\$",
+        "\\$\\$[^$]*\\$\\$",
+        "%.*",
+        "\\\\begin\\{[^}]*\\}[\\s\\S]*?\\\\end\\{[^}]*\\}",
+        "[。，、；：？！（）【】「」『』""''…—－～·]"
+    ],
+    
+    // 禁用LaTeX文件的所有检查和标记
+    "[latex]": {
+        "editor.wordWrap": "on",
+        "editor.wordWrapColumn": 80,
+        "editor.rulers": [80, 120],
+        "editor.lineNumbers": "on",
+        "editor.renderWhitespace": "boundary",
+        "cSpell.enabled": false,
+        "ltex.enabled": false,
+        "editor.quickSuggestions": false,
+        "editor.suggest.showWords": false,
+        "editor.suggest.showSnippets": false,
+        "problems.decorations.enabled": false
+    },
+    "[tex]": {
+        "editor.wordWrap": "on",
+        "editor.wordWrapColumn": 80,
+        "editor.rulers": [80, 120],
+        "editor.lineNumbers": "on",
+        "editor.renderWhitespace": "boundary",
+        "cSpell.enabled": false,
+        "ltex.enabled": false,
+        "editor.quickSuggestions": false,
+        "editor.suggest.showWords": false,
+        "editor.suggest.showSnippets": false,
+        "problems.decorations.enabled": false
+    },
+    
+    // 全局禁用某些扩展的检查
+    "ltex.enabled": false,
+    "ltex.checkFrequency": "manual",
+    "latex-workshop.linting.enabled": false,
+    "latex-workshop.intellisense.triggers.latex": [],
+    
+    // 禁用问题面板中的装饰
+    "problems.decorations.enabled": false,
+    
+    // 禁用错误波浪线
+    "editor.renderValidationDecorations": "off",
+    
+    // 禁用所有语义高亮和装饰
+    "editor.semanticHighlighting.enabled": false,
+    "editor.occurrencesHighlight": false,
+    "editor.selectionHighlight": false,
+    "editor.wordHighlight": false,
+    "editor.colorDecorators": false,
+    
+    // 自定义颜色主题来隐藏错误标记
+    "workbench.colorCustomizations": {
+        "editorError.foreground": "#00000000",
+        "editorWarning.foreground": "#00000000", 
+        "editorInfo.foreground": "#00000000",
+        "editorHint.foreground": "#00000000",
+        "editorError.border": "#00000000",
+        "editorWarning.border": "#00000000",
+        "editorInfo.border": "#00000000"
+    },
+    
+    // 禁用token颜色装饰
+    "editor.tokenColorCustomizations": {
+        "textMateRules": [
+            {
+                "scope": "invalid",
+                "settings": {
+                    "foreground": "",
+                    "fontStyle": ""
+                }
+            },
+            {
+                "scope": "invalid.illegal",
+                "settings": {
+                    "foreground": "",
+                    "fontStyle": ""
+                }
+            }
+        ]
     }
 } 

@@ -1,8 +1,13 @@
 {
     "recommendations": [
-        "James-Yu.latex-workshop",
+        "james-yu.latex-workshop",
+        "streetsidesoftware.code-spell-checker",
+        "streetsidesoftware.code-spell-checker-chinese",
+        "valentjn.vscode-ltex",
+        "tecosaur.latex-utilities",
+        "mathematic.vscode-latex"
+    ],
+    "unwantedRecommendations": [
         "ms-vscode.vscode-json"
     ]
 }
-
-
