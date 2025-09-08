@@ -1,214 +1,45 @@
 \section{Methods}\label{section::Methods}
-
-
-
-% 以下英文部分来自之前的studienproject的正文内容复制粘贴，需要保留
-The core of this study is the proposal of a deep-learning-based model leveraging the You Only Look Once (YOLO11) algorithm combined with a counting algorithm to accurately estimate crowd density in train platform scenarios. As the latest iteration of the YOLO series, YOLO11 retains the efficiency of its predecessors while incorporating optimized network architectures and enhanced training strategies to significantly improve detection accuracy and inference speed \cite{74_yolo11_Jocher_Ultralytics_YOLO_2023}. \\
-As Section 2.6 of the "Related Work" points out the balance of performance and computational volume of YOLO11m, we therefore consider using YOLO11m as our benchmark model for training.
-
-As discussed in the final part of the "Related Work" section, the performance of full-body detection methods is considerably limited in crowded environments. However, head regions, which are less prone to occlusion and possess more distinguishable features, have not yet been sufficiently explored or utilized. Considering that severe occlusion commonly occurs among individuals in high-density scenarios, making it challenging to accurately detect full-body outlines, head regions provide distinct advantages. The human head, typically located at the upper portion of the body, is less likely to be severely occluded and exhibits clearer morphological characteristics. Moreover, the size variations of head regions remain relatively stable and are not significantly affected by changes in posture, thereby reducing the likelihood of false positives and missed detections. 
-
-Therefore, this study employs YOLO11m to identify human heads as the primary basis for accurate crowd counting in densely populated environments.
-
-\subsection{YOLO Model}
-In 2015, Redmon et al. introduced the YOLO algorithm, representing a key breakthrough in the field of object detection \cite{76_redmon2016lookonceunifiedrealtime}. As implied by its name ("You Only Look Once"), this innovative approach detects objects and their locations by processing the entire image only once. Unlike traditional two-stage detection frameworks, YOLO formulates object detection as a regression problem \cite{76_redmon2016lookonceunifiedrealtime}. As illustrated in Figures \ref{fig:yolosystem}  and \ref{fig:yoloarchitecture}, YOLO utilizes a single convolutional neural network to simultaneously predict bounding boxes and class probabilities across the entire image \cite{77_Du_article}. Compared to conventional, more complex approaches, YOLO significantly simplifies the detection pipeline.\\
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.8\textwidth]{pictures/The YOLO Detection System.png} % 替换为你的图片路径
-    \caption{The YOLOv1 Detection System} % 图片标题
-    \label{fig:yolosystem} % 图片标签，用于引用.如图\ref{fig:example}所示，这是插入的图片。
-\end{figure}
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.8\textwidth]{pictures/The YOLO Architecture.png} % 替换为你的图片路径
-    \caption{The YOLOv1 Architecture} % 图片标题
-    \label{fig:yoloarchitecture} % 图片标签，用于引用.如图\ref{fig:example}所示，这是插入的图片。
-\end{figure}
-YOLO11 is the latest iteration of the YOLO series, built upon the foundational framework established by YOLOv1. Introduced at the YOLOVision2024 (YV24) conference, YOLO11 represents a significant leap forward in real-time object detection technology. As shown in Figure \ref{fig:yolo11architecture}, this new version demonstrates notable enhancements in architecture and training methodologies, effectively surpassing previous limitations in accuracy, speed, and efficiency \cite{75_khanam2024yolov11overviewkeyarchitectural}.
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.8\textwidth]{pictures/Yolo11architecture.png} % 替换为你的图片路径
-    \caption{The YOlO11 Architecture} % 图片标题
-    \label{fig:yolo11architecture} % 图片标签，用于引用.如图\ref{fig:example}所示，这是插入的图片。
-\end{figure}
-
-\subsubsection{Key Network Structure of YOLO11 }
-The YOLO11 architecture primarily comprises three fundamental components. As illustrated in Figure \ref{fig:yolo11architecture}, firstly, the backbone component serves as the primary feature extractor, employing a convolutional neural network to convert the original image data into multi-scale feature maps. Secondly, the neck component acts as an intermediate processing stage, utilizing specialized layers to aggregate and enhance feature representations at various scales. Thirdly, the head component functions as a predictive mechanism, generating the final outputs for object localization and classification based on the refined feature maps .As shown in Figure 5, Khanam et al. gave the key architectural modules in YOLO11 \cite{75_khanam2024yolov11overviewkeyarchitectural}.
-
-\paragraph{1. Backbone Network}
-The backbone is an essential component of the YOLO architecture, responsible for extracting multi-scale features from input images. This process involves stacking convolutional layers and specialized blocks to generate feature maps at varying resolutions. The backbone network processes the input image through sequential convolutional layers, pooling layers, and activation functions, progressively extracting visual features ranging from low-level to high-level representations.
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.5\linewidth]{pictures/key architectural modules in YOLO11.png}
-    \caption{Key Architectural Modules in YOLO11}
-    \label{fig:Keyarchite}
-\end{figure}
-
-\subparagraph{Convolutional Layers}
-YOLO11 maintains a structure similar to previous versions, employing initial convolutional layers for image downsampling. These layers constitute the foundation of feature extraction, progressively reducing spatial dimensions while simultaneously increasing the number of channels.
-
-\subparagraph{SPPF and C2PSA}
-YOLO11 retains the Spatial Pyramid Pooling-Fast (SPPF) block from earlier versions but introduces a novel Cross Stage Partial with Spatial Attention (C2PSA) block immediately afterward \cite{80_ghosh_yolo11_2024}. As shown in Figure \ref{fig:C2PSA}, the C2PSA block is a noteworthy addition that enhances the spatial attention mechanism within feature maps. This spatial attention mechanism allows the model to effectively focus on critical regions in the image. By spatially pooling features, the C2PSA block enables YOLO11 to concentrate on specific regions of interest, potentially improving detection accuracy for objects of varying sizes and positions.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.25\linewidth]{pictures/C2PSA.png}
-    \caption{C2PSA Block}
-    \label{fig:C2PSA}
-\end{figure}
-
-
-\paragraph{2. Neck Network}
-The Neck Network is positioned between the backbone network and the detection head, and its primary role is to aggregate information from feature maps of various scales and transmit them to the detection head for prediction.
-The C3K2 block in YOLO11 introduces a significant improvement by replacing the C2F block in the neck. The C3K2 block is a more computationally efficient implementation of the Cross Stage Partial (CSP) Bottleneck structure. As shown in Figure \ref{fig:C3K2}, it utilizes two smaller convolutions instead of one larger convolution, as employed in YOLOv8\cite{81_noauthor_what_2024}. The "k2" in C3K2 denotes the smaller kernel size, which contributes to accelerated processing speed while maintaining detection performance\cite{75_khanam2024yolov11overviewkeyarchitectural}.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.9\linewidth]{pictures/C3K2.png}
-    \caption{C3K2 Block\cite{83_ultralytics_yolo11_2025}}
-    \label{fig:C3K2}
-\end{figure}
-
-
-\subparagraph{Attention Mechanism}
-A notable enhancement in YOLO11 is its incorporation of spatial attention through the C2PSA module. This attention mechanism enables the model to effectively focus on crucial regions within an image, potentially achieving more accurate detection results, particularly for smaller or partially occluded objects. The integration of C2PSA clearly differentiates YOLO11 from its predecessor, YOLOv8, which lacks this specific attention mechanism \cite{80_ghosh_yolo11_2024}\cite{75_khanam2024yolov11overviewkeyarchitectural}
-
-\paragraph{3. Detection Head}
-
-The Detection Head is responsible for predictions on feature maps across multiple scales, outputting bounding box parameters (center coordinates, width, height), class probabilities, and confidence scores. Typically, YOLO divides the input image into several grid cells, each responsible for predicting targets whose center points fall within that particular cell.
-
-\subparagraph{C3K2 Blocks  }
-In the head component, YOLO11 utilizes multiple C3k2 blocks to efficiently process and refine feature maps. C3k2 blocks are placed along various paths of the detection head to handle multi-scale features at different depths. The behavior of the C3k2 block is flexible depending on the parameter "c3k":  
-\begin{itemize}
-    \item When c3k = False, the C3k2 module behaves similarly to the C2f block, employing a standard bottleneck structure.
-    \item When c3k = True, the bottleneck structure is replaced by a C3 module, enabling deeper and more complex feature extraction.
-\end{itemize}
-
-The main characteristics of the C3k2 block include:  
-Faster Processing: Employing two smaller convolutions instead of a single large convolution reduces computational overhead, thereby speeding up feature extraction.  
-Parameter Efficiency: C3k2 serves as a more compact variant of the CSP bottleneck structure, enhancing efficiency in terms of the number of trainable parameters.
-
-Another noteworthy addition is the C3k module, which allows customizable kernel sizes, further enhancing flexibility. This adaptability of C3k is particularly beneficial for extracting more detailed features from images, thereby contributing to improved detection accuracy.
-
-\subparagraph{CBS Blocks}
-In the YOLO11 head structure, several CBS (Convolution-BatchNorm-SiLU) layers follow the C3k2 blocks \cite{81_noauthor_what_2024}. These layers further refine feature maps through the following mechanisms:  
-\begin{itemize}
-    \item Extraction of relevant features to facilitate accurate object detection.
-    \item Stabilization and normalization of data flow via batch normalization.
-    \item Implementation of nonlinear activation using Sigmoid Linear Unit (SiLU) activation functions, thereby enhancing model performance.
-\end{itemize}
-
-CBS blocks serve as fundamental components within the feature extraction and detection pipeline, ensuring that refined feature maps are appropriately conveyed to subsequent layers for bounding box and class predictions.
-
-Final Convolution and Detection Layers  
-Each detection branch concludes with a set of Conv2D layers, which reduce the feature maps to the number of outputs required for bounding box coordinates and class predictions. The final detection layers integrate these predictions, which include:  
-\begin{itemize}
-    \item Bounding box coordinates for object localization within the image.
-    \item Objectness scores indicating the presence of objects.
-    \item Class scores used to identify the categories of detected objects.
-\end{itemize}
-
-
-\subsection{Crowd Head Feature Extraction}
-We know that in crowded scenarios, such as platforms, only individuals positioned at the outermost edges typically exhibit clearly visible full-body contours. However, head contours remain easily identifiable even in dense, partially occluded crowds. Considering the significant errors introduced by training YOLO11 using full-body bounding boxes under occluded conditions, we employed head annotations as the primary feature representation, training the model using a dataset labeled exclusively with head boundary boxes. Leveraging its deep convolutional neural network architecture, the YOLO11 model can automatically learn and extract robust visual features from crowd images. Our dataset comprises annotated head information from various scenarios, encompassing differences in age, skin color, occlusion levels, and image resolutions. Consequently, training the YOLO11 model on such diverse head data enables the extraction of enriched head-specific features, allowing the model to adaptively learn more discriminative crowd representations. 
-% \textcolor{red}{Comparison of full-body bounding boxes and head bounding boxes.}
-
-
-
-\subsection{Counting Algorithm}
-
-After obtaining the detection results (i.e., bounding boxes and confidence scores) for each person in the image using the YOLO11 model, the most straightforward counting method is to directly count the number of detected bounding boxes \cite{02_noauthor_review_nodate}\cite{68_zhao_detection_2022}. Each bounding box predicted by the model with sufficiently high confidence as "person" corresponds to one individual. Thus, the total number of detected bounding boxes directly represents an estimate of the number of people in the image.
-
-To improve counting accuracy, especially in scenarios involving partial occlusion within crowds, more refined post-processing methods can be employed. For example, Non-Maximum Suppression (NMS) can be applied based on bounding box size and spatial information to merge overlapping boxes, thereby avoiding multiple counts of the same individual. Additionally, setting an appropriate confidence threshold can filter out false positives by retaining only those detections with confidence scores above the specified threshold.
-
-In several studies, such as \cite{41_moreno_rendon_passenger_2023}, researchers have also explored density map-based methods for crowd counting. Typically, this approach employs additional convolutional layers or post-processing steps after the model's output layer to predict the probability of each pixel belonging to the center of a human body, generating a crowd density map. The total number of people is then estimated by integrating this density map. Although the current study primarily employs direct detection based on YOLO11, incorporating density estimation into the YOLO11 framework in the future may further enhance counting performance in highly crowded scenarios.
-
-In summary, this study utilizes a direct detection method based on the YOLO11 model for crowd counting on train station platforms. The YOLO11 model efficiently and accurately detects each person in the image. Subsequently, the total number of detected targets is simply counted, and appropriate post-processing techniques—including NMS and confidence threshold filtering—are applied, thereby achieving an accurate estimation of the crowd size on the train station platforms.
-
-
-
-
-
-
-% 以下是中文部分，含义表达以中文版为主    
-
 % \iffalse
 4. Method 
-本研究的核心在于提出一个基于You Only Look Once (YOLOv11) 的深度学习模型，并结合DeepSORT算法及其计数算法，实现对火车站台场景中人群数量的准确估计。如图，是我们提出的系统的整体框架。YOLOv11作为YOLO系列的较新版本，继承了其高效的检测框架，并在网络结构和训练策略上进行了进一步的优化，旨在提升目标检测的精度和速度\cite{74_yolo11_Jocher_Ultralytics_YOLO_2023}。前文Related work部分的最后提到，在拥挤场景下，利用人体完整信息进行检测的效果受限严重，而头部特征作为更易识别且遮挡程度较轻的特征点，尚未被充分深入地探索和利用。因此，考虑到高密度场景下人体之间存在频繁而严重的遮挡，导致个体的整体轮廓难以完整识别，而人体头部通常位于人体上部，受到遮挡的影响较小且外形特征明显，所以更容易准确识别。并且，头部区域尺寸变化相对稳定，不受姿势变化的显著影响，有助于减少模型误检和漏检的概率，从而能够提高模型在高密度人群场景下的检测和计数精度。因此，我们使用YOLOv11来识别认人的头部作为计数依据。
+本研究的核心在于提出一个基于You Only Look Once (YOLOv11) 的深度学习模型，并结合DeepSORT算法及其计数算法，实现对火车站台场景中人群数量的准确估计。如图，是我们提出的系统的整体框架。YOLOv11作为YOLO系列的较新版本，继承了其高效的检测框架，并在网络结构和训练策略上进行了进一步的优化，旨在提升目标检测的精度和速度\cite{74_yolo11_Jocher_Ultralytics_YOLO_2023}。前文Related work部分的最后提到，在拥挤场景下，利用人体完整信息进行检测的效果受限严重，而头部特征作为更易识别且遮挡程度较轻的特征点，尚未被充分深入地探索和利用。因此，考虑到高密度场景下人体之间存在频繁而严重的遮挡，导致个体的整体轮廓难以完整识别，而人体头部通常位于人体上部，受到遮挡的影响较小且外形特征明显，所以更容易准确识别。并且，头部区域尺寸变化相对稳定，不受姿势变化的显著影响，有助于减少模型误检和漏检的概率，从而能够提高模型在高密度人群场景下的检测和计数精度。因此，我们使用Yolo来识别认人的头部作为计数依据。
 
 
 4.1 YOLOv11模型
-2015年，Redmon 等人提出了“YOLO”算法，这是物体检测领域的关键突破\cite{76_redmon2016lookonceunifiedrealtime}。顾名思义，这种创新方法只需一次处理整个图像即可检测物体及其位置。YOLO 的方法不同于传统的两阶段检测过程，它将物体检测定义为一个回归问题\cite{76_redmon2016lookonceunifiedrealtime}。如\ref{fig:yolosystem-cn}和\ref{fig:yoloarchitecture-cn}所示，它采用单个卷积神经网络同时预测整个图像中的边界框和类别概率\cite{77_Du_article}，与更复杂的传统方法相比，它简化了检测流程。
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.8\textwidth]{pictures/The YOLO Detection System.png}
-    \caption{YOLOv1 Detection System}
-    \label{fig:yolosystem-cn}
-\end{figure}
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.8\textwidth]{pictures/The YOLO Architecture.png}
-    \caption{YOLOv1 Architecture}
-    \label{fig:yoloarchitecture-cn}
-\end{figure}
+2015 年，Redmon 等人提出了“YOLO”算法，这是物体检测领域的关键突破\cite{76_redmon2016lookonceunifiedrealtime}。顾名思义，这种创新方法只需一次处理整个图像即可检测物体及其位置。YOLO 的方法不同于传统的两阶段检测过程，它将物体检测定义为一个回归问题\cite{76_redmon2016lookonceunifiedrealtime}。如图The YOLO Detection System.png和The YOLO Architecture.png所示，它采用单个卷积神经网络同时预测整个图像中的边界框和类别概率\cite{77_Du_article}，与更复杂的传统方法相比，它简化了检测流程。
 
-YOLOv11是YOLO系列发展过程中的一个重要版本，以YOLOv1为基础。YOLOv11在YOLOVision2024 (YV24) 大会上亮相，代表了实时物体检测技术的重大飞跃。如\ref{fig:yolo11architecture-cn}所示，新版本在架构和训练方法方面都有了显著的增强，突破了准确性、速度和效率的界限\cite{75_khanam2024yolov11overviewkeyarchitectural}。
+图2：The YOLO Detection System.png、图3：The YOLO Architecture.png
 
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.8\textwidth]{pictures/Yolo11architecture.png}
-    \caption{YOLO11 Architecture\cite{80_ghosh_yolo11_2024}}
-    \label{fig:yolo11architecture-cn}
-\end{figure}
+YOLOv11是YOLO系列的最新版本，以YOLOv1奠定的基础为基础。YOLOv11在YOLOVision2024 (YV24) 大会上亮相，代表了实时物体检测技术的重大飞跃。如图4所示，新版本在架构和训练方法方面都有了显著的增强，突破了准确性、速度和效率的界限\cite{75_khanam2024yolov11overviewkeyarchitectural}。
 
+如图4：Yolo 11 architecture.png \cite{80_ghosh_yolo11_2024}
 
 4.1.1 YOLOv11的网络关键结构
-YOLOV11架构的核心由三个基本组件组成。如\ref{fig:yolo11architecture-cn}所示，首先，骨干组件充当主要特征提取器，利用卷积神经网络将原始图像数据转换为多尺度特征图。其次，颈部组件充当中间处理阶段，采用专门的层来聚合和增强不同尺度的特征表示。第三，头部组件充当预测机制，根据细化的特征图生成用于对象定位和分类的最终输出\cite{75_khanam2024yolov11overviewkeyarchitectural}。
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.5\linewidth]{pictures/key architectural modules in YOLO11.png}
-    \caption{YOLO11 Key Modules}
-    \label{fig:Keyarchite-cn}
-\end{figure}
-
+YOLOV11架构的核心由三个基本组件组成。如图4所示，首先，骨干组件充当主要特征提取器，利用卷积神经网络将原始图像数据转换为多尺度特征图。其次，颈部组件充当中间处理阶段，采用专门的层来聚合和增强不同尺度的特征表示。第三，头部组件充当预测机制，根据细化的特征图生成用于对象定位和分类的最终输出\cite{75_khanam2024yolov11overviewkeyarchitectural}。
+如图5：key architectural modules in YOLO11.png  
 
 4.1.1.1 Backbone Network
-主干是 YOLO 架构的重要组成部分，负责从输入图像中提取多种尺度的特征。此过程涉及堆叠卷积层和专用块以生成条种分辦率的特征图。骨干网络通过一系列的卷积层、池化层以及激活函数对输入图像进行处理，逐步提取从低级到高级的视觉特征。
+主干是 YOLO 架构的重要组成部分，负责从输入图像中提取多种尺度的特征。此过程涉及堆叠卷积层和专用块以生成条种分辦率的特征图。骨干网络通过一系列的卷积层（Convolutional Layers）、池化层（Pooling Layers）以及激活函数（Activation Functions）对输入图像进行处理，逐步提取从低级到高级的视觉特征。
 
 卷积层 
-YOLOv11 保持了与前代产品类似的结构，利用初始卷积层对图像进行下采样。这些层构成了特征提取过程的基础，逐渐减少空间维度，同时增加通道数量。
+YOLOV11 保持了与前代产品类似的结构，利用初始卷积层对图像进行下采样。这些层构成了特征提取过程的基础，逐渐减少空间维度，同时增加通道数量。
 SPPF和C2PSA 
-YOLOv11 保留了以前版本的 Spatial Pyramid Pooling - Fast （SPPF）块，但在其后引入了新的 Cross Stage Partial with Spatial Attention （C2PSA）块\cite{80_ghosh_yolo11_2024}。如\ref{fig:C2PSA-cn}所示，C2PSA 块是一个值得注意的新增功能，它增强了特征图中的空间注意力机制。这种空间注意力机制使模型能够更有效地关注图像中的重要区域。通过空间池化特征， C2PSA 块使 YOLOv11 能够专注于特定的兴趣区域，从而有可能提高不同大小和位置的物体的检测精度。
+YOLO11 保留了以前版本的 Spatial Pyramid Pooling - Fast （SPPF）块，但在其后引入了新的 Cross Stage Partial with Spatial Attention （C2PSA）块\cite{80_ghosh_yolo11_2024}。如图6所示，C2PSA 块是一个值得注意的新增功能，它增强了特征图中的空间注意力机制。这种空间注意力机制使模型能够更有效地关注图像中的重要区域。通过空间池化特征， C2PSA 块使 YOLO11 能够专注于特定的兴趣区域，从而有可能提高不同大小和位置的物体的检测精度。
+图6 C2PSA.PNG C2PSA模块
 
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.25\linewidth]{pictures/C2PSA.png}
-    \caption{C2PSA Module}
-    \label{fig:C2PSA-cn}
-\end{figure}
+4.1.1.2.Neck Network： 
+Neck Network位于骨干网络和检测头（Detection Head）之间，用于聚合来自不同尺度特征图的信息，并传输到头部进行预测.
+C3K2块Yolo11通过用C3K2块在颈部替换颈部的C2F块来引入重大变化。C3k2块是 Cross Stage Partial （CSP） Bottleneck 的计算效率更高的实现。如图7所示，它采用两个较小的卷积，而不是一个大卷积，如 YOLOv8\cite{81_noauthor_what_2024}中所示。C3k2 中的“k2”表示较小的内核大小，这有助于在保持性能的同时加快处理速度\cite{75_khanam2024yolov11overviewkeyarchitectural}。
+图7：C3K2.png C3K2块\cite{83_noauthor_ultralytics_nodate}
 
-
-4.1.1.2.Neck Network
-Neck Network位于骨干网络和检测头之间，用于聚合来自不同尺度特征图的信息，并传输到头部进行预测.
-C3K2块Yolo11通过用C3K2块在颈部替换颈部的C2F块来引入重大变化。C3k2块是 Cross Stage Partial （CSP） Bottleneck 的计算效率更高的实现。如\ref{fig:C3K2-cn}所示，它采用两个较小的卷积，而不是一个大卷积，如 YOLOv8\cite{81_noauthor_what_2024}中所示。C3k2 中的“k2”表示较小的内核大小，这有助于在保持性能的同时加快处理速度\cite{75_khanam2024yolov11overviewkeyarchitectural}。
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.9\linewidth]{pictures/C3K2.png}
-    \caption{C3K2 模块\cite{83_noauthor_ultralytics_nodate}}
-    \label{fig:C3K2-cn}
-\end{figure}
 
 注意力机制 
-YOLOv11 的一个显著新增功能是它通过C2PSA 模块增加了对空间注意力的关注。这种注意力机制使模型能够专注于图像中的关键区域，从而可能实现更准确的检测，尤其是对于较小或部分遮挡的物体。加入C2PSA 使YOLOv11 有别于其前身 YOLOv8，后者缺乏这种特定的注意力机制\cite{80_ghosh_yolo11_2024}\cite{75_khanam2024yolov11overviewkeyarchitectural}。
+YOLO11 的一个显著新增功能是它通过C2PSA 模块增加了对空间注意力的关注。这种注意力机制使模型能够专注于图像中的关键区域，从而可能实现更准确的检测，尤其是对于较小或部分遮挡的物体。加入C2PSA 使YOLO11 有别于其前身 YOLOv8，后者缺乏这种特定的注意力机制\cite{80_ghosh_yolo11_2024}\cite{75_khanam2024yolov11overviewkeyarchitectural}。
 
 
 4.1.1.3 Detection Head： 负责在不同尺度的特征图上进行预测，输出目标的边界框参数（中心坐标、宽度、高度）、类别概率以及置信度得分。YOLO通常将输入图像划分为若干个网格单元（Grid Cells），每个网格单元负责预测中心落在该单元内的目标。
 
 C3K2块
-在头部部分，YOLOv11利用多个C3k2块来高效处理和细化特征图。C3k2块位于头部的多个路径中，用于处理不同深度的多尺度特征。C3k2块根据 c3k 参数的值表现出灵活性： 
+在头部部分，YOLOV11利用多个 C3k2 块来高效处理和细化特征图。C3k2块位于头部的多个路径中，用于处理不同深度的多尺度特征。C3k2 块根据 c3k 参数的值表现出灵活性： 
     •当 c3k = False 时，C3k2 模块的行为与 C2f块类似，采用标准瓶颈结构。 
     •当 c3k = True时，瓶颈结构被C3模块取代，从而可以进行更深层、更复杂的特征提取。 
 C3k2 区块的主要特征： 
@@ -216,7 +47,7 @@ C3k2 区块的主要特征：
 •参数效率：C3k2 是 CSP 瓶颈的更紧凑版本，使得架构在可训练参数数量方面更高效。
 另一个值得注意的新增功能是C3k模块，它允许自定义内核大小，从而增强了灵活性。C3k的适应性对于从图像中提取更详细的特征特别有用，有助于提高检测准确性。
 
-CBS区块 YOLOv11 的头部在 C3k2 块之后包含几个 CBS（Convolution-BatchNorm-Silu）\cite{81_noauthor_what_2024}层。这些层通过以下方式进一步细化特征图： 
+CBS区块 YOLOV11 的头部在 C3k2 块之后包含几个 CBS（Convolution-BatchNorm-Silu）\cite{81_noauthor_what_2024}层。这些层通过以下方式进一步细化特征图： 
     •提取相关特征以进行准确的物体检测。 
     •通过批量标准化来稳定和规范数据流。
     •利用 Sigmoid 线性单元（SiLU）激活函数实现非线性，从而提高模型性能。
@@ -224,29 +55,20 @@ CBS 块是特征提取和检测过程中的基础组件，确保细化的特征�
 
 最终的卷积层和检测层 每个检测分支以一组 Conv2D 层结束，这些层将特征減少到边界框坐标和类预测所需的输出数量。最后的检测层整合了这些预测，其中包括： 
     •用于定位图像中对象的边界框坐标。 
-    •对象性分数表明对象的存在。 
+    • 对象性分数表明对象的存在。 
     •用于确定检测到的物体的类别的类别分数。
 
-% ////////以上部分来自我自己的studienproject的正文内容复制粘贴，需要保留
 
 4.2 DeepSORT（new）
 在介绍了检测器的方法之后，我们这一小节专注于介绍多目标跟踪器算法DeepSORT。
-在多目标跟踪 (MOT) 领域，目标是跨视频帧检测、定位并保持多个目标的唯一身份。DeepSORT（深度简单在线实时跟踪）算法由Alex Bewley等人于2017年提出，是经典SORT（Simple Online and Realtime Tracking）算法的进一步发展和改进。如\ref{fig:DeepSORT-cn}所示，DeepSORT的核心优势在于其创新性地结合了深度学习（Deep Learning）模型提取的外观特征（Appearance Features）与运动信息（Motion Information），显著提高了目标在复杂场景下，特别是长期遮挡情况下的追踪精度和ID一致性，有效解决了SORT算法中频繁出现ID切换的问题。本节概述了该算法的核心原理、组件和公式，并应用于我们针对火车站台上的人群跟踪任务的实现中。
+在多目标跟踪 (MOT) 领域，目标是跨视频帧检测、定位并保持多个目标的唯一身份。DeepSORT（深度简单在线实时跟踪）算法由Alex Bewley等人于2017年提出，是经典SORT（Simple Online and Realtime Tracking）算法的进一步发展和改进。DeepSORT的核心优势在于其创新性地结合了深度学习（Deep Learning）模型提取的外观特征（Appearance Features）与运动信息（Motion Information），显著提高了目标在复杂场景下，特别是长期遮挡情况下的追踪精度和ID一致性，有效解决了SORT算法中频繁出现ID切换的问题。本节概述了该算法的核心原理、组件和公式，并应用于我们针对火车站台上的人群跟踪任务的实现中。
 
 4.2.1 DeepSORT算法概述与核心组成
-DeepSORT算法采用“先检测后追踪”（Tracking-by-Detection, TBD）的框架，其整体流程如\ref{fig:DeepSORT-cn},该算法由三个主要组件构成，分别为深度外观描述符提取模块、卡尔曼滤波器和数据关联模块.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.8\textwidth]{pictures/DeepSORTAlgorithmStructure.png}
-    \caption{DeepSORT Architecture\cite{212}}
-    \label{fig:DeepSORT-cn}
-\end{figure}
-
+DeepSORT算法采用“先检测后追踪”（Tracking-by-Detection, TBD）的框架，其整体流程如图\cite{212},该算法由三个主要组件构成，分别为深度外观描述符提取模块、卡尔曼滤波器和数据关联模块.
 4.2.2 其工作流程可概括为：
 1. 目标检测 (Object Detection)：在每一帧图像中，使用高性能的目标检测器识别出所有目标，并生成对应的边界框及其置信度。\cite{174}
 2. 运动状态预测 (Motion State Prediction)：对于现有轨迹，利用卡尔曼滤波器预测其在当前帧中的可能位置和运动状态。\cite{174}
-3. 特征提取 (Feature Extraction)：对当前帧中所有检测到的目标，使用ReID模型提取其深度外观特征向量。\cite{179}
+3. 特征提取 (Feature Extraction)：对当前帧中所有检测到的目标，提取其深度外观特征向量。\cite{179}
 4. 数据关联 (Data Association)：通过综合考虑运动信息（马氏距离）和外观信息（余弦距离），使用匈牙利算法将当前帧的检测与预测轨迹进行最佳匹配。此外，还引入了级联匹配策略来优化匹配过程。\cite{104}
 5. 轨迹更新与管理 (Track Update and Management)：根据匹配结果，更新现有轨迹的运动状态和外观特征。对于未匹配的检测，初始化为新轨迹；对于连续多帧未匹配的轨迹，则将其删除
 
@@ -288,6 +110,8 @@ v(t)=c_v+f\dfrac{H}{x(t)},
 由此导出人头边界框面积 $A(t)\propto x^{-2}(t)$，呈指数级放大直至列车越过后消失。  
 本节据此建立扩展状态向量，考虑其加速度分量，将基础8维度匀速状态向量增加为12维加速度状态向量，并构建相应过程模型。然后，我们基于上述的透视原则，新增基于物理世界的透视运动模型，将基础8维度匀速状态向量改为为5维透视状态向量，并构建相应过程模型。并对其结果进行评估，具体的实验设置和结果见第五章。
 
+
+
 3. 外观特征提取网络（Appearance Feature Extraction Network / Re-ID Model）
 外观特征是DeepSORT解决长期遮挡和ID切换问题的关键。DeepSORT通过一个深度卷积神经网络（CNN）提取每个检测目标的外观描述符。
 • 网络结构：原始DeepSORT的特征提取网络是一个定制的残差CNN，输出一个128维的特征向量。它被描述为一个简单的CNN或小型CNN，并且是预训练的。一些研究中也将其称为鉴别网络（discriminative network）或重识别（Re-ID）模型。该网络结构通常包含卷积层、最大池化层和多个残差块，最后通过全连接层和L2归一化层得到最终特征\cite{116}。具体的，每个结构层的作用如下：
@@ -301,7 +125,7 @@ v(t)=c_v+f\dfrac{H}{x(t)},
 •训练：此CNN模型通常在大型行人重识别（Person Re-identification, Re-ID）数据集上进行离线训练，例如 MARS 数据集\cite{214} 或 Market-1501 数据集\cite{215}。这些数据集提供了经过标注的行人图像与视频序列，包括身份标签（ID label）与边界框位置（bounding box annotation），从而支持监督学习模型在不同光照、姿态与视角变化条件下的判别能力优化。
 
 
-我们充分考虑我们的使用场景和前人的研究，决定采用来自Zhu等人的研究\cite{218}提出的EfficientNet-B作为骨干网络，如，是EfficientNet-B的网络结构图。我们考虑到效率和准确度，重新训练ReID模型来适合我们系统。基于表~\ref{tab:video_reid_comparison}的实验结果分析，本方法采用的EfficientNet架构在视频行人重识别任务中展现出显著的优势。在计算效率方面，EfficientNet-B模型相比ViT-B将计算复杂度降低了73.6\%（23.5 vs 88.9 GMACs），推理速度提升了3.5倍（78ms vs 272ms per video），同时仅带来0.6\%的mAP性能损失（86.1\% vs 86.7\%）。这种效率提升源于EfficientNet的复合缩放策略和深度可分离卷积设计，其在保持特征提取能力的同时显著减少了参数数量和计算量。更重要的是，该方法在多个基准数据集（MARS、LS-VID、iLiDS-VID、PRID-2011）上均保持了与ViT基准模型相当的识别精度，特别是在rank-1准确率指标上的差距均控制在0.5\%以内。这种计算效率与识别精度的优异平衡使得该方法特别适合于资源受限的实时应用场景，为边缘计算设备上的视频分析任务提供了可行的解决方案。
+我们充分考虑我们的使用场景和前人的燕鸥，决定采用来自Zhu等人的研究\cite{218}提出的EfficientNet-B作为骨干网络，考虑效率和准确度，重新训练ReID模型来适合我们系统。基于表~\ref{tab:video_reid_comparison}的实验结果分析，本方法采用的EfficientNet架构在视频行人重识别任务中展现出显著的优势。在计算效率方面，EfficientNet-B模型相比ViT-B将计算复杂度降低了73.6\%（23.5 vs 88.9 GMACs），推理速度提升了3.5倍（78ms vs 272ms per video），同时仅带来0.6\%的mAP性能损失（86.1\% vs 86.7\%）。这种效率提升源于EfficientNet的复合缩放策略和深度可分离卷积设计，其在保持特征提取能力的同时显著减少了参数数量和计算量。更重要的是，该方法在多个基准数据集（MARS、LS-VID、iLiDS-VID、PRID-2011）上均保持了与ViT基准模型相当的识别精度，特别是在rank-1准确率指标上的差距均控制在0.5\%以内。这种计算效率与识别精度的优异平衡使得该方法特别适合于资源受限的实时应用场景，为边缘计算设备上的视频分析任务提供了可行的解决方案。
 \begin{table}[htbp]
     \centering
     \caption{Comparison of performance of different methods on video pedestrian re-identification task}
@@ -324,14 +148,7 @@ v(t)=c_v+f\dfrac{H}{x(t)},
 骨干网络：使用在ImageNet上预训练的EfficientNet-B0作为特征提取器。
 特征映射：将原网络的分类层替换为128维特征向量输出层。
 特征归一化：对输出特征进行L2归一化，便于相似度计算。
-如\ref{OverallFeatureExtraction}所示表示了整体的特征提取和输出的网络架构.
-
-\begin{figure}
-    \centering
-    \includegraphics[width=0.8\linewidth]{pictures/OverallFeatureExtraction.png}
-    \caption{Train Platform Crowd Head’s Dataset Sample}
-    \label{fig:OverallFeatureExtraction}
-\end{figure}
+整体的特征提取和输出的网络架构为：Input(128×128×3) → EfficientNet-B0 → FC(128) → BatchNorm → L2-Normalize → Output(128)
 
 考虑到实际应用中人体检测框尺寸的多样性，本研究采用智能缩放与填充策略：
     （1）智能缩放算法：对输入的人体区域图像，计算保持长宽比的最优缩放比例，避免图像变形。

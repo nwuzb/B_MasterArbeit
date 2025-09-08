@@ -1,0 +1,193 @@
+\section{Data}\label{section::data}
+
+% -----------------------------------------以下是中文版，含义表达以中文版为主-----------------------------------------------------
+
+% \iffalse
+在这项研究中，我们精心选择了四个数据集，结合公开可用的大规模数据集与自建数据集，以实现更高效、更精确的火车站台人群检测、跟踪和计数方法。
+
+总结表格如下：
+\begin{center}
+    \captionof{table}{Features and Application Stages of Each Dataset}
+    \label{tab:datasets}
+    \resizebox{\textwidth}{!}{%
+        \setlength{\tabcolsep}{6pt}
+        \renewcommand{\arraystretch}{1.2}
+        \begin{tabular}{lccccc}
+            \toprule
+            \textbf{Dataset} & \textbf{Image Resolution} & \textbf{train/validation/test} & \textbf{Instances} & \textbf{Type} & \textbf{Stage} \\
+            \midrule
+            CrowdHuman & Multiple resolutions & 15000/4370/0 & 435168 & Head bounding box & 1. Training \\
+            Open Sensor Data for Rail2023 & 2464×1600 & 0/0/20 & 180 & Head bounding box & 2. Fine-tuning \\
+            RailEye3D Dataset & 1920×1088 & 0/0/320 & 1221 & Head bounding box & 2. Fine-tuning \\
+            TrainPlatformCrowd & 2560×1440/3840×2160 & 0/0/1660 & 6022 & Head bounding box &  2. Fine-tuning \\
+            \bottomrule
+        \end{tabular}%
+    }
+\end{center}
+
+一、Dataset for YOLO Detector
+    数据集CrowdHuman Dataset
+    数据集CrowdHuman\cite{shao2018crowdhuman}，CrowdHuman 是一个基准数据集，规模庞大、注释丰富且多样性高，包含不同场景、不同光照、不同密度、不同年龄和肤色的人群图片，每个人类实例都标注有头部边界框、人类可见区域边界框和人类全身边界框，旨在解决检测模型在拥挤场景中面对遮挡问题的不足。该数据集分别包含 15000、4370 和 5000 张用于训练、验证和测试的图像。该数据集中共有来自训练和验证子集的470K个人类实例，平均每张图大约有 22–23 人，涵盖了负样本到高密度的各个阶段的人群标注且存在各种遮挡，我们关注头部检测，头部尺寸从 像素到像素不等。我们将其训练集的15000张图片，验证集的4370张分别作为我们第一阶段训练YOLOv11msize模型的训练集和测试集。
+
+    如图~\ref{fig:crowdhuman-samples-zh}所示，展示了CrowdHuman数据集的样本图片。
+\begin{figure}
+    \centering
+    \includegraphics[width=0.75\linewidth]{pictures/P1-CrowdHuman Dataset 6 samples.png}
+    \caption{CrowdHuman数据集样本图片，展示多样化的人群场景。}
+    \label{fig:crowdhuman-samples-zh}
+\end{figure}
+
+
+
+
+二、对YOLOdetector进行微调数据集
+微调使用我们自己创建并标注的数据，将3个不同来源的数据进行整合并标注，将标注好的数据用于微调上面训练好的模型权重。
+    1.数据集Open Sensor Data for Rail 2023\cite{OpenSensorDataforRail2023},该数据集由45个带注释的多传感器数据序列组成（彩色摄像机、红外摄像机、激光雷达、雷达、定位、IMU）。图片的分辨率是2464×1600,数据是在德国汉堡的不同铁路轨道上收集的。我们采用其火车头中间的彩色摄像拍摄的视频序列数据，并隔50帧提取一张图片，为防止图片太过相似，一共提取了20张图片，共180个人类实例。我们在roboflow标注其人群的头部数据，然后加入我们第二阶段的微调。
+    如图~\ref{fig:opensensor-samples-zh}所示，展示了Open Sensor Data for Rail 2023数据集中的图片。
+\begin{figure}
+    \centering
+    \includegraphics[width=0.75\linewidth]{pictures/P2-Open Sensor Data for Rail 2023 6samples.png}
+    \caption{Open Sensor Data for Rail 2023数据集样本图片。}
+    \label{fig:opensensor-samples-zh}
+\end{figure}
+
+    2.数据集RailEye3D Dataset\cite{RailEye3D_Dataset}，该数据集是针对乘客安全和列车调度自动化的应用的列车平台场景集合，获取图片的摄像机位于火车的侧面，如图。它包含在奥地利 6 个火车站拍摄的 10 个图像序列，图片的分辨率是1920x1088。我们通过电子邮件请求到相应的图像数据，并每隔60帧提取一张图片，为防止图片太过相似，一共提取了320张图片，共1221个人类实例。我们在roboflow标注其人群的头部数据，然后加入我们第二阶段的微调。
+    如图~\ref{fig:raileye3d-samples-zh}所示，展示了RailEye3D Dataset数据集中的图片。
+\begin{figure}
+    \centering
+    \includegraphics[width=0.75\linewidth]{pictures/P3-RailEye3D Datase 6 Samples.png}
+    \caption{RailEye3D数据集样本图片，展示火车站台场景。}
+    \label{fig:raileye3d-samples-zh}
+\end{figure}
+
+    3.数据集TrainPlatformCrowd Dataset，该数据集是我们自己创建的图片数据集，使用矩形框并采用YOLO格式标注人类头部。数据集的图片主要来自Youtube公开视频中的视频片段，来自60个不同的火车站台场景和人群密度下的视频片段，获取图片的摄像头的位置位于火车头的中间上方的位置，为防止图片太过相似，我们从这些提取的视频片段中至少每隔30帧提取一张图片，一共提取了1660张图片，共5831个人类头部实例，图片的分辨率有。
+    如图~\ref{fig:trainplatform-samples-zh}所示，展示了我们的TrainPlatformCrowd数据集样本。
+\begin{figure}
+    \centering
+    \includegraphics[width=0.75\linewidth]{pictures/P5-TrainPlatformCrowd Dataset 6 Samples.png}
+    \caption{我们的TrainPlatformCrowd数据集样本图片。}
+    \label{fig:trainplatform-samples-zh}
+\end{figure}
+
+    
+因此，我们自创的用来微调检测模型权重的数据集详细信息，如表~\ref{tab:datasets-zh}所示：
+\begin{center}
+    \captionof{table}{各数据集的特点和应用阶段}
+    \label{tab:datasets-zh}
+    \resizebox{\textwidth}{!}{%
+        \setlength{\tabcolsep}{6pt}
+        \renewcommand{\arraystretch}{1.2}
+        \begin{tabular}{lccccc}
+            \toprule
+            \textbf{数据集} & \textbf{图像分辨率} & \textbf{训练/验证/测试} & \textbf{实例数} & \textbf{类型} & \textbf{阶段} \\
+            \midrule
+            CrowdHuman & 多种分辨率 & 15000/4370/0 & 435168 & 头部边界框 & 1. 训练 \\
+            Open Sensor Data for Rail2023 & 2464×1600 & 0/0/20 & 180 & 头部边界框 & 2. 微调 \\
+            RailEye3D Dataset & 1920×1088 & 0/0/320 & 1221 & 头部边界框 & 2. 微调 \\
+            TrainPlatformCrowd & 2560×1440/3840×2160 & 0/0/1660 & 6022 & 头部边界框 &  2. 微调 \\
+            \bottomrule
+        \end{tabular}%
+    }
+\end{center}
+综上，我们将标注好的图片，一共2000张单类人类头部边界框标注数据的图片，按照1400:600分别加入我们第二阶段的训练集、验证集，然后设置backbone=10，用来微调并得到我们的YOLO11freeze10.pt模型权重，该模型权重被用于跟踪系统的检测器。
+
+
+此外，我们还准备了检测器消融实验的静态数据集来评估检测器在不同超参数设置下的性能表现，该数据集包含2071张图像，所有图片都作为验证集进行评估。这些图片由MOT任务标注视频帧裁剪转换而来，使用随机采样方式，从具有MOT标注的数据集中选取，如\ref{fig:DetectorAblationSample}所示，展示了我们进行检测器消融实验的图片样本，其标注格式与检测任务兼容。采用该数据集不仅避免了额外的数据采集与标注成本，保证了实验一致性，还能直接在目标场景下验证模型性能，符合常规评估流程。
+DetectorAblationExperimentDatasetSample
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.75\linewidth]{pictures/DetectorAblationExperimentDatasetSample.png}
+    \caption{我们的TrainPlatformCrowd数据集样本图片。}
+    \label{fig:\begin{figure}
+    \centering
+    \includegraphics[width=0.75\linewidth]{pictures/P5-TrainPlatformCrowd Dataset 6 Samples.png}
+    \caption{我们的TrainPlatformCrowd数据集样本图片。}
+    \label{fig:DetectorAblationSample}
+\end{figure}}
+\end{figure}
+
+
+三、MOT数据集MOT-TrainPlatformCrowdHead Dataset（MOT-TPCH）
+
+为了充分地验证我们的所以提出的系统的性能，特别是在我们关注的火车站台的场景下，我们采取了自建MOT数据集的方式。通过采用MOT格式对27个视频片段的人类头部进行连续轨迹标注，得到了我们的数据集 MOT-TrainPlatformCrowdHead Dataset。这些视频片段主要来自Youtube公开视频中的截取的视频片段，以及我们自己拍摄的类似场景视频，该视频系列的主要特点是拍摄设备位于火车头的上面，正视前进的方向固定位置拍摄，如图\ref{fig:video-cropping-zh}所示，展示了摄像头和我们关注的场景的位置关系。视频展示了火车进站、减速到停止的过程，我们关注的目标位于站台上，每个视频的长度，帧率不尽相同，拍摄的设备未知，以及拍摄的位置略有不同。在一段视频序列当中，我们的目标数量从3到124不等，涵盖不同的光照、遮挡、人群密度条件，时长从几秒到几十秒不等。我们将所具有MOT标注格式的视频用于训练ReID MobileNet-BO模型以及用于评估系统性能。
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.75\linewidth]{pictures/P7-Schematicdiagramofvideosizecroppingdiagram0.6x0.6.png}
+    \caption{视频尺寸裁剪策略示意图}
+    \label{fig:video-cropping-zh}
+\end{figure}
+
+视频尺寸裁剪处理的方式
+首先，我们将Youtube下载好的视频进行片段的选择和裁剪，我们的原则是，尽可能地下载该视频的高分辨率版本，我们得到了2560x1440或3840x2160分辨率的多个视频，我们在时序上裁剪的原则的是从距离第一个目标约30m左右作为被裁剪片段的开始，从最后一个目标刚从画面消失或者列车刚好停止结束；画面尺寸上的处理则是以人群所在的一侧为主要画面进行裁剪，考虑我们来处理数据的设备的局限，我们将画面按照原尺寸的长和宽的0.6倍进行裁剪，具体是，当火车进站的时候，如果人群在右边站台，那么我们将拍摄的画面以右下角为原点，向上对高裁剪0.6倍高度，向左对宽裁剪0.6倍的宽度，我们保留这部分尺寸的连续画面我们最终的视频，如图\ref{fig:video-cropping-zh}所示；如果人群在左边站台，那么我们将拍摄的画面以左下角为原点，向上对高裁剪0.6倍高度，向右对宽裁剪0.6倍的宽度，我们保留这部分这部分尺寸的连续画面作为我们最终的视频，与此同时为了减小视频的体积，我们在裁剪的过程中删除了视频的音频。这意味着，原3840x2160的视频经过处理后得到了分辨率为2304x1296像素的视频，原2560x1440经过处理后得到的是1536x864像素分辨率的视频，然后我们保留了1920x1080的视频尺寸，只是在时序上进行了裁剪得到我们关注的视频片段。我们在尽可能保证画面原始质量和文件大小平衡的情况下进行，使用ffmpeg技术裁剪的核心代码如下所示：
+    \begin{minted}[fontsize=\small, linenos, breaklines]{python}
+    # Construct ffmpeg command
+    crop_filter = f"crop={crop_w}:{crop_h}:{crop_x}:{crop_y}"
+    cmd = [
+        FFMPEG_PATH, "-y",
+        "-ss", start_time,
+        "-to", end_time,
+        "-i", video_path,
+        "-vf", crop_filter,
+        "-c:v", "libx264",
+        "-crf", "15",  # High quality, almost lossless
+        "-preset", "veryslow",
+        "-an",  # Remove audio
+        out_path
+    ]
+    \end{minted}
+将27个视频经过上面的处理方法裁剪得到的详细信息统计如表\ref{tab:mot-tpch-stats-zh}所示。
+
+\begin{landscape}
+\begin{table}[H]
+    \centering
+    \caption{27个处理后的MOT-TPCH视频片段的统计摘要。}
+    \label{tab:mot-tpch-stats-zh}
+    \scriptsize
+    \begin{tabular}{|l|l|l|l|l|l|l|l|l|l|l|l|l|l|l|}
+    \hline
+        Video & Resolution & FPS & Duration\_s & FrameCount & FrameRange & BBoxCount & ObjectCount & MinH & MaxH & MinW & MaxW & AvgH & AvgW & Format  \\ \hline
+        1 & 1920x1080 & 25 & 11.44 & 286 & 41-267 & 565 & 8 & 20.19 & 86.36 & 16.63 & 69.53 & 40.08 & 31.74 & mp4.H264  \\ \hline
+        2 & 1920x1080 & 25 & 18.12 & 453 & 36-451 & 1359 & 25 & 14.64 & 153.88 & 16.36 & 106.39 & 52.36 & 41.48 & mp4.H264  \\ \hline
+        3 & 2304x1296 & 59.94 & 7.84 & 470 & 44-427 & 670 & 10 & 34.95 & 130.56 & 24.32 & 129.21 & 63.99 & 55.43 & mp4.H264  \\ \hline
+        4 & 2304x1296 & 59.94 & 11.29 & 677 & 73-639 & 1085 & 18 & 24.82 & 197.75 & 17.58 & 227.34 & 70.6 & 65.51 & mp4.H264  \\ \hline
+        5 & 2304x1296 & 59.94 & 11.18 & 670 & 2-666 & 2911 & 16 & 18 & 289.02 & 20.16 & 259.88 & 77.29 & 64.89 & mp4.H264  \\ \hline
+        6 & 1536x864 & 59.94 & 35.64 & 2136 & 12-2038 & 17243 & 124 & 10.9 & 118.12 & 7.05 & 129.81 & 33.12 & 30.31 & mp4.H264  \\ \hline
+        7 & 1536x864 & 59.94 & 13.48 & 808 & 5-790 & 1804 & 19 & 16.99 & 147.95 & 11.01 & 149.34 & 36.14 & 32.12 & mp4.H264  \\ \hline
+        8 & 1536x864 & 59.94 & 13.85 & 830 & 1-811 & 3317 & 27 & 19.8 & 119.8 & 13.53 & 117.22 & 38.06 & 33.33 & mp4.H264  \\ \hline
+        9 & 1536x864 & 59.94 & 39.44 & 2364 & 13-2346 & 11474 & 64 & 16.06 & 125.98 & 12.54 & 160.4 & 37.65 & 34.86 & mp4.H264  \\ \hline
+        10 & 2304x1296 & 29.97 & 11.48 & 344 & 21-344 & 624 & 12 & 26.93 & 142.54 & 18.41 & 146.67 & 55.66 & 48.32 & mp4.H264  \\ \hline
+        11 & 2304x1296 & 59.94 & 33.38 & 2001 & 92-1988 & 12249 & 100 & 16.18 & 183.24 & 13.09 & 205.83 & 53.81 & 51.92 & mp4.H264  \\ \hline
+        12 & 1536x864 & 59.94 & 19.19 & 1150 & 343-1077 & 2651 & 28 & 12.78 & 104 & 9.62 & 119.77 & 37.33 & 34.88 & mp4.H264  \\ \hline
+        13 & 1536x864 & 59.94 & 24.07 & 1443 & 178-1443 & 3561 & 32 & 15.15 & 115.6 & 12.86 & 118.58 & 41.97 & 38.9 & mp4.H264  \\ \hline
+        14 & 1536x864 & 59.94 & 8.51 & 510 & 14-510 & 1494 & 16 & 20.4 & 120.98 & 14.72 & 120.92 & 43.05 & 38.02 & mp4.H264  \\ \hline
+        15 & 2304x1296 & 59.94 & 12.01 & 720 & 1-720 & 1303 & 6 & 30.38 & 204.36 & 21.6 & 222.35 & 66.81 & 57.2 & mp4.H264  \\ \hline
+        16 & 2304x1296 & 59.94 & 5.09 & 305 & 16-299 & 1341 & 24 & 24.39 & 167.54 & 20.14 & 154.06 & 56.02 & 52.94 & mp4.H264  \\ \hline
+        17 & 1536x864 & 59.94 & 24.96 & 1496 & 146-1215 & 3575 & 47 & 11.61 & 121.28 & 9.15 & 123.57 & 38.45 & 35.6 & mp4.H264  \\ \hline
+        18 & 1920x1080 & 25 & 8.2 & 205 & 98-196 & 129 & 4 & 27.24 & 57.35 & 20.38 & 52.67 & 37.75 & 30.39 & mp4.H264  \\ \hline
+        19 & 2304x1296 & 59.94 & 17.43 & 1045 & 53-1045 & 4637 & 46 & 14.33 & 116.91 & 10.62 & 131.26 & 44.73 & 43.78 & mp4.H264  \\ \hline
+        20 & 2304x1296 & 59.94 & 10.59 & 635 & 38-615 & 1807 & 21 & 26.9 & 146.26 & 18.23 & 153.21 & 57.48 & 52.73 & mp4.H264  \\ \hline
+        21 & 1920x1080 & 25 & 7.24 & 181 & 67-166 & 437 & 8 & 22.44 & 103.24 & 17.95 & 87.47 & 46.75 & 36.23 & mp4.H264  \\ \hline
+        22 & 1920x1080 & 25 & 7.16 & 179 & 64-151 & 181 & 3 & 22.85 & 58.42 & 14.31 & 49.01 & 36.74 & 27.28 & mp4.H264  \\ \hline
+        23 & 2304x1296 & 59.94 & 11.54 & 692 & 51-664 & 1914 & 53 & 15.91 & 194.65 & 14.42 & 221.6 & 57.45 & 51.93 & mp4.H264  \\ \hline
+        24 & 2560x1440 & 59.94 & 6.99 & 419 & 90-419 & 905 & 18 & 12.72 & 127.42 & 10.28 & 117.93 & 26.46 & 24.48 & mp4.H264  \\ \hline
+        25 & 2560x1440 & 59.94 & 45.71 & 2740 & 1-2697 & 7415 & 93 & 10.84 & 122.27 & 8.69 & 127.9 & 29.51 & 29.76 & mp4.H264  \\ \hline
+        26 & 2304x1296 & 59.94 & 15.01 & 900 & 22-898 & 1171 & 9 & 26.7 & 214.66 & 21.27 & 179.46 & 68.55 & 55.99 & mp4.H264  \\ \hline
+        27 & 2304x1296 & 59.94 & 18.84 & 1129 & 1-724 & 3265 & 54 & 16.65 & 162.63 & 10 & 199.17 & 56.05 & 54.55 & mp4.H264  \\ \hline
+        Summary & ~ & ~ & 449.68 & 24788 & ~ & 89087 & 885 & 19.66 & 141.95 & 14.99 & 143.72 & 48.29 & 42.76 & ~ \\ \hline
+    \end{tabular}
+\end{table}
+\end{landscape}
+
+如\ref{P6-MOT-TPCHsamples}所示，展示了我们的TrainPlatformCrowd数据集样本
+\begin{figure}
+    \centering
+    \includegraphics[width=0.75\linewidth]{pictures/P6-MOT-TPCHsamples.png}
+    \caption{视频裁剪策略示意图（原始尺寸的0.6x0.6）。}
+    \label{fig:P6-MOT-TPCHsamples}
+\end{figure}
+
+综上所述，我们一共使用了21950张图片，约500k个对象实例用于整个实验，其中我们自己一共标记2000张图像，27个视频序列（共24788张图，89087个标注框，885个对象实例），共23K个对象实例，这一多元数据集策略确保了模型不仅在传统人群场景下具备优良表现，也在火车站台这种特殊高密度动态环境中能够实现精准计数，为后续进一步优化与应用奠定坚实基础.
+
+% \fi
