@@ -15,7 +15,7 @@
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.8\textwidth]{pictures/yolo11mpre2results.png}
-    \caption{基于CrowdHuman数据集的YOLO11m预训练结果}
+    \caption{Pre-training Results of YOLOv11m on the CrowdHuman Dataset}
     \label{fig:yolo11mpre2results}
 \end{figure}
 
@@ -31,7 +31,7 @@
 all & 4370 & 98568 & 0.862 & 0.715 & 0.794 & 0.547 \
 \hline
 \end{tabular}
-\caption{YOLO11m在CrowdHuman数据集上的预训练结果}
+\caption{Pre-training Performance of YOLOv11m on the CrowdHuman Dataset}
 \label{tab:yolopre2_results}
 \end{table}
 这一性能指标表明，模型已成功建立起对人类头部的基本检测能力。其中，mAP50 反映了模型在较为宽松的交并比（IoU）阈值下的检测准确率，而 mAP50-95 则代表了在更严格、连续的IoU阈值下的平均精度，后者更能衡量检测框的定位精确度。此阶段的结果证明，模型已经构建了一个坚实的特征提取基础，但其定位精度在复杂场景下仍有提升空间。
@@ -44,8 +44,8 @@ all & 4370 & 98568 & 0.862 & 0.715 & 0.794 & 0.547 \
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=0.8\textwidth]{pictures/yolo11mfinetuneresults.png}
-    \caption{基于自定义头部数据集的YOLO11m微调结果}
+    \includegraphics[width=0.8\textwidth]{pictures/yolofreez10_ResultsSummary.png}
+    \caption{Fine-tuning Results of YOLOv11m on the Custom Head Dataset}
     \label{fig:yolo11mfinetuneresults}
 \end{figure}
 
@@ -59,13 +59,13 @@ all & 4370 & 98568 & 0.862 & 0.715 & 0.794 & 0.547 \
 \textbf{Class} & \textbf{Images} & \textbf{Instances} & \textbf{Box(P)} & \textbf{R} & \textbf{mAP50} & \textbf{mAP50–95} \
 \hline
 \rowcolor{blue!20}
-all & 1676 & 9352 & 0.965 & 0.946 & 0.980 & 0.816 \
+all & 600 & 4779 & 0.965 & 0.946 & 0.980 & 0.816 \
 \hline
 \end{tabular}
-\caption{YOLO11freeze10在头部标注数据集上的微调结果}
+\caption{Fine-tuning Performance of YOLOv11freeze10 on the Labeled Head Dataset}
 \label{tab:yolofreeze10_results}
 \end{table}
-综上所述，通过“通用预训练 + 领域微调”的两阶段策略，我们成功地将 YOLOv11m 模型的能力从一个通用的头部检测器转化为一个专为站台场景优化的高性能检测器（YOLOv11freeze10.pt），为本章后续的跟踪与计数实验提供了可靠的数据输入。
+综上所述，通过"通用预训练 + 领域微调"的两阶段策略，我们成功地将 YOLOv11m 模型的能力从一个通用的头部检测器转化为一个专为站台场景优化的高性能检测器（YOLOv11freeze10.pt），为本章后续的跟踪与计数实验提供了可靠的数据输入。
 
 
 1.1 检测器消融实验
@@ -574,7 +574,7 @@ a_Z = -\text{sign}(\dot{Z}) \cdot \min\left(a_{max}, \frac{\dot{Z}^2}{2Z}\right)
         \textbf{CA-12D} & 2.4 & 4.5837 & 6.99 & 0.7  \\ 
         \textbf{Phys-5D} & 0.75 & 1.3229 & 2.236 & -0.25 \\ \hline
     \end{tabular}
-    \caption{3modelsCountingComparisonResults}
+    \caption{Comparison of Counting Performance Across Three Motion Models}
     \label{tab:3modelsCountingComparisonResults}
 \end{table}
 通过对三种不同复杂度运动模型的系统性评估，我们得出以下结论：
@@ -589,7 +589,7 @@ a_Z = -\text{sign}(\dot{Z}) \cdot \min\left(a_{max}, \frac{\dot{Z}^2}{2Z}\right)
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.8\textwidth]{pictures/VirtualCountingZone.png}
-    \caption{虚拟计数带示意图}
+    \caption{Schematic Diagram of the Virtual Counting Zone}
     \label{fig:VirtualCountingZone}
 \end{figure}
 
