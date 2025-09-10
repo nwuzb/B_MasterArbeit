@@ -1,6 +1,76 @@
 \section{Discussion}\label{section::Discussion}
 
 
+This chapter provides an in-depth and systematic analysis of the experimental results presented in Chapter 5. Rather than merely listing numbers, we investigate the fundamental reasons behind the performance differences among models, and elucidate why the proposed physics-constrained model (Phys-5D) is superior to traditional purely kinematic models. We further analyze how the system’s components (detector, re-identification model, and counting strategy) interact synergistically, and discuss the theoretical implications, practical value, and inherent limitations of this work, laying a solid foundation for the concluding remarks and future directions.
+
+6.1 Comprehensive Interpretation of Results and Core Findings
+
+As stated in Chapter 1, the overarching goal of this work is to build a high-accuracy, high-robustness, real-time crowd detection, tracking, and counting system tailored to the highly challenging dynamics on railway platforms. The experiments in Chapter 5 provide solid quantitative evidence of the effectiveness of our approach. Taken together, the results point to a core finding: for scenarios with strong physical priors, incorporating domain knowledge (e.g., camera geometry) into the motion model is far more effective and robust than merely increasing kinematic model complexity.
+
+Our final system—integrating a domain-adapted YOLOv11m detector, a custom-trained EfficientNet-B0 Re-ID model, and an innovative 5D physics-constrained Kalman filter (Phys-5D)—achieves excellent performance on application-level metrics. On our MOT-TPCH benchmark, the mean absolute percentage error (MAPE) of the final count is only 2.24%. This starkly contrasts with the 14.59% MAPE of the baseline 8D constant-velocity model (CV-8D) and the 6.99% MAPE of the 12D constant-acceleration model (CA-12D), forming the basis for the deeper discussion that follows.
+
+An important observation is that application performance (counting accuracy) is not linearly correlated with traditional MOT metrics (e.g., MOTA). CA-12D and Phys-5D obtain nearly identical MOTA (67.54% vs 67.21%), suggesting similar per-frame detection–association accuracy. However, this obscures a critical difference: the number of identity switches (IDSW) is much higher for CA-12D (avg 39.15) than for Phys-5D (avg 24.80). Identity switches measure how well a tracker preserves identity consistency. For cumulative tasks like counting, which require long-term, stable, and unique identities, trajectory stability and persistent identity are more important than single-frame localization accuracy. Each identity switch can cause the same person to be mistaken for two different identities, inducing overcounts or undercounts. Hence, although CA-12D can fit instantaneous motion better, its weaker identity consistency directly leads to much higher counting errors than Phys-5D. This highlights that application-oriented evaluations must emphasize identity-consistency metrics such as IDF1 and IDSW. Phys-5D’s true advantage lies not only in accurate tracking but also in sustaining consistent identities.
+
+6.2 Motion Models: From Pure Kinematics to Physics-Constrained Modeling and the Trade-offs
+
+To uncover the origins of performance differences among motion models, we now compare the three variants evaluated—CV-8D, CA-12D, and Phys-5D—and argue why imposing physics constraints is key to success in our task.
+
+6.2.1 Limitations of the Baseline (CV-8D)
+
+As the standard baseline in MOT, the 8D constant-velocity (CV-8D) model is our starting point. It assumes linear, constant-speed motion in the image plane. In our scenario—platform pedestrians observed from a moving train—this assumption is fundamentally violated. As the train decelerates, perspective projection causes apparent nonlinear acceleration of pedestrians in the image plane and a nonlinear enlargement of their bounding boxes.
+The experimental evidence confirms this mismatch. As shown in \ref{tab:CV8DResults}, CV-8D exhibits many misses (avg 645) and a high counting error (MAPE 14.59%). The root cause is that during occlusions, the constant-velocity Kalman filter cannot predict the object’s reappearance position and size accurately. Large deviations between prediction and observation (i.e., large Mahalanobis distance) lead to association failures: the tracker either terminates the original trajectory (misses) or allocates a new identity upon reappearance (ID switches). The performance bottleneck is thus the contradiction between the model’s kinematic assumptions and the physical reality of the scene.
+
+6.2.2 Gains and Losses of the Higher-Order Kinematic Model (CA-12D)
+
+A straightforward improvement to CV-8D is to raise the kinematic order by adding accelerations. The 12D constant-acceleration (CA-12D) model embodies this idea and can, in principle, fit nonlinear motion trajectories.
+The data partially validate this: relative to CV-8D, CA-12D improves MOTA from 64.11% to 67.54% and reduces counting MAPE from 14.59% to 6.99%. This stems mainly from better prediction after short occlusions, which increases successful associations and substantially reduces false positives (avg from 480 to 278).
+However, CA-12D introduces an unintended drawback: identity switches rise from 24 to 39.15, even exceeding those of the simpler CV-8D. This reveals a typical challenge in high-dimensional state estimation: while higher dimensionality increases expressiveness, it also amplifies sensitivity to measurement noise. YOLOv11 detections inevitably contain small frame-to-frame jitters. CA-12D may interpret such tiny jitters as large instantaneous accelerations, destabilizing state estimates. Unstable predictions disrupt association, particularly in crowded, ambiguous settings, and increase identity mis-assignments. The lesson is clear: without strong constraints, simply adding degrees of freedom may improve trajectory fitting but harm robustness to noise and, consequently, identity consistency.
+
+6.2.3 Why the Physics-Constrained Model (Phys-5D) Prevails
+
+Motivated by CA-12D’s trade-offs, we propose Phys-5D, which lifts estimation from the 2D image plane to the 3D physical domain and leverages inherent geometric constraints.
+The key is to use the pinhole camera model to establish a deterministic, nonlinear relation between the 2D image height $h$ (px) and the 3D depth $Z$. This acts as a strong regularizer: height jitters are no longer arbitrary size changes but physically interpreted as small movements along depth. Advantages include: (1) physical realism by enforcing perspective consistency and suppressing artifacts; (2) incorporation of priors via an adaptive deceleration constraint that reflects real behavior as pedestrians approach the camera/train; and (3) reduced state dimensionality and improved stability—a compact 5D state with a highly constrained solution space enables robust inference from noisy observations, directly addressing CA-12D’s instability.
+Empirically, Phys-5D achieves the best balance (\ref{tab:Phys5DResults}). Its MOTA (67.21%) is comparable to CA-12D, but ID switches regress to baseline levels (24.80, on par with CV-8D). This stability translates to the application level: counting MAPE drops to 2.24%.
+To visualize the trade-offs and evolution across models, we summarize key metrics below.
+As in Table \ref{tab:3modelsCountingComparisonResults}, a comparison of the three motion models:
+
+\begin{table}[!ht]
+    \centering
+    \begin{tabular}{ccccc}
+    \hline
+        \textbf{Model} & \textbf{MAE } & \textbf{RMSE} & \textbf{MAPE(\%)} & \textbf{ME } \\ \hline
+        \textbf{CV-8D} & 3.4 & 6.1514 & 14.592 & 1.4  \\ 
+        \textbf{CA-12D} & 2.4 & 4.5837 & 6.99 & 0.7  \\ 
+        \textbf{Phys-5D} & 0.75 & 1.3229 & 2.236 & -0.25 \\ \hline
+    \end{tabular}
+    \caption{Three motion models: counting performance comparison}
+    \label{tab:3modelsCountingComparisonResults}
+\end{table}
+
+The table makes the evolution clear: from CV-8D to CA-12D, we improved motion fitting at the expense of identity stability; from CA-12D to Phys-5D, imposing physics constraints not only restored and surpassed identity stability but also pushed application accuracy to a new level. Phys-5D is thus the optimal solution for our task.
+
+6.3 Synergy and Contributions of System Components
+
+Although the motion model is central, the system’s success results from carefully designed components working together. The detect–track–count pipeline is a chain whose overall strength depends on every link.
+Detector as the foundation: the upper bound of tracking is largely determined by detector quality. Our two-stage strategy (generic pre-training + domain fine-tuning) raises mAP50–95 from 54.7% to 81.6%. High-precision, well-localized detections provide low-noise measurements to the Kalman filter—crucial for all motion models, especially noise-sensitive CA-12D and geometry-reliant Phys-5D. Without a strong, scene-optimized detector, sophisticated motion modeling would be built on sand.
+Re-ID as the safety net: DeepSORT relies on both motion and appearance cues. We train a lightweight, high-performance EfficientNet-B0 Re-ID specifically for head images in platform scenes, achieving 100% Rank-1 on our test set. Robust appearance descriptors serve as a safety net when motion prediction falters under long occlusions or abrupt movements, enabling correct re-association and preventing ID switches. This complementarity underpins the tracker’s robustness.
+Counting strategy as the final mile: even a perfect tracker cannot yield accurate counts with a brittle counting logic. The ablations in Chapter 5 show that a single counting line fails catastrophically (MAPE 93.43%) even with the best tracking input, due to extreme sensitivity to jitter and brief detection gaps. Our virtual counting band, requiring persistence across frames within a nonzero-width zone and applying end-of-video compensation, dramatically improves robustness and converts high-quality tracks into accurate counts.
+In short, our success reflects both divide-and-conquer and co-optimization: by optimizing detection, re-identification, motion prediction, and counting logic and then integrating them cohesively, we achieve system-level excellence.
+
+6.4 Theoretical Implications and Practical Value
+
+Theoretical implications: Our core contribution is a compelling case for Physics-Informed Machine Learning (PIML) in computer vision. While recent trends often favor bigger, deeper, purely data-driven models, our results show that in scenes governed by clear physical laws, injecting first principles (e.g., perspective geometry) can yield larger gains and greater robustness than merely adding parameters (e.g., 8D→12D). This challenges brute-force data-driven thinking and advocates physics-aware modeling, inspiring similar tasks with physical constraints (e.g., Ackermann-geometry vehicle tracking, fluid-dynamics particle tracking).
+Practical value: Our results directly address the real-world need raised in Chapter 1. A 2.24% counting error is deployment-ready. For railway operators, accurate counts enable: (1) Safety management: real-time density monitoring with automatic alerts near thresholds to prevent overcrowding and accidents; (2) Operations optimization: precise knowledge of temporal and per-train passenger patterns for schedule planning and dynamic frequency adjustment, improving efficiency and reducing waiting time; (3) Emergency response: reliable counts for evacuation planning during disruptions (e.g., delays). Thus, beyond academic value, our approach is a practical solution that can enhance safety, efficiency, and passenger experience in railway systems.
+
+6.5 Limitations
+
+Despite promising results, we critically examine limitations to guide future work. Camera-parameter dependence: Phys-5D’s strength—accurate camera geometry—also limits plug-and-play deployment, as intrinsics (focal length, principal point) are required. While lab calibration is straightforward, large-scale manual calibration is impractical.
+Scene/model specificity: Phys-5D is tailored to a camera mounted on a moving train observing a static platform, with priors (e.g., adaptive deceleration) tied to this setup. Direct deployment to other settings (e.g., fixed overhead cameras, strong camera shake) may degrade performance, reflecting limited out-of-domain generalization.
+Dataset coverage: Our MOT-TPCH is constructed primarily from public videos and may lack extreme conditions (night, rain/snow, harsh lighting), leaving generalization to out-of-distribution scenarios insufficiently validated.
+Simplified physics: For efficiency, we fix head physical height H at 0.3 m and consider only depth-direction motion, omitting full 6-DoF head pose. While effective here, such simplifications may bottleneck tasks requiring finer pose estimation.
+
+\iffalse
+
 本章旨在对第五章呈现的实验结果进行深入、系统的剖析与解读。讨论将超越简单的数值罗列，深入探究不同模型性能差异背后的根本原因，阐明本研究提出的物理约束模型（Phys-5D）相较于传统运动学模型的优越性。此外，本章还将分析系统中各个组件（检测器、重识别模型、计数策略）的协同效应，并探讨本研究的理论意义、实践价值及其固有的局限性，为最终的结论与未来展望奠定坚实的理论基础。
 
 6.1 实验结果的综合解读与核心发现

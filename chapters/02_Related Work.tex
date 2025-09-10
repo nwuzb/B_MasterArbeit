@@ -36,6 +36,104 @@ Liu et al. proposed an automatic passenger boarding and alighting detection algo
 %  以上部分来自之前的studienproject的正文内容复制粘贴，需要保留
 % ----------------------------------------------------------------
 
+Overall, crowd counting methods are migrating from traditional feature-based and regression models toward deep learning-based end-to-end solutions \cite{13_dogra_survey_2024}. In high-density scenes with severe occlusion, density map-based methods exhibit notable advantages \cite{17_gupta_crowd_2024}. For example, in the extremely crowded MOT20 scenario, CountingMOT integrates crowd density maps to identify occluded or missed targets and correct false detections, thereby substantially improving the performance of multi-object tracking (MOT) \cite{125}. However, a survey by Gang et al. points out that, while there is substantial work on analysis, counting, and classification in crowd tasks, there remain considerable research opportunities in crowd detection and crowd simulation \cite{01_noauthor_deep_2024}.
+
+\textbf{Applications}. Crowd counting technology demonstrates significant potential across multiple domains:
+\begin{itemize}
+  \item \textbf{Intelligent surveillance and safety}: In intelligent surveillance systems, crowd counting can be used to detect abnormal events, such as rapid short-term crowd aggregation or anomalous flow behavior, which is critical for public safety in high-density areas such as railway platforms \cite{01_noauthor_deep_2024}. Such systems are essential for understanding dynamic crowd behavior, implementing crowd control, and analyzing individual behavior to ensure public safety and security, optimize public spaces, and manage events effectively \cite{15_ganga_object_2024}, including monitoring motion, speed, and flow direction and detecting anomalous events such as fights or running \cite{03_abdou_crowd_2020}.
+  \item \textbf{Transportation systems}: In public transit, crowd counting is widely used to estimate onboard passenger numbers (e.g., buses) to optimize routes and schedules, improve convenience, reduce costs, and save energy \cite{33or34_li_lightweight_2023}. For example, real-time detection of crowded buses enables dynamic scheduling strategies on congested routes \cite{55_tsiktsiris_improving_2024}. In metro platforms, Transformer-based real-time passenger detection networks such as MPDNet \cite{64_yang_mpdnet_2022} have been proposed to obtain timely and accurate passenger flow data, supporting operational decisions and ensuring safe and efficient operations.
+  \item \textbf{Public infrastructure planning}: Crowd counting data can be used to assess flow patterns in various public places, thereby assisting infrastructure design and expansion. By tracking ingress and egress at shopping malls, transit hubs, and airports, one can evaluate the efficiency of entrance and exit configurations. Optimizing these layouts improves flow efficiency and safety while minimizing wait times \cite{17_gupta_crowd_2024}.
+  \item In summary, by providing precise information about crowd density, behavioral patterns, and transportation utilization, crowd counting can effectively assist urban planners, public transit operators, and infrastructure managers in making better-informed decisions, thereby optimizing existing infrastructure and guiding future work.
+\end{itemize}
+
+\bigskip
+
+\subsection{Introduction to Multi-Object Tracking}
+Multi-object tracking (MOT) is a fundamental and critical task in computer vision. Its core objective is to simultaneously localize multiple objects of interest (e.g., pedestrians, vehicles, animals) in video sequences and to assign and maintain a unique identity (ID) for each, thus constructing complete motion trajectories over time \cite{103}\cite{116}\cite{152}. Unlike single-object tracking (SOT), MOT must address target entries and exits, inter-object similarity, and complex interactions \cite{86}.
+
+MOT is valuable across a wide array of real-world applications, including but not limited to: intelligent transportation and autonomous driving (real-time monitoring of road vehicles and pedestrians to enhance safety and efficiency \cite{162}); video surveillance and public safety (crowd counting, behavior analysis, and incident response \cite{60_wang_catrack_2025}); robot navigation and human–robot interaction (enabling machines to perceive and track dynamic entities in their environment \cite{160}); sports analytics (analyzing athlete trajectories to support tactics and performance evaluation \cite{200}); and wildlife management (assessing wildlife populations to facilitate ecological conservation \cite{91}).
+
+\subsubsection{Analysis of Detector Components}
+
+In MOT systems, detectors and trackers play different roles, but their performance is interdependent and jointly determines overall effectiveness.
+
+\paragraph{Detector}
+Before discussing specific MOT algorithms, the detector is a key component that identifies and precisely localizes all objects of interest in each frame, providing bounding boxes, categories, and confidence scores. Detector performance directly affects subsequent tracking accuracy, since false negatives can cause track loss and false positives can introduce spurious trajectories \cite{169}.
+
+Common detector choices and characteristics include:
+\begin{itemize}
+    \item Two-stage detectors: Generate region proposals followed by classification and bounding-box regression. Faster R-CNN is representative, renowned for high accuracy but relatively slow speed \cite{88}.
+    \item One-stage detectors: Predict bounding boxes and categories directly from images without region proposals, typically offering significant speed advantages for real-time applications \cite{145}.
+    \item YOLO family (You Only Look Once): As a leading one-stage detector family, YOLO (from YOLOv3 to YOLOv10 and even YOLOv12) strikes an excellent balance between speed and accuracy. For instance, YOLOv5 is widely used in vehicle recognition \cite{121} and crowd detection \cite{105}. YOLOv8 improves pedestrian detection accuracy and reduces model size via techniques such as Soft-NMS and GhostConv \cite{190}. YOLOv9 integrates optical flow to enhance tracking accuracy and robustness, especially under occlusion, appearance variation, and fast motion \cite{141}. YOLOX combines efficiency with strong detection performance and is adopted by leading trackers such as ByteTrack \cite{90}.
+\end{itemize}
+
+\subsubsection{Mainstream MOT Frameworks}
+
+Currently, MOT algorithms can be broadly categorized into Tracking-by-Detection (TBD) and Joint Detection and Embedding (JDE). In recent years, with the advent of Transformers, several new end-to-end approaches have also emerged.
+
+Tracking-by-Detection (TBD)
+The TBD paradigm is among the earliest and most widely adopted. It decomposes MOT into two sequential stages: object detection and data association. A pre-trained detector first identifies and localizes targets in each frame independently, and an association algorithm then matches detections with existing tracks to maintain identity continuity \cite{152}.
+
+Representative methods include: SORT (Simple Online and Realtime Tracking; Bewley et al., 2016), which pioneered the use of a Kalman filter for motion prediction and the Hungarian algorithm for IoU-based association to achieve simple, efficient real-time tracking \cite{169}; and DeepSORT (Wojke et al., 2017), which augments SORT with deep appearance embeddings (Re-ID), combining motion (Kalman filter) and appearance (cosine similarity) with a cascaded matching strategy to significantly reduce ID switches and improve robustness and accuracy in complex scenes \cite{211}. Advantages include a clear, modular architecture that allows independent optimization of the detector and tracker; stronger detectors directly boost tracking performance. Limitations include the separation between detection and tracking, which can reduce efficiency and hinder true end-to-end optimization; under heavy occlusion or target disappearance, reliance on detections can lead to fragmented tracks and identity switches \cite{175}.
+
+Joint Detection and Embedding (JDE)
+JDE addresses TBD limitations by integrating object detection and Re-ID (appearance feature learning) into a unified network for joint training, aiming to improve efficiency and enhance tracking via shared feature learning \cite{173}\cite{90}.
+
+Representative methods include: FairMOT (Zhang et al., 2020), a CenterNet-based joint detection-and-tracking framework with two homogeneous branches for detection and Re-ID, which finds center-based embeddings more suitable for tracking than anchor-based embeddings \cite{208}; and ByteTrack (Zhang et al., 2021), which leverages YOLOX as the detector and introduces a simple yet effective association strategy that fully exploits low-confidence detections, effectively handling occlusion and track fragmentation and achieving state-of-the-art results on MOTChallenge \cite{110}. Advantages include improved computational efficiency and runtime via shared backbones, better suitability for real-time deployment, and the potential for end-to-end optimization. Limitations include potential conflicts between detection and embedding objectives that may impair detection performance; in crowded scenes, anchor-based detectors can exhibit ambiguity when learning Re-ID features \cite{173}.
+
+Emerging methods (Transformers, attention, Siamese networks, GNNs)
+With the evolution of deep learning architectures, emerging methods seek deeper integration of detection, tracking, and association to realize truly end-to-end tracking and reduce reliance on heuristic matching \cite{108}. Representative examples include: MOTR (Zeng et al., 2021), which extends DETR by introducing track queries to model tracked instances across frames and achieve end-to-end tracking through iterative updates and predictions \cite{131}; TransTrack (Sun et al., 2020) \cite{97} and TrackFormer (Meinhardt et al., 2022) \cite{164}, which leverage Transformer query–key mechanisms to decouple detection and association; attention-based VGT-MOT (Wang et al., 2023) \cite{85}, which predicts target locations via inter-frame attention and adaptively fuses motion and appearance similarities to handle occlusion; Siamese-based methods such as SiamMOT (Wang et al., 2021) \cite{151}; and graph neural networks (GNNs), which model complex spatiotemporal relations by treating detections or tracks as nodes and affinities as edges, e.g., GMTracker (He et al., 2021), which emphasizes inter-frame matching with intra-frame context \cite{209}. These methods promise more robust end-to-end training and inference and greater potential under complex, non-linear motion, but they are computationally demanding, require longer training, and depend on large datasets; smaller datasets such as MOT17 may be insufficient to fully train query-based trackers \cite{155}.
+
+\subsection{Challenges in Complex Real-World Scenarios}
+
+Despite significant progress, MOT still faces numerous challenges in high-density, complex-background, and real-time scenarios—particularly on railway platforms \cite{59_wang_deep_2024}.
+
+(1) Occlusion: In crowded platform environments, pedestrians are densely packed and frequently occlude one another or are occluded by fixed structures (e.g., pillars, billboards, train carriages). This makes it difficult for detectors to capture complete bounding boxes or extract stable appearance features, leading to missed detections and identity loss \cite{91}. Traditional TBD methods degrade notably in such cases. DeepSORT mitigates this to some extent via appearance features and cascaded matching but may still fail under prolonged or extreme occlusions \cite{134}.
+
+(2) Identity switches: When multiple targets have similar appearance (e.g., uniforms), or when targets reappear after complex motion, fast movement, or long occlusion, trackers may confuse identities or assign the same ID to different trajectories, causing identity switches \cite{87}. IDSW is a key robustness indicator. DeepSORT reduces IDSW substantially through appearance embeddings, yet it remains a core challenge in crowded scenes \cite{134}.
+
+(3) Real-time–accuracy trade-off: In settings needing immediate response (e.g., platforms), MOT systems must be real-time. If passenger flow cannot be updated promptly, early warnings or dispatch decisions may be delayed. Improving accuracy often requires more complex models and higher computational costs, which conflict with real-time constraints \cite{203}. YOLO detectors are well known for favorable speed–accuracy trade-offs and are commonly used for real-time MOT; however, careful balancing is still needed at high frame rates.
+
+(4) High-density crowds and complex backgrounds: Platform scenes typically exhibit high crowd density alongside dynamic, complex backgrounds (e.g., train arrivals/departures, signage illumination changes, passenger baggage), complicating target–background separation and introducing inter-object motion interactions that are hard to learn \cite{86}. Density map-based methods show notable advantages. YOLOv8 (Xiao et al., 2023), trained on CrowdHuman, is optimized for high-density pedestrian scenarios. YOLOv10 with NMS-free training and a consistent dual-assignment strategy better identifies overlapping objects.
+
+(5) Small-object detection: When cameras are distant or targets occupy a small fraction of the image, they become small objects with limited pixels and weak features, making them prone to missed detection \cite{28_kaur_comprehensive_2023}.
+
+(6) Illumination changes: Platform lighting can be complex and time-varying (e.g., strong sunlight, dim nighttime lighting, shadows cast by passing trains), which destabilizes appearance features and degrades detector and tracker performance \cite{169}.
+
+(7) Generalization and annotation dependence: Deep learning methods depend heavily on large-scale, high-quality annotations. Since MOT models are often trained on specific datasets, the diversity of real-world conditions (camera viewpoints, resolutions, environments) demands strong generalization \cite{02_noauthor_review_nodate}.
+
+\subsection{Proposed Approach: YOLOv11 + DeepSORT}
+
+In light of the above challenges, especially on railway platforms, we propose combining YOLOv11 with DeepSORT. This choice reflects a careful analysis of existing algorithms and their complementary strengths in handling real-world complexity.
+
+\subsubsection{YOLOv11: Strong Detection Capability}
+Following the evolution of the YOLO family (e.g., YOLOv5, YOLOv8, YOLOv9, YOLOv10, YOLOv12), further gains in detection accuracy, speed, and compactness are expected. The one-stage, fast, and accurate nature of YOLO makes it particularly effective for real-time tasks. It produces high-confidence bounding boxes that are crucial as inputs to subsequent tracking modules. We anticipate YOLOv11 to provide:
+\begin{itemize}
+    \item High-accuracy detection: Accurate pedestrian detection on railway platforms, reducing false negatives and false positives.
+    \item Real-time processing: Meeting the real-time requirements of high-frame-rate video streams, even under fast motion.
+    \item Small-object adaptability: Enhanced detection of distant or partially occluded small targets, such as head-level targets in our case.
+    \item Robustness: Stable outputs under illumination changes and complex backgrounds common to platforms.
+\end{itemize}
+
+\subsubsection{DeepSORT: Robust Tracking}
+DeepSORT is a recognized TBD tracker noted for robust occlusion handling and significantly reduced identity switches. It combines a Kalman filter for motion prediction with deep appearance embeddings for identity association \cite{174}.
+\begin{itemize}
+    \item Occlusion handling: With deep Re-ID features, targets reappearing after long occlusions can be re-identified, compensating for transient detector misses; we additionally train Re-ID models on our custom dataset.
+    \item Identity consistency: Appearance features enhance discrimination among similar targets, reducing ID switches and ensuring trajectory continuity and accuracy.
+    \item Predictive capability: The Kalman filter predicts next-frame positions from historical motion, helping maintain tracks during brief occlusions or at lower frame rates.
+\end{itemize}
+
+\subsubsection{Complementarity and Synergy}
+
+Our YOLOv11 + DeepSORT design exploits their complementarity in MOT:
+\begin{itemize}
+    \item Strong detection with strong tracking: YOLOv11 supplies high-quality, efficient detections as a foundation; DeepSORT’s association mechanism effectively handles challenges such as occlusion to ensure trajectory continuity and identity consistency.
+    \item Tailored to railway platforms: In high-density, heavily occluded, and dynamically changing platform environments, YOLOv11 maximizes recall, while DeepSORT’s occlusion handling and ID management mitigate identity switches and track fragmentation. The synergy improves accuracy and robustness while preserving real-time performance.
+\end{itemize}
+
+By combining these components, we aim to build an efficient, accurate, and robust MOT system to meet the demands of detection, tracking, and counting in challenging environments such as railway platforms.
+
+\iffalse
 % --------------------------以下是中文补充内容--------------------------
 
 综上所述，人群计数方法正从基于传统特征和回归模型向基于深度学习的端到端方案发展\cite{13_dogra_survey_2024}。在人群密度较高、个体遮挡严重的场景中，基于密度图的方法表现出显著优势\cite{17_gupta_crowd_2024}，例如，在极度拥挤的MOT20场景中，CountingMOT模型通过结合人群密度图，能够识别被遮挡或遗漏的目标，并纠正虚假检测，从而显著提升了多目标追踪（MOT）的性能\cite{125}。然而，Gang等人的的一项调查指出，在人群分析任务中，虽然分析、计数和分类方面的工作较多，但在人群检测和人群模拟任务中仍存在可观的研究机会\cite{01_noauthor_deep_2024}。
@@ -147,3 +245,4 @@ DeepSORT是TBD范式中公认的优秀跟踪器，以其在处理遮挡和显著
 \end{itemize}
 
 通过这种结合，本研究旨在构建一个高效、准确且鲁棒的多目标跟踪系统，以应对铁路站台等高挑战性环境下的人群的检测、跟踪和计数的应用需求。
+\fi
