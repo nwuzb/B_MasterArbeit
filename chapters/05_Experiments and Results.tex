@@ -1,259 +1,265 @@
+\clearpage
 \section{Experiments and Results}\label{section::Experiments and Results}
 
 
-This chapter systematically evaluates the proposed head detection, platform-scene multi-object tracking, and counting framework following the detect–track–count pipeline. We adopt YOLOv11m as the detector, an EfficientNet-B0 based ReID appearance descriptor, and three motion models within the DeepSORT framework: the standard 8-dimensional constant-velocity baseline (classic DeepSORT Kalman filter), a 12-dimensional constant-acceleration model, and a 5-dimensional physics-constrained model based on pinhole camera geometry. Evaluations are conducted on MOT-formatted data curated in the Data chapter; the detector’s training and fine-tuning leverage complementary static images and multi-clip video sequences, covering both generic crowded scenes and platform scenarios with varying densities during train arrivals.
+This chapter systematically evaluates the proposed head detection, platform-scene multi-object tracking, and counting framework following the detect–track–count pipeline. We adopt YOLOv11m as the detector, an EfficientNet-B0 based ReID appearance descriptor, and three motion models within the DeepSORT framework: the standard 8-dimensional constant-velocity baseline (classic DeepSORT Kalman filter), a 12-dimensional constant-acceleration model, and a 5-dimensional physics-constrained model based on pinhole camera geometry. Evaluations are conducted on MOT-formatted data curated in the Data chapter; the detector's training and fine-tuning leverage complementary static images and multi-clip video sequences, covering both generic crowded scenes and platform scenarios with varying densities during train arrivals.
 
 
-1. Training and Fine-tuning of the YOLOv11m Detector
-As discussed in \S\ref{section::Methods}, we use YOLOv11m as a balanced choice between accuracy and speed. We adopt a two-stage transfer learning strategy to build a head detector with strong generalization and high performance in our target domain, thereby providing reliable inputs to downstream tracking. Stage 1 pre-trains on CrowdHuman to learn generic head features; Stage 2 fine-tunes with backbone=10 frozen on 2,000 labeled head images drawn from Open Sensor Data for Rail 2023, RailEye3D, and our TrainPlatformCrowd datasets, yielding YOLO11freeze10.pt.
+\subsection{Training and Fine-tuning of the YOLOv11m Detector}
+As discussed in Chapter 4, we use YOLOv11m as a balanced choice between accuracy and speed. We adopt a two-stage transfer learning strategy to build a head detector with strong generalization and high performance in our target domain, thereby providing reliable inputs to downstream tracking. Stage 1 pre-trains on CrowdHuman to learn generic head features; Stage 2 fine-tunes with backbone=10 frozen on 2,000 labeled head images drawn from Open Sensor Data for Rail 2023, RailEye3D, and our TrainPlatformCrowd datasets, yielding YOLO11freeze10.pt.
 
 The hyperparameters are as follows: both stages train for 100 epochs using SGD (initial lr=0.01, momentum=0.937, weight decay=0.0005). Other parameters follow YOLO defaults.
 
-The pre-training objective is to learn robust, generic head features from a large-scale, diverse dataset. We therefore use CrowdHuman, which provides abundant instances for deep networks (see Chapter 3, Data, \S\ref{section::data}). The pre-training results on CrowdHuman are shown in Figure~\ref{fig:yolo11mpre2results} and Table~\ref{tab:yolopre2_results}: mAP50=79.4\% and mAP50–95=54.7\%.
-\begin{figure}[htbp]
+The pre-training objective is to learn robust, generic head features from a large-scale, diverse dataset. We therefore use CrowdHuman, which provides abundant instances for deep networks (see Chapter 3). The pre-training results on CrowdHuman are shown in Figure~\ref{fig:yolo11mpre2results} and Table~\ref{tab:yolopre2_results}: mAP50=79.4\% and mAP50–95=54.7\%.
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.8\textwidth]{pictures/yolo11mpre2results.png}
     \caption{Pre-training Results of YOLOv11m on the CrowdHuman Dataset}
     \label{fig:yolo11mpre2results}
 \end{figure}
 
-\begin{table}[h!]
+\begin{table}[H]
 \centering
+\resizebox{0.8\textwidth}{!}{%
 \setlength{\tabcolsep}{12pt}
 \renewcommand{\arraystretch}{1.3}
 \begin{tabular}{|c|c|c|c|c|c|c|}
 \hline
 \textbf{Class} & \textbf{Images} & \textbf{Instances} & \textbf{Box(Precision)} & \textbf{Recall} & \textbf{mAP50} & \textbf{mAP50–95} \\
 \hline
-\rowcolor{blue!20}
 all & 4370 & 98568 & 0.862 & 0.715 & 0.794 & 0.547 \\
 \hline
-\end{tabular}
+\end{tabular}%
+}
 \caption{Pre-training Performance of YOLOv11m on the CrowdHuman Dataset}
 \label{tab:yolopre2_results}
 \end{table}
 These results indicate that the model has learned basic head detection capability: mAP50 reflects performance under a lenient IoU threshold, whereas mAP50–95 averages over stricter thresholds, better capturing localization quality. While pre-training establishes a solid foundation, localization in complex scenes still has room to improve.
 
 Stage 2 conducts domain adaptation via fine-tuning. We freeze the first 10 backbone layers to retain generic low-level features (edges, colors, textures) learned from CrowdHuman and avoid catastrophic forgetting on smaller domain data. Training focuses on deeper layers to learn platform-specific semantics (illumination, occlusion patterns, crowd layouts). Results in Figure~\ref{fig:yolo11mfinetuneresults} and Table~\ref{tab:yolofreeze10_results} show substantial gains: mAP50 improves from 79.4\% to 98.0\% (+18.6 points), and mAP50–95 from 54.7\% to 81.6\% (+26.9 points). The large mAP50–95 improvement highlights markedly better localization, which is critical for reducing ID switches and trajectory drift in downstream tracking.
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.8\textwidth]{pictures/yolofreez10_ResultsSummary.png}
     \caption{Fine-tuning Results of YOLOv11m on the Custom Head Dataset}
     \label{fig:yolo11mfinetuneresults}
 \end{figure}
 
-\begin{table}[h!]
+\begin{table}[H]
 \centering
+\resizebox{0.8\textwidth}{!}{%
 \setlength{\tabcolsep}{12pt}
 \renewcommand{\arraystretch}{1.3}
 \begin{tabular}{|c|c|c|c|c|c|c|}
 \hline
 \textbf{Class} & \textbf{Images} & \textbf{Instances} & \textbf{Box(P)} & \textbf{R} & \textbf{mAP50} & \textbf{mAP50–95} \\
 \hline
-\rowcolor{blue!20}
 all & 600 & 4779 & 0.965 & 0.946 & 0.980 & 0.816 \\
 \hline
-\end{tabular}
+\end{tabular}%
+}
 \caption{Fine-tuning Performance of YOLOv11freeze10 on the Labeled Head Dataset}
 \label{tab:yolofreeze10_results}
 \end{table}
 In summary, the two-stage strategy transforms YOLOv11m from a generic head detector into a platform-optimized high-performance detector (YOLOv11freeze10.pt), providing strong inputs for subsequent tracking and counting.
 
 
-1.1 Detector Ablation Study
-We design an ablation study to examine the fine-tuned detector’s sensitivity to hyperparameters. All experiments are conducted on the same T4 GPU environment and evaluated on a shared 2,071-image validation set constructed from MOT-annotated video frames, ensuring consistency and application relevance.
+\subsubsection{Detector Ablation Study}
+We design an ablation study to examine the fine-tuned detector's sensitivity to hyperparameters. All experiments are conducted on the same T4 GPU environment and evaluated on a shared 2,071-image validation set constructed from MOT-annotated video frames, ensuring consistency and application relevance.
 
 We vary three key hyperparameters—input size, confidence threshold, and IoU threshold—as follows:
-\begin{table}[!ht]
+\begin{table}[H]
     \centering
-    \caption{Detector ablation parameters Setting}
     \begin{tabular}{|c|c|c|c|c|}
     \hline
         \textbf{Conf} & 0.3 & 0.5 & 0.7 & 0.9  \\ \hline
         \textbf{IoU} & 0.3 & 0.5 & 0.7 & 0.9  \\ \hline
         \textbf{Imgsz} & 640 & 736 & 832 & 960 \\ \hline
     \end{tabular}
+    \caption{Detector ablation parameters Setting}
     \label{Detector ablation parameters}
 \end{table}
 This yields 64 combinations. Results are summarized in Table~\ref{tab:T25_YOLO11m_Ablation}. The best performance is achieved with conf=0.3, iou=0.3, imgsz=736, balancing precision–recall and feature resolution–compute trade-offs. A lower confidence threshold preserves more potential positives, an intermediate IoU threshold reduces duplicates without excessive suppression, and 736 px affords sufficient spatial detail for small heads while controlling cost. The configuration notably improves mAP50–95, indicating robust performance across IoU thresholds and suitability for real-world deployment.
-\begin{table}[!ht]
+
+
+\begin{table}[H]
     \centering
-    \caption{Detector Ablation Experiment Results}
-    \begin{tabular}{cccccccc}
+    \resizebox{0.7\textwidth}{!}{%
+    \scriptsize
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{ccccccccc}
     \hline
-        \textbf{conf} & \textbf{iou} & \textbf{imgsz} & \textbf{mAP50} & \textbf{mAP50-95} & \textbf{precision} & \textbf{recall} & \textbf{inference\_time(ms) } \\ \hline
-        0.3 & 0.3 & 640 & 0.925  & 0.675  & 0.927  & 0.874  & 13.18   \\
-        0.7 & 0.9 & 640 & 0.906  & 0.666  & 0.922  & 0.840  & 14.08   \\
-        0.7 & 0.7 & 640 & 0.911  & 0.670  & 0.954  & 0.840  & 14.11   \\
-        0.9 & 0.7 & 640 & 0.871  & 0.654  & 0.984  & 0.753  & 14.21   \\
-        0.5 & 0.3 & 640 & 0.919  & 0.673  & 0.941  & 0.860  & 14.23   \\
-        0.9 & 0.9 & 640 & 0.869  & 0.653  & 0.975  & 0.754  & 14.23   \\
-        0.7 & 0.3 & 640 & 0.911  & 0.671  & 0.957  & 0.840  & 14.28   \\
-        0.5 & 0.9 & 640 & 0.912  & 0.668  & 0.926  & 0.836  & 14.30   \\
-        0.9 & 0.3 & 640 & 0.871  & 0.654  & 0.984  & 0.753  & 14.30   \\
-        0.9 & 0.5 & 640 & 0.871  & 0.654  & 0.984  & 0.753  & 14.30   \\
-        0.5 & 0.7 & 640 & 0.919  & 0.673  & 0.936  & 0.861  & 14.33   \\
-        0.7 & 0.5 & 640 & 0.911  & 0.671  & 0.956  & 0.840  & 14.35   \\
-        0.3 & 0.7 & 640 & 0.924  & 0.674  & 0.932  & 0.865  & 14.44   \\
-        0.3 & 0.9 & 640 & 0.916  & 0.668  & 0.926  & 0.836  & 14.46   \\
-        0.5 & 0.5 & 640 & 0.919  & 0.673  & 0.939  & 0.861  & 14.51   \\
-        0.3 & 0.5 & 640 & 0.925  & 0.675  & 0.925  & 0.875  & 14.63   \\
-        0.3 & 0.3 & 736 & 0.922  & 0.687  & 0.919  & 0.871  & 16.86   \\
-        0.3 & 0.7 & 736 & 0.922  & 0.687  & 0.912  & 0.872  & 18.05   \\
-        0.5 & 0.3 & 736 & 0.916  & 0.685  & 0.934  & 0.854  & 18.05   \\
-        0.7 & 0.5 & 736 & 0.908  & 0.683  & 0.952  & 0.834  & 18.09   \\
-        0.9 & 0.3 & 736 & 0.869  & 0.667  & 0.980  & 0.748  & 18.09   \\
-        0.9 & 0.5 & 736 & 0.869  & 0.667  & 0.980  & 0.748  & 18.09   \\
-        0.7 & 0.7 & 736 & 0.907  & 0.683  & 0.949  & 0.834  & 18.11   \\
-        0.5 & 0.9 & 736 & 0.909  & 0.680  & 0.915  & 0.833  & 18.11   \\
-        0.7 & 0.9 & 736 & 0.902  & 0.679  & 0.915  & 0.835  & 18.11   \\
-        0.9 & 0.7 & 736 & 0.869  & 0.667  & 0.980  & 0.748  & 18.11   \\
-        0.9 & 0.9 & 736 & 0.867  & 0.666  & 0.972  & 0.748  & 18.14   \\
-        0.3 & 0.5 & 736 & 0.922  & 0.687  & 0.918  & 0.871  & 18.18   \\
-        0.5 & 0.5 & 736 & 0.916  & 0.685  & 0.933  & 0.855  & 18.18   \\
-        0.7 & 0.3 & 736 & 0.908  & 0.683  & 0.953  & 0.834  & 18.18   \\
-        0.3 & 0.9 & 736 & 0.914  & 0.680  & 0.915  & 0.833  & 18.22   \\
-        0.5 & 0.7 & 736 & 0.916  & 0.685  & 0.930  & 0.855  & 18.25   \\
-        0.3 & 0.3 & 832 & 0.900  & 0.655  & 0.920  & 0.824  & 21.79   \\
-        0.9 & 0.9 & 832 & 0.840  & 0.633  & 0.967  & 0.701  & 22.99   \\
-        0.3 & 0.5 & 832 & 0.900  & 0.654  & 0.918  & 0.824  & 23.32   \\
-        0.5 & 0.5 & 832 & 0.895  & 0.654  & 0.922  & 0.822  & 23.38   \\
-        0.7 & 0.3 & 832 & 0.885  & 0.651  & 0.943  & 0.796  & 23.38   \\
-        0.5 & 0.7 & 832 & 0.894  & 0.653  & 0.918  & 0.822  & 23.39   \\
-        0.5 & 0.3 & 832 & 0.895  & 0.654  & 0.923  & 0.821  & 23.41   \\
-        0.9 & 0.7 & 832 & 0.843  & 0.635  & 0.975  & 0.700  & 23.42   \\
-        0.3 & 0.7 & 832 & 0.899  & 0.654  & 0.915  & 0.824  & 23.43   \\
-        0.9 & 0.5 & 832 & 0.843  & 0.635  & 0.975  & 0.700  & 23.44   \\
-        0.9 & 0.3 & 832 & 0.843  & 0.635  & 0.975  & 0.700  & 23.52   \\
-        0.5 & 0.9 & 832 & 0.886  & 0.648  & 0.905  & 0.799  & 23.56   \\
-        0.7 & 0.7 & 832 & 0.885  & 0.651  & 0.941  & 0.796  & 23.57   \\
-        0.3 & 0.9 & 832 & 0.889  & 0.647  & 0.905  & 0.799  & 23.60   \\
-        0.7 & 0.5 & 832 & 0.885  & 0.651  & 0.942  & 0.796  & 23.61   \\
-        0.7 & 0.9 & 832 & 0.878  & 0.647  & 0.908  & 0.796  & 23.62   \\
-        0.3 & 0.3 & 960 & 0.866  & 0.614  & 0.895  & 0.779  & 29.42   \\
-        0.9 & 0.9 & 960 & 0.803  & 0.595  & 0.965  & 0.628  & 29.96   \\
-        0.7 & 0.9 & 960 & 0.840  & 0.605  & 0.899  & 0.728  & 30.99   \\
-        0.9 & 0.5 & 960 & 0.806  & 0.597  & 0.976  & 0.628  & 31.06   \\
-        0.9 & 0.7 & 960 & 0.806  & 0.597  & 0.976  & 0.628  & 31.07   \\
-        0.7 & 0.7 & 960 & 0.848  & 0.611  & 0.936  & 0.728  & 31.16   \\
-        0.5 & 0.7 & 960 & 0.859  & 0.613  & 0.912  & 0.757  & 31.17   \\
-        0.5 & 0.9 & 960 & 0.848  & 0.605  & 0.883  & 0.741  & 31.20   \\
-        0.5 & 0.5 & 960 & 0.859  & 0.613  & 0.916  & 0.757  & 31.30   \\
-        0.3 & 0.5 & 960 & 0.866  & 0.614  & 0.900  & 0.774  & 31.44   \\
-        0.5 & 0.3 & 960 & 0.859  & 0.613  & 0.918  & 0.757  & 31.51   \\
-        0.3 & 0.7 & 960 & 0.865  & 0.614  & 0.894  & 0.774  & 31.53   \\
-        0.3 & 0.9 & 960 & 0.852  & 0.604  & 0.883  & 0.741  & 31.55   \\
-        0.9 & 0.3 & 960 & 0.806  & 0.597  & 0.976  & 0.628  & 31.56   \\
-        0.7 & 0.3 & 960 & 0.848  & 0.611  & 0.938  & 0.728  & 31.67   \\
-        0.7 & 0.5 & 960 & 0.848  & 0.611  & 0.938  & 0.728  & 31.68  \\\ \hline
-    \end{tabular}
-    \label{tab:T25_YOLO11m_Ablation}
+        \textbf{No.} & \textbf{Conf} & \textbf{IoU} & \textbf{Imgsz} & \textbf{mAP50} & \textbf{mAP50-95} & \textbf{Precision} & \textbf{Recall} & \textbf{Inference\_Time(ms) } \\ \hline
+        1 & 0.3 & 0.3 & 640 & 0.9248  & 0.6749  & 0.9272  & 0.8741  & 13.18   \\ 
+        \rowcolor{gray!10}
+        2 & 0.3 & 0.3 & 736 & 0.9224  & 0.6871  & 0.9193  & 0.8707  & 16.86   \\ 
+        3 & 0.3 & 0.3 & 832 & 0.8997  & 0.6545  & 0.9195  & 0.8238  & 21.79   \\ 
+        \rowcolor{gray!10}
+        4 & 0.3 & 0.3 & 960 & 0.8664  & 0.6144  & 0.8947  & 0.7786  & 29.42   \\ 
+        5 & 0.3 & 0.5 & 640 & 0.9247  & 0.6748  & 0.9246  & 0.8745  & 14.63   \\ 
+        \rowcolor{gray!10}
+        6 & 0.3 & 0.5 & 736 & 0.9224  & 0.6869  & 0.9177  & 0.8712  & 18.18   \\ 
+        7 & 0.3 & 0.5 & 832 & 0.8997  & 0.6543  & 0.9183  & 0.8243  & 23.32   \\ 
+        \rowcolor{gray!10}
+        8 & 0.3 & 0.5 & 960 & 0.8661  & 0.6143  & 0.9003  & 0.7736  & 31.44   \\ 
+        9 & 0.3 & 0.7 & 640 & 0.9244  & 0.6744  & 0.9316  & 0.8652  & 14.44   \\ 
+        \rowcolor{gray!10}
+        10 & 0.3 & 0.7 & 736 & 0.9220  & 0.6865  & 0.9120  & 0.8717  & 18.05   \\ 
+        11 & 0.3 & 0.7 & 832 & 0.8991  & 0.6538  & 0.9146  & 0.8242  & 23.43   \\ 
+        \rowcolor{gray!10}
+        12 & 0.3 & 0.7 & 960 & 0.8654  & 0.6137  & 0.8944  & 0.7741  & 31.53   \\ 
+        13 & 0.3 & 0.9 & 640 & 0.9163  & 0.6677  & 0.9263  & 0.8364  & 14.46   \\ 
+        \rowcolor{gray!10}
+        14 & 0.3 & 0.9 & 736 & 0.9138  & 0.6801  & 0.9153  & 0.8334  & 18.22   \\ 
+        15 & 0.3 & 0.9 & 832 & 0.8892  & 0.6468  & 0.9049  & 0.7986  & 23.60   \\ 
+        \rowcolor{gray!10}
+        16 & 0.3 & 0.9 & 960 & 0.8523  & 0.6041  & 0.8829  & 0.7413  & 31.55   \\ 
+        17 & 0.5 & 0.3 & 640 & 0.9193  & 0.6734  & 0.9411  & 0.8603  & 14.23   \\ 
+        \rowcolor{gray!10}
+        18 & 0.5 & 0.3 & 736 & 0.9156  & 0.6851  & 0.9342  & 0.8540  & 18.05   \\ 
+        19 & 0.5 & 0.3 & 832 & 0.8946  & 0.6539  & 0.9229  & 0.8212  & 23.41   \\ 
+        \rowcolor{gray!10}
+        20 & 0.5 & 0.3 & 960 & 0.8591  & 0.6133  & 0.9176  & 0.7569  & 31.51   \\ 
+        21 & 0.5 & 0.5 & 640 & 0.9192  & 0.6733  & 0.9390  & 0.8605  & 14.51   \\ 
+        \rowcolor{gray!10}
+        22 & 0.5 & 0.5 & 736 & 0.9157  & 0.6850  & 0.9329  & 0.8545  & 18.18   \\ 
+        23 & 0.5 & 0.5 & 832 & 0.8946  & 0.6538  & 0.9217  & 0.8216  & 23.38   \\ 
+        \rowcolor{gray!10}
+        24 & 0.5 & 0.5 & 960 & 0.8591  & 0.6132  & 0.9162  & 0.7571  & 31.30   \\ 
+        25 & 0.5 & 0.7 & 640 & 0.9190  & 0.6730  & 0.9355  & 0.8611  & 14.33   \\ 
+        \rowcolor{gray!10}
+        26 & 0.5 & 0.7 & 736 & 0.9155  & 0.6847  & 0.9295  & 0.8549  & 18.25   \\ 
+        27 & 0.5 & 0.7 & 832 & 0.8942  & 0.6534  & 0.9175  & 0.8217  & 23.39   \\ 
+        \rowcolor{gray!10}
+        28 & 0.5 & 0.7 & 960 & 0.8586  & 0.6129  & 0.9124  & 0.7574  & 31.17   \\ 
+        29 & 0.5 & 0.9 & 640 & 0.9121  & 0.6675  & 0.9263  & 0.8364  & 14.30   \\ 
+        \rowcolor{gray!10}
+        30 & 0.5 & 0.9 & 736 & 0.9087  & 0.6796  & 0.9153  & 0.8334  & 18.11   \\ 
+        31 & 0.5 & 0.9 & 832 & 0.8859  & 0.6475  & 0.9049  & 0.7986  & 23.56   \\ 
+        \rowcolor{gray!10}
+        32 & 0.5 & 0.9 & 960 & 0.8477  & 0.6050  & 0.8829  & 0.7413  & 31.20   \\ 
+        33 & 0.7 & 0.3 & 640 & 0.9108  & 0.6706  & 0.9572  & 0.8399  & 14.28   \\ 
+        \rowcolor{gray!10}
+        34 & 0.7 & 0.3 & 736 & 0.9076  & 0.6832  & 0.9525  & 0.8340  & 18.18   \\ 
+        35 & 0.7 & 0.3 & 832 & 0.8845  & 0.6512  & 0.9430  & 0.7956  & 23.38   \\ 
+        \rowcolor{gray!10}
+        36 & 0.7 & 0.3 & 960 & 0.8482  & 0.6107  & 0.9381  & 0.7276  & 31.67   \\ 
+        37 & 0.7 & 0.5 & 640 & 0.9108  & 0.6706  & 0.9563  & 0.8401  & 14.35   \\ 
+        \rowcolor{gray!10}
+        38 & 0.7 & 0.5 & 736 & 0.9077  & 0.6831  & 0.9519  & 0.8343  & 18.09   \\ 
+        39 & 0.7 & 0.5 & 832 & 0.8846  & 0.6511  & 0.9424  & 0.7959  & 23.61   \\ 
+        \rowcolor{gray!10}
+        40 & 0.7 & 0.5 & 960 & 0.8482  & 0.6107  & 0.9380  & 0.7276  & 31.68   \\ 
+        41 & 0.7 & 0.7 & 640 & 0.9106  & 0.6703  & 0.9543  & 0.8402  & 14.11   \\ 
+        \rowcolor{gray!10}
+        42 & 0.7 & 0.7 & 736 & 0.9073  & 0.6829  & 0.9494  & 0.8343  & 18.11   \\ 
+        43 & 0.7 & 0.7 & 832 & 0.8845  & 0.6510  & 0.9412  & 0.7960  & 23.57   \\ 
+        \rowcolor{gray!10}
+        44 & 0.7 & 0.7 & 960 & 0.8479  & 0.6105  & 0.9362  & 0.7278  & 31.16   \\ 
+        45 & 0.7 & 0.9 & 640 & 0.9055  & 0.6664  & 0.9216  & 0.8402  & 14.08   \\ 
+        \rowcolor{gray!10}
+        46 & 0.7 & 0.9 & 736 & 0.9023  & 0.6791  & 0.9147  & 0.8345  & 18.11   \\ 
+        47 & 0.7 & 0.9 & 832 & 0.8782  & 0.6466  & 0.9076  & 0.7961  & 23.62   \\ 
+        \rowcolor{gray!10}
+        48 & 0.7 & 0.9 & 960 & 0.8399  & 0.6046  & 0.8993  & 0.7284  & 30.99   \\ 
+        49 & 0.9 & 0.3 & 640 & 0.8713  & 0.6544  & 0.9844  & 0.7534  & 14.30   \\ 
+        \rowcolor{gray!10}
+        50 & 0.9 & 0.3 & 736 & 0.8688  & 0.6671  & 0.9804  & 0.7481  & 18.09   \\ 
+        51 & 0.9 & 0.3 & 832 & 0.8426  & 0.6350  & 0.9749  & 0.7002  & 23.52   \\ 
+        \rowcolor{gray!10}
+        52 & 0.9 & 0.3 & 960 & 0.8061  & 0.5970  & 0.9759  & 0.6277  & 31.56   \\ 
+        53 & 0.9 & 0.5 & 640 & 0.8713  & 0.6544  & 0.9842  & 0.7534  & 14.30   \\ 
+        \rowcolor{gray!10}
+        54 & 0.9 & 0.5 & 736 & 0.8688  & 0.6671  & 0.9804  & 0.7481  & 18.09   \\ 
+        55 & 0.9 & 0.5 & 832 & 0.8426  & 0.6349  & 0.9747  & 0.7003  & 23.44   \\ 
+        \rowcolor{gray!10}
+        56 & 0.9 & 0.5 & 960 & 0.8061  & 0.5970  & 0.9759  & 0.6277  & 31.06   \\ 
+        57 & 0.9 & 0.7 & 640 & 0.8711  & 0.6543  & 0.9836  & 0.7534  & 14.21   \\ 
+        \rowcolor{gray!10}
+        58 & 0.9 & 0.7 & 736 & 0.8687  & 0.6671  & 0.9797  & 0.7481  & 18.11   \\ 
+        59 & 0.9 & 0.7 & 832 & 0.8426  & 0.6349  & 0.9747  & 0.7003  & 23.42   \\ 
+        \rowcolor{gray!10}
+        60 & 0.9 & 0.7 & 960 & 0.8060  & 0.5970  & 0.9758  & 0.6277  & 31.07   \\ 
+        61 & 0.9 & 0.9 & 640 & 0.8692  & 0.6529  & 0.9748  & 0.7535  & 14.23   \\ 
+        \rowcolor{gray!10}
+        62 & 0.9 & 0.9 & 736 & 0.8670  & 0.6659  & 0.9723  & 0.7481  & 18.14   \\ 
+        63 & 0.9 & 0.9 & 832 & 0.8403  & 0.6334  & 0.9670  & 0.7005  & 22.99   \\ 
+        \rowcolor{gray!10}
+        64 & 0.9 & 0.9 & 960 & 0.8028  & 0.5945  & 0.9653  & 0.6278  & 29.96  \\ \hline
+\end{tabular}%
+}
+\caption{Detector Ablation Experiment Results}
+\label{tab:T25_YOLO11m_Ablation}
 \end{table}
 
 
-2. ReID (MobileNet) Experimental Setup and Results
-Following Chapter 4, and inspired by Zhu et al. \cite{218}, we adopt EfficientNet-B as the ReID backbone to balance efficiency and accuracy, and retrain the model for our system. The ReID training dataset is constructed from 7 video sequences with 238 tracked identities; the distribution is summarized in Table~\ref{tab:ReIDDataDistribution}. Given that our targets are nearly square (Figures~\ref{fig:aspect_ratio} and \ref{fig:BoundingBoxWidthvsHeight}), we use square input sizes with aspect-ratio preserving scaling and padding.
-\begin{table}[!ht]
-    \centering
-    \begin{tabular}{ccccccccccccccc}
-    \hline
-        \textbf{Folder} & \textbf{Resolution} & \textbf{FPS} & \textbf{Duration\_s} & \textbf{FrameCount} & \textbf{FrameRange} & \textbf{BBoxCount} & \textbf{ObjectCount} & \textbf{MinH} & \textbf{MaxH} & \textbf{MinW} & \textbf{MaxW} & \textbf{AvgH} & \textbf{AvgW} & \textbf{Format } \\ \hline
-        1 & 1920x1080 & 25 & 7.24 & 181 & 67-166 & 437 & 8 & 22.44 & 103.24 & 17.95 & 87.47 & 46.75 & 36.23 & mp4.H264  \\
-        2 & 1920x1080 & 25 & 7.16 & 179 & 64-151 & 181 & 3 & 22.85 & 58.42 & 14.31 & 49.01 & 36.74 & 27.28 & mp4.H264  \\
-        3 & 2304x1296 & 59.94 & 11.54 & 692 & 51-664 & 1914 & 53 & 15.91 & 194.65 & 14.42 & 221.6 & 57.45 & 51.93 & mp4.H264  \\
-        4 & 2560x1440 & 59.94 & 6.99 & 419 & 90-419 & 905 & 18 & 12.72 & 127.42 & 10.28 & 117.93 & 26.46 & 24.48 & mp4.H264  \\
-        5 & 2560x1440 & 59.94 & 45.71 & 2740 & 1-2697 & 7415 & 93 & 10.84 & 122.27 & 8.69 & 127.9 & 29.51 & 29.76 & mp4.H264  \\
-        6 & 2304x1296 & 59.94 & 15.01 & 900 & 22-898 & 1171 & 9 & 26.7 & 214.66 & 21.27 & 179.46 & 68.55 & 55.99 & mp4.H264  \\
-        7 & 2304x1296 & 59.94 & 18.84 & 1129 & 1-724 & 3265 & 54 & 16.65 & 162.63 & 10 & 199.17 & 56.05 & 54.55 & mp4.H264  \\
-        Summary & ~ & ~ & 112.49 & 6240 & ~ & 15288 & 238 & 18.30142857 & 140.47 & 13.84571429 & 140.3628571 & 45.93 & 40.03142857 & ~ \\ \hline
-    \end{tabular}
-    \caption{ReID Data Distribution}
-    \label{tab:ReIDDataDistribution}
-\end{table}
+\subsection{ReID Model Experimental Setup and Results}
+Following Chapter 4, and inspired by Zhu et al. \cite{218}, we adopt EfficientNet-B as the ReID backbone to balance efficiency and accuracy, and retrain the model for our system. The ReID training dataset consists of 7 video sequences with 238 tracked identities, as detailed in Table~\ref{tab:ReIDDataDistribution} from Chapter 3. Given that our targets are nearly square (Figures~\ref{fig:aspect_ratio} and \ref{fig:BoundingBoxWidthvsHeight}), we use square input sizes with aspect-ratio preserving scaling and padding.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
-    \includegraphics[width=0.8\textwidth]{pictures/P24_aspect_ratio_distribution.png}
-    \caption{Aspect Ratio Distribution}
-    \label{fig:aspect_ratio}
-\end{figure}
-
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.8\textwidth]{pictures/P24_1_width_vs_height.png}
-    \caption{Bounding Box Width vs Height}
-    \label{fig:BoundingBoxWidthvsHeight}
+    \begin{subfigure}[b]{0.45\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{pictures/P24_aspect_ratio_distribution.png}
+        \caption{Aspect Ratio Distribution}
+        \label{fig:aspect_ratio}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.45\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{pictures/P24_1_width_vs_height.png}
+        \caption{Bounding Box Width vs Height}
+        \label{fig:BoundingBoxWidthvsHeight}
+    \end{subfigure}
+    \caption{ReID Dataset Bounding Box Analysis}
+    \label{fig:reid_bbox_analysis}
 \end{figure}
 
 
-2.1 ReID Input Size Ablation
+\subsubsection{ReID Input Size Ablation}
 We compare input sizes under identical settings to assess speed–accuracy trade-offs. As shown in Table~\ref{tab:ReIDablationexperiment}, increasing size from 64×64 to 128×128 improves mAP by 3.50\% and Rank-1 by 4.30\% (p<0.01, t-test). Beyond 128×128, gains saturate (mAP < 0.3\%) while compute grows superlinearly (FLOPs ∝ O(n²)). We therefore select 128×128 as the final resolution on the Pareto frontier, achieving Rank-1=100\% with only 0.009 GFLOPs and 69.5 FPS inference, satisfying real-time constraints.
-\begin{table}[!ht]
+\begin{table}[H]
     \centering
+    \resizebox{0.9\textwidth}{!}{%
+    \renewcommand{\arraystretch}{1.3}
     \begin{tabular}{ccccccc}
     \hline
         \textbf{Input Size (pix)} & \textbf{mAP (\%)} & \textbf{Rank-1 (\%)} & \textbf{FPS} & \textbf{FLOPs (G)} & \textbf{Parameter quantity} & \textbf{Marginal benefits} \\ \hline
         64x64 & 90.74 & 95.7 & 94.8 & 0.002 & 206240 & 0 \\
+        \rowcolor{gray!10}
         96x96 & 92.64 & 96.77 & 95 & 0.005 & 206240 & +1.90 mAP \\
+        \rowcolor{gray!20}
         128x128 & 94.24 & 100 & 69.5 & 0.009 & 206240 & +1.60 mAP \\
+        \rowcolor{gray!10}
         160x160 & 95.49 & 100 & 70.2 & 0.014 & 206240 & +1.25 mAP \\
         192x192 & 95.63 & 100 & 73.3 & 0.02 & 206240 & +0.14 mAP \\
+        \rowcolor{gray!10}
         256x256 & 95.36 & 98.92 & 76.7 & 0.035 & 206240 & –0.27 mAP \\ \hline
-    \end{tabular}
-    \caption{ReID ablation experiment}
+    \end{tabular}%
+    }
+    \caption{ReID Ablation Experiment Results}
     \label{tab:ReIDablationexperiment}
 \end{table}
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
-    \includegraphics[width=0.8\textwidth]{pictures/ReIDInputsizeAblationexperiment.png}
+    \includegraphics[width=0.9\textwidth]{pictures/ReIDInputsizeAblationexperiment.png}
     \caption{ReID Inputsize Ablation Experiment Results}
     \label{fig:ReIDInputsizeAblationexperiment}
 \end{figure}
 We observed an apparent FPS anomaly at 128×128 due to measurement conditions: (i) batch-size=24 placed 128×128 at a compute–communication balance point, amplifying host-side overhead; (ii) cuDNN enabled Winograd convolution at 128×128, incurring extra memory transform costs; (iii) for larger sizes, silent batch reduction triggered higher GPU boost frequencies. In controlled tests with batch=6 and fixed frequency, FPS decreased monotonically with size, confirming the theoretical latency ordering. Thus, the apparent inversion is a measurement artifact and does not alter the conclusion that 128×128 lies on the accuracy–efficiency Pareto frontier. Given Rank-1=100\% and mAP=94.24\% at 128×128 with only 0.009 GFLOPs, we deploy this setting without further tuning to maintain reproducibility and avoid confounders.
 
 
-3. Three Motion Models
+\subsection{Three Motion Models}
 To assess the role of motion modeling in MOT, we conduct a rigorous ablation study isolating the motion component. All experiments use the same detector (YOLOv11freeze10.pt) and the same EfficientNet-B0 ReID model; only the Kalman-based motion module differs among: (i) the 8D constant-velocity baseline, (ii) a 12D constant-acceleration model, and (iii) a 5D physics-constrained model.
 
-We evaluate on the MOT-TPCH dataset. As shown in Table~\ref{tab:20MOTValVideos}, 20 representative video sequences are selected, spanning diverse resolutions (1536×864 to 2304×1296), frame rates (25, 29.97, 59.94 FPS), and target scales (AvgH≈49 px). The benchmark totals 18,548 frames, 647 identities, and 73,799 boxes, supporting statistically meaningful conclusions. We report standard MOT metrics (e.g., MOTA, IDF1) and task-oriented counting metrics.
-\begin{table}[!ht]
-    \centering
-    \begin{tabular}{ccccccccccccccc}
-    \hline
-        video & Resolution & FPS & Duration\_s & FrameCount & FrameRange & BBoxCount & ObjectCount & MinH & MaxH & MinW & MaxW & AvgH & AvgW & Format  \\ \hline
-        1 & 1920x1080 & 25 & 8.2 & 205 & 98-196 & 129 & 4 & 27.24 & 57.35 & 20.38 & 52.67 & 37.75 & 30.39 & mp4.H264  \\
-        2 & 1920x1080 & 25 & 11.44 & 286 & 41-267 & 565 & 8 & 20.19 & 86.36 & 16.63 & 69.53 & 40.08 & 31.74 & mp4.H264  \\
-        3 & 1920x1080 & 25 & 18.12 & 453 & 36-451 & 1359 & 25 & 14.64 & 153.88 & 16.36 & 106.39 & 52.36 & 41.48 & mp4.H264  \\
-        4 & 2304x1296 & 59.94 & 7.84 & 470 & 44-427 & 670 & 10 & 34.95 & 130.56 & 24.32 & 129.21 & 63.99 & 55.43 & mp4.H264  \\
-        5 & 2304x1296 & 59.94 & 11.29 & 677 & 73-639 & 1085 & 18 & 24.82 & 197.75 & 17.58 & 227.34 & 70.6 & 65.51 & mp4.H264  \\
-        6 & 2304x1296 & 59.94 & 11.18 & 670 & 2-666 & 2911 & 16 & 18 & 289.02 & 20.16 & 259.88 & 77.29 & 64.89 & mp4.H264  \\
-        7 & 2304x1296 & 59.94 & 10.59 & 635 & 38-615 & 1807 & 21 & 26.9 & 146.26 & 18.23 & 153.21 & 57.48 & 52.73 & mp4.H264  \\
-        8 & 1536x864 & 59.94 & 24.96 & 1496 & 146-1215 & 3575 & 47 & 11.61 & 121.28 & 9.15 & 123.57 & 38.45 & 35.6 & mp4.H264  \\
-        9 & 1536x864 & 59.94 & 35.64 & 2136 & 12-2038 & 17243 & 124 & 10.9 & 118.12 & 7.05 & 129.81 & 33.12 & 30.31 & mp4.H264  \\
-        10 & 1536x864 & 59.94 & 13.48 & 808 & 5-790 & 1804 & 19 & 16.99 & 147.95 & 11.01 & 149.34 & 36.14 & 32.12 & mp4.H264  \\
-        11 & 1536x864 & 59.94 & 13.85 & 830 & 1-811 & 3317 & 27 & 19.8 & 119.8 & 13.53 & 117.22 & 38.06 & 33.33 & mp4.H264  \\
-        12 & 1536x864 & 59.94 & 39.44 & 2364 & 13-2346 & 11474 & 64 & 16.06 & 125.98 & 12.54 & 160.4 & 37.65 & 34.86 & mp4.H264  \\
-        13 & 2304x1296 & 29.97 & 11.48 & 344 & 21-344 & 624 & 12 & 26.93 & 142.54 & 18.41 & 146.67 & 55.66 & 48.32 & mp4.H264  \\
-        14 & 2304x1296 & 59.94 & 33.38 & 2001 & 92-1988 & 12249 & 100 & 16.18 & 183.24 & 13.09 & 205.83 & 53.81 & 51.92 & mp4.H264  \\
-        15 & 1536x864 & 59.94 & 19.19 & 1150 & 343-1077 & 2651 & 28 & 12.78 & 104 & 9.62 & 119.77 & 37.33 & 34.88 & mp4.H264  \\
-        16 & 1536x864 & 59.94 & 24.07 & 1443 & 178-1443 & 3561 & 32 & 15.15 & 115.6 & 12.86 & 118.58 & 41.97 & 38.9 & mp4.H264  \\
-        17 & 1536x864 & 59.94 & 8.51 & 510 & 14-510 & 1494 & 16 & 20.4 & 120.98 & 14.72 & 120.92 & 43.05 & 38.02 & mp4.H264  \\
-        18 & 2304x1296 & 59.94 & 12.01 & 720 & 1-720 & 1303 & 6 & 30.38 & 204.36 & 21.6 & 222.35 & 66.81 & 57.2 & mp4.H264  \\
-        19 & 2304x1296 & 59.94 & 5.09 & 305 & 16-299 & 1341 & 24 & 24.39 & 167.54 & 20.14 & 154.06 & 56.02 & 52.94 & mp4.H264  \\
-        20 & 2304x1296 & 59.94 & 17.43 & 1045 & 53-1045 & 4637 & 46 & 14.33 & 116.91 & 10.62 & 131.26 & 44.73 & 43.78 & mp4.H264  \\
-        Summary & ~ & ~ & 337.19 & 18548 & ~ & 73799 & 647 & 20.13  & 142.47  & 15.40  & 144.90  & 49.12  & 43.72  & ~ \\ \hline
-    \end{tabular}
-    \caption{20 Video Sequences for MOT and Counting Evaluation on MOT-TPCH}
-    \label{tab:20MOTValVideos}
-\end{table}
+
 
 
 % --------------------------------------- CV-8D ------------------------------------------------------------
-3.1 8D Constant-Velocity Baseline (CV-8D)
+\subsubsection{8D Constant-Velocity Baseline (CV-8D)}
 We first evaluate the widely used 8D constant-velocity model, the core of the standard DeepSORT framework, which assumes linear, constant-speed motion in the image plane.
-\paragraph{8D Constant-Velocity Model (CV-8D).} This model uses constant-velocity dynamics and linear observation, corresponding to the base implementation in \texttt{deep\_sort/kalman\_filter.py}. Specifically,
-
+\paragraph{8D Constant-Velocity Model (CV-8D).} This model uses constant-velocity dynamics and linear observation.\\
+ Specifically,
 \textbf{State vector:}
 \begin{equation}
 \mathbf{x}_k = [x, y, a, h, \dot{x}, \dot{y}, \dot{a}, \dot{h}]^T \in \mathbb{R}^{8}
@@ -296,38 +302,52 @@ with $\sigma_{pos} = 1/20$ and $\sigma_{vel} = 1/160$.
 To ensure fair comparison, we integrate this model as a pluggable motion component under a unified framework with identical detector inputs, tracker hyperparameters (e.g., cascade ages, IoU thresholds), gating, and geometry constraints. Thus, observed differences stem solely from motion modeling.
 
 Table~\ref{tab:CV8DResults} reports average performance on MOT-TPCH: MOTA=64.11\%, IDF1=76.66\%. Deeper analysis reveals limitations: (1) poor identity preservation with on average 24 identity switches per video (up to 112 in complex sequences like Video 14); (2) reduced association robustness with high FP (avg 480) and Misses (avg 645), indicating linear prediction struggles to reconnect after occlusions; and (3) downstream counting errors: mean relative error 14.59\% with large variance (e.g., 150\% in Video 1 vs 0\% in Video 2). These findings motivate stronger motion models.
-\begin{table}[!ht]
-    \centering
-    \begin{tabular}{ccccccccccccccccccccc}
-    \hline
-        \textbf{Video} & \textbf{MOTA} & \textbf{MOTP} & \textbf{IDF1} & \textbf{IDP} & \textbf{IDR} & \textbf{ID Switches} & \textbf{Matches} & \textbf{False Positives} & \textbf{Misses} & \textbf{FAF} & \textbf{Precision} & \textbf{Recall} & \textbf{Mostly Tracked} & \textbf{Partially Tracked} & \textbf{Mostly Lost} & \textbf{Left Counting} & \textbf{Right Counting} & \textbf{Total Counting} & \textbf{Actual Counting} & \textbf{Relative Counting Error  } \\ \hline
-        1 & 14.73 & 20.58 & 47.33 & 46.62 & 48.06 & 12 & 70 & 51 & 47 & 0.5152 & 61.65 & 63.57 & 1 & 3 & 0 & 0 & 10 & 10 & 4 & 150  \\
-        2 & 58.58 & 20.6 & 75.24 & 82.18 & 69.38 & 4 & 402 & 71 & 159 & 0.3128 & 85.12 & 71.86 & 4 & 4 & 0 & 8 & 0 & 8 & 8 & 0  \\
-        3 & 55.7 & 20.46 & 73.68 & 72.71 & 74.69 & 9 & 1072 & 315 & 278 & 0.7572 & 77.44 & 79.54 & 15 & 8 & 2 & 27 & 1 & 27 & 25 & 8  \\
-        4 & 72.94 & 18.49 & 84.87 & 78.92 & 91.78 & 4 & 631 & 143 & 34 & 0.4897 & 81.62 & 94.92 & 9 & 1 & 0 & 2 & 12 & 12 & 10 & 20  \\
-        5 & 59.63 & 19.38 & 78.43 & 75.21 & 81.94 & 9 & 910 & 263 & 166 & 0.5479 & 77.75 & 84.7 & 13 & 3 & 2 & 18 & 0 & 18 & 18 & 0  \\
-        6 & 77.41 & 17.28 & 84.46 & 82.33 & 86.7 & 12 & 2522 & 380 & 233 & 0.5714 & 86.96 & 91.58 & 13 & 3 & 0 & 17 & 0 & 17 & 16 & 6.25  \\
-        7 & 59.5 & 21.79 & 71.51 & 79.9 & 64.72 & 17 & 1230 & 181 & 516 & 0.3474 & 87.32 & 70.73 & 8 & 12 & 1 & 0 & 24 & 24 & 21 & 14.29  \\
-        8 & 52.62 & 18.9 & 71.3 & 72.79 & 69.87 & 41 & 2636 & 755 & 898 & 0.7056 & 78 & 74.88 & 21 & 22 & 4 & 4 & 48 & 48 & 47 & 2.13  \\
-        9 & 77.56 & 17.86 & 83.18 & 87.53 & 79.24 & 73 & 11835 & 879 & 2218 & 0.4336 & 93.13 & 84.3 & 89 & 34 & 1 & 0 & 126 & 126 & 124 & 1.61  \\
-        10 & 77.48 & 20.08 & 86.28 & 85.28 & 87.3 & 5 & 1591 & 218 & 176 & 0.3354 & 87.98 & 90.07 & 15 & 4 & 0 & 20 & 0 & 20 & 19 & 5.26  \\
-        11 & 64.75 & 20.07 & 77.25 & 73.84 & 80.98 & 17 & 2728 & 696 & 393 & 0.8625 & 79.77 & 87.48 & 21 & 6 & 0 & 30 & 1 & 30 & 27 & 11.11  \\
-        12 & 70.39 & 20.23 & 77.53 & 78.97 & 76.13 & 50 & 9237 & 1419 & 1819 & 0.608 & 86.75 & 83.62 & 45 & 19 & 0 & 69 & 0 & 69 & 64 & 7.81  \\
-        13 & 71.79 & 25.15 & 80.41 & 86.67 & 75 & 14 & 487 & 39 & 123 & 0.1674 & 92.78 & 80.29 & 8 & 4 & 0 & 10 & 1 & 10 & 12 & 20  \\
-        14 & 57.07 & 18.21 & 70.79 & 74.25 & 67.64 & 112 & 8949 & 2012 & 3094 & 1.0606 & 81.83 & 74.55 & 43 & 50 & 6 & 1 & 108 & 108 & 100 & 8  \\
-        15 & 63.22 & 18.77 & 74.07 & 76.04 & 72.2 & 25 & 2084 & 408 & 542 & 0.5879 & 83.79 & 79.55 & 16 & 10 & 2 & 26 & 0 & 26 & 28 & 7.14  \\
-        16 & 60.12 & 18.28 & 77.5 & 73.26 & 82.25 & 23 & 3058 & 917 & 480 & 0.7272 & 77.06 & 86.52 & 23 & 9 & 0 & 1 & 35 & 35 & 32 & 9.38  \\
-        17 & 74.93 & 17.48 & 87.15 & 85.2 & 89.19 & 4 & 1302 & 214 & 146 & 0.4544 & 85.92 & 89.94 & 13 & 2 & 1 & 0 & 17 & 17 & 16 & 6.25  \\
-        18 & 75.65 & 16.27 & 74.34 & 73.37 & 75.35 & 3 & 1156 & 174 & 139 & 0.2578 & 86.95 & 89.29 & 4 & 2 & 0 & 6 & 0 & 6 & 6 & 0  \\
-        19 & 74.67 & 20.6 & 82.57 & 81.76 & 83.4 & 10 & 1139 & 172 & 146 & 0.6056 & 86.98 & 88.73 & 17 & 5 & 2 & 0 & 21 & 21 & 24 & 12.5  \\
-        20 & 63.54 & 20.04 & 75.5 & 86.37 & 67.07 & 36 & 3103 & 294 & 1282 & 0.3121 & 91.44 & 71 & 16 & 28 & 2 & 45 & 0 & 45 & 46 & 2.17  \\
-        Average Value & 64.11 & 19.52 & 76.66 & 77.66 & 76.14 & 24 & 2807 & 480 & 645 & 0.53 & 83.51 & 81.856 & 19.7 & 11.45 & 1.15 & 14.2 & 20.2 & 33.85 & 32.35 & 14.59 \\ \hline
-    \end{tabular}
-    \caption{CV 8-Dimensional State Vector Model MOT and Count Evaluation Results}
-    \label{tab:CV8DResults}
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\scriptsize
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{p{0.5cm}|p{0.7cm}|p{0.7cm}|p{0.7cm}|p{0.7cm}|p{0.7cm}|p{0.8cm}|p{0.8cm}|p{0.8cm}|p{0.7cm}|p{0.6cm}|p{0.8cm}|p{0.7cm}|p{0.8cm}|p{0.8cm}|p{0.7cm}|p{0.8cm}|p{0.8cm}|p{0.8cm}|p{0.8cm}|p{0.8cm}}
+\hline
+{\tiny \textbf{Video}} & {\tiny \textbf{MOTA}} & {\tiny \textbf{MOTP}} & {\tiny \textbf{IDF1}} & {\tiny \textbf{IDP}} & {\tiny \textbf{IDR}} & {\tiny \textbf{IDS}} & {\tiny \textbf{Match-es}} & {\tiny \textbf{FP}} & {\tiny \textbf{Miss-es}} & {\tiny \textbf{FAF}} & {\tiny \textbf{Preci-sion}} & {\tiny \textbf{Recall}} & {\tiny \textbf{Mostly Track-ed}} & {\tiny \textbf{Partial-ly Track-ed}} & {\tiny \textbf{Mostly Lost}} & {\tiny \textbf{Left Count}} & {\tiny \textbf{Right Count}} & {\tiny \textbf{Total Count}} & {\tiny \textbf{Actual Count}} & {\tiny \textbf{MAPE}} \\ \hline
+1 & 14.73 & 20.58 & 47.33 & 46.62 & 48.06 & 12 & 70 & 51 & 47 & 0.52 & 61.65 & 63.57 & 1 & 3 & 0 & 0 & 10 & 10 & 4 & 150 \\
+\rowcolor{gray!10}
+2 & 58.58 & 20.6 & 75.24 & 82.18 & 69.38 & 4 & 402 & 71 & 159 & 0.31 & 85.12 & 71.86 & 4 & 4 & 0 & 8 & 0 & 8 & 8 & 0 \\
+3 & 55.7 & 20.46 & 73.68 & 72.71 & 74.69 & 9 & 1072 & 315 & 278 & 0.76 & 77.44 & 79.54 & 15 & 8 & 2 & 27 & 1 & 27 & 25 & 8 \\
+\rowcolor{gray!10}
+4 & 72.94 & 18.49 & 84.87 & 78.92 & 91.78 & 4 & 631 & 143 & 34 & 0.49 & 81.62 & 94.92 & 9 & 1 & 0 & 2 & 12 & 12 & 10 & 20 \\
+5 & 59.63 & 19.38 & 78.43 & 75.21 & 81.94 & 9 & 910 & 263 & 166 & 0.55 & 77.75 & 84.7 & 13 & 3 & 2 & 18 & 0 & 18 & 18 & 0 \\
+\rowcolor{gray!10}
+6 & 77.41 & 17.28 & 84.46 & 82.33 & 86.7 & 12 & 2522 & 380 & 233 & 0.57 & 86.96 & 91.58 & 13 & 3 & 0 & 17 & 0 & 17 & 16 & 6.25 \\
+7 & 59.5 & 21.79 & 71.51 & 79.9 & 64.72 & 17 & 1230 & 181 & 516 & 0.35 & 87.32 & 70.73 & 8 & 12 & 1 & 0 & 24 & 24 & 21 & 14.29 \\
+\rowcolor{gray!10}
+8 & 52.62 & 18.9 & 71.3 & 72.79 & 69.87 & 41 & 2636 & 755 & 898 & 0.71 & 78 & 74.88 & 21 & 22 & 4 & 4 & 48 & 48 & 47 & 2.13 \\
+9 & 77.56 & 17.86 & 83.18 & 87.53 & 79.24 & 73 & 11835 & 879 & 2218 & 0.43 & 93.13 & 84.3 & 89 & 34 & 1 & 0 & 126 & 126 & 124 & 1.61 \\
+\rowcolor{gray!10}
+10 & 77.48 & 20.08 & 86.28 & 85.28 & 87.3 & 5 & 1591 & 218 & 176 & 0.34 & 87.98 & 90.07 & 15 & 4 & 0 & 20 & 0 & 20 & 19 & 5.26 \\
+11 & 64.75 & 20.07 & 77.25 & 73.84 & 80.98 & 17 & 2728 & 696 & 393 & 0.86 & 79.77 & 87.48 & 21 & 6 & 0 & 30 & 1 & 30 & 27 & 11.11 \\
+\rowcolor{gray!10}
+12 & 70.39 & 20.23 & 77.53 & 78.97 & 76.13 & 50 & 9237 & 1419 & 1819 & 0.61 & 86.75 & 83.62 & 45 & 19 & 0 & 69 & 0 & 69 & 64 & 7.81 \\
+13 & 71.79 & 25.15 & 80.41 & 86.67 & 75 & 14 & 487 & 39 & 123 & 0.17 & 92.78 & 80.29 & 8 & 4 & 0 & 10 & 1 & 10 & 12 & 20 \\
+\rowcolor{gray!10}
+14 & 57.07 & 18.21 & 70.79 & 74.25 & 67.64 & 112 & 8949 & 2012 & 3094 & 1.06 & 81.83 & 74.55 & 43 & 50 & 6 & 1 & 108 & 108 & 100 & 8 \\
+15 & 63.22 & 18.77 & 74.07 & 76.04 & 72.2 & 25 & 2084 & 408 & 542 & 0.59 & 83.79 & 79.55 & 16 & 10 & 2 & 26 & 0 & 26 & 28 & 7.14 \\
+\rowcolor{gray!10}
+16 & 60.12 & 18.28 & 77.5 & 73.26 & 82.25 & 23 & 3058 & 917 & 480 & 0.73 & 77.06 & 86.52 & 23 & 9 & 0 & 1 & 35 & 35 & 32 & 9.38 \\
+17 & 74.93 & 17.48 & 87.15 & 85.2 & 89.19 & 4 & 1302 & 214 & 146 & 0.45 & 85.92 & 89.94 & 13 & 2 & 1 & 0 & 17 & 17 & 16 & 6.25 \\
+\rowcolor{gray!10}
+18 & 75.65 & 16.27 & 74.34 & 73.37 & 75.35 & 3 & 1156 & 174 & 139 & 0.26 & 86.95 & 89.29 & 4 & 2 & 0 & 6 & 0 & 6 & 6 & 0 \\
+19 & 74.67 & 20.6 & 82.57 & 81.76 & 83.4 & 10 & 1139 & 172 & 146 & 0.61 & 86.98 & 88.73 & 17 & 5 & 2 & 0 & 21 & 21 & 24 & 12.5 \\
+\rowcolor{gray!10}
+20 & 63.54 & 20.04 & 75.5 & 86.37 & 67.07 & 36 & 3103 & 294 & 1282 & 0.31 & 91.44 & 71 & 16 & 28 & 2 & 45 & 0 & 45 & 46 & 2.17 \\
+Avg & 64.11 & 19.52 & 76.66 & 77.66 & 76.14 & 24 & 2807 & 480 & 645 & 0.53 & 83.51 & 81.86 & 19.7 & 11.45 & 1.15 & 14.2 & 20.2 & 33.85 & 32.35 & 14.59 \\ \hline
+\end{tabular}%
+}
+\caption{CV 8-Dimensional State Vector Model MOT and Count Evaluation Results}
+\label{tab:CV8DResults}
 \end{table}
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.8\textwidth]{pictures/P21CV8DResultsvideoFrame.png}
     \caption{Intermediate tracking frame with the 8D state-vector model}
@@ -335,7 +355,7 @@ Table~\ref{tab:CV8DResults} reports average performance on MOT-TPCH: MOTA=64.11\
 \end{figure}
 
 % --------------------------------------- CA-12D ------------------------------------------------------------
-3.2 12D Constant-Acceleration Model (CA-12D)
+\subsubsection{2D Constant-Acceleration Model (CA-12D)}
 To model nonlinear motion, we extend the baseline with explicit accelerations $\ddot{x}, \ddot{y}, \ddot{a}, \ddot{h}$.
 \paragraph{12D Constant-Acceleration (CA-12D).} The state is \([x, y, a, h, v_x, v_y, v_a, v_h, a_x, a_y, a_a, a_h]^\top\), with measurements \([x, y, a, h]^\top\). This better captures deceleration during arrivals and short bursts under occlusions.
 
@@ -355,7 +375,7 @@ To model nonlinear motion, we extend the baseline with explicit accelerations $\
 
 \textbf{Dynamics:}
 \begin{align}
-\mathbf{p}_{k+1} &= \mathbf{p}_k + \mathbf{v}_k \Delta t + \t\frac{1}{2}\mathbf{a}_k \Delta t^2 \\
+\mathbf{p}_{k+1} &= \mathbf{p}_k + \mathbf{v}_k \Delta t + \tfrac{1}{2}\mathbf{a}_k \Delta t^2 \\
 \mathbf{v}_{k+1} &= \alpha_v \mathbf{v}_{k+1}^{pred} + (1-\alpha_v) \mathbf{v}_k, \quad \alpha_v = 0.85 \\
 \mathbf{a}_{k+1} &= \alpha_a \mathbf{a}_{k+1}^{pred} + (1-\alpha_a) \mathbf{a}_k, \quad \alpha_a = 0.7
 \end{align}
@@ -375,39 +395,54 @@ with $\sigma_{pos} = 1/20$, $\sigma_{vel} = 1/160$, $\sigma_{acc} = 1/10$.
 \begin{equation}
 \mathbf{H} = [\mathbf{I}_4, \mathbf{0}_{4 \times 4}, \mathbf{0}_{4 \times 4}]_{4 \times 12}
 \end{equation}
-On MOT-TPCH, CA-12D attains average MOTA=67.54\%, MOTP=17.42\%, IDF1=75.29\%, IDP=81.41\%, IDR=70.4\%, ID Switches=39, FP=278, Precision=89.73\%, Recall=77.51\%, and counting MAPE=6.99\% (Table~\ref{tab:CA12DResults}). Compared to CV-8D, it reduces FP substantially and halves counting error, confirming stability gains for counting. However, identity switches increase (24→39) and IDF1 slightly drops, reflecting sensitivity to noise in a higher-dimensional state.
-\begin{table}[!ht]
-    \centering
-    \begin{tabular}{ccccccccccccccccccccc}
-    \hline
-        \textbf{Video} & \textbf{MOTA} & \textbf{MOTP} & \textbf{IDF1} & \textbf{IDP} & \textbf{IDR} & \textbf{ID Switches} & \textbf{Matches} & \textbf{False Positives} & \textbf{Misses} & \textbf{FAF} & \textbf{Precision} & \textbf{Recall} & \textbf{Mostly Tracked} & \textbf{Partially Tracked} & \textbf{Mostly Lost} & \textbf{Left Counting} & \textbf{Right Counting} & \textbf{Total Counting} & \textbf{Actual Counting} & \textbf{Relative Counting Error Rate } \\ \hline
-        1 & 65.12 & 18.99 & 77.59 & 87.38 & 69.77 & 1 & 93 & 9 & 35 & 0.0909 & 91.26 & 72.87 & 2 & 2 & 0 & 0 & 4 & 4 & 4 & 0  \\
-        2 & 56.46 & 17.08 & 74.25 & 86.01 & 65.31 & 2 & 373 & 54 & 190 & 0.2379 & 87.41 & 66.37 & 3 & 5 & 0 & 8 & 0 & 8 & 8 & 0  \\
-        3 & 56 & 17.83 & 70.73 & 74.96 & 66.96 & 13 & 981 & 220 & 365 & 0.5288 & 81.88 & 73.14 & 12 & 10 & 3 & 26 & 1 & 26 & 25 & 4  \\
-        4 & 75.49 & 16.82 & 79.94 & 78.61 & 81.32 & 11 & 593 & 88 & 65 & 0.3014 & 87.28 & 90.28 & 9 & 1 & 0 & 1 & 12 & 12 & 10 & 20  \\
-        5 & 63.5 & 16.55 & 78.05 & 80.37 & 75.85 & 9 & 852 & 163 & 224 & 0.3396 & 84.08 & 79.35 & 12 & 5 & 1 & 19 & 0 & 19 & 18 & 5.56  \\
-        6 & 80.63 & 16.37 & 79.01 & 80.91 & 77.2 & 19 & 2426 & 195 & 322 & 0.2932 & 92.61 & 88.36 & 12 & 4 & 0 & 17 & 0 & 17 & 16 & 6.25  \\
-        7 & 52.47 & 19.55 & 57.61 & 71.05 & 48.44 & 27 & 1050 & 125 & 686 & 0.2399 & 89.6 & 61.09 & 6 & 10 & 5 & 0 & 22 & 22 & 21 & 4.76  \\
-        8 & 58.83 & 17.26 & 73.44 & 80.06 & 67.83 & 36 & 2548 & 445 & 991 & 0.4159 & 85.31 & 72.28 & 22 & 21 & 4 & 1 & 45 & 45 & 47 & 4.26  \\
-        9 & 73.29 & 16 & 79.16 & 87.97 & 71.96 & 140 & 10884 & 531 & 3102 & 0.262 & 95.4 & 78.04 & 72 & 50 & 2 & 0 & 123 & 123 & 124 & 0.81  \\
-        10 & 81.04 & 17.8 & 87.05 & 90.3 & 84.03 & 5 & 1540 & 104 & 227 & 0.16 & 93.69 & 87.19 & 14 & 5 & 0 & 19 & 0 & 19 & 19 & 0  \\
-        11 & 72.5 & 19.12 & 78.98 & 83.18 & 75.18 & 29 & 2541 & 266 & 568 & 0.3296 & 90.62 & 81.9 & 17 & 9 & 1 & 30 & 1 & 30 & 27 & 11.11  \\
-        12 & 68.84 & 19.61 & 72.41 & 79.85 & 66.24 & 121 & 8369 & 724 & 2616 & 0.3102 & 92.14 & 76.45 & 36 & 28 & 0 & 80 & 0 & 80 & 64 & 25  \\
-        13 & 77.72 & 16.06 & 83.36 & 91.89 & 76.28 & 5 & 499 & 14 & 120 & 0.0601 & 97.3 & 80.77 & 8 & 4 & 0 & 12 & 1 & 12 & 12 & 0  \\
-        14 & 55.76 & 17.29 & 64.13 & 73.2 & 57.06 & 207 & 8023 & 1245 & 3925 & 0.6563 & 86.86 & 67.71 & 34 & 56 & 9 & 1 & 111 & 111 & 100 & 11  \\
-        15 & 61.41 & 17.39 & 69.58 & 75.42 & 64.58 & 34 & 1932 & 304 & 685 & 0.438 & 86.61 & 74.16 & 14 & 12 & 2 & 28 & 0 & 28 & 28 & 0  \\
-        16 & 60.94 & 17.2 & 70.89 & 72.31 & 69.53 & 40 & 2777 & 607 & 744 & 0.4814 & 82.27 & 79.11 & 20 & 12 & 0 & 1 & 35 & 35 & 32 & 9.38  \\
-        17 & 73.97 & 15.5 & 83.79 & 85.2 & 82.44 & 9 & 1235 & 161 & 208 & 0.3418 & 88.54 & 85.67 & 12 & 3 & 1 & 0 & 15 & 15 & 16 & 6.25  \\
-        18 & 77.81 & 15.88 & 69.34 & 72.36 & 66.56 & 16 & 1094 & 84 & 188 & 0.1244 & 92.96 & 85.52 & 3 & 3 & 0 & 7 & 0 & 7 & 6 & 16.67  \\
-        19 & 78.3 & 17.53 & 86 & 90.31 & 82.08 & 7 & 1092 & 78 & 196 & 0.2746 & 93.37 & 84.86 & 15 & 7 & 2 & 0 & 21 & 21 & 24 & 12.5  \\
-        20 & 60.8 & 18.48 & 70.59 & 86.93 & 59.42 & 52 & 2829 & 141 & 1540 & 0.1497 & 95.33 & 65.17 & 12 & 31 & 3 & 47 & 0 & 47 & 46 & 2.17  \\
-        Average Value & 67.54 & 17.42 & 75.29 & 81.41 & 70.4 & 39.15 & 2586.55 & 277.9 & 849.85 & 0.3 & 89.73 & 77.51 & 16.75 & 13.9 & 1.65 & 14.85 & 19.55 & 34.05 & 32.35 & 6.99 \\ \hline
-    \end{tabular}
-    \caption{CA 12-Dimensional State Vector Model MOT and Count Evaluation Results}
-    \label{tab:CA12DResults}
+On MOT-TPCH, CA-12D attains average MOTA=67.54\%, MOTP=17.42\%, IDF1=75.29\%, IDP=81.41\%, IDR=70.4\%, ID Switches=39, FP=278, Precision=89.73\%, Recall=77.51\%, and counting MAPE=6.99\% (Table~\ref{tab:CA12DResults}). Compared to CV-8D, it reduces FP substantially and halves counting error, confirming stability gains for counting. However, identity switches increase (from 24 to 39) and IDF1 slightly drops, reflecting sensitivity to noise in a higher-dimensional state.
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\scriptsize
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{p{0.5cm}|p{0.7cm}|p{0.7cm}|p{0.7cm}|p{0.7cm}|p{0.7cm}|p{0.8cm}|p{0.8cm}|p{0.8cm}|p{0.7cm}|p{0.6cm}|p{0.8cm}|p{0.7cm}|p{0.8cm}|p{0.8cm}|p{0.7cm}|p{0.8cm}|p{0.8cm}|p{0.8cm}|p{0.8cm}|p{0.8cm}}
+\hline
+{\tiny \textbf{Video}} & {\tiny \textbf{MOTA}} & {\tiny \textbf{MOTP}} & {\tiny \textbf{IDF1}} & {\tiny \textbf{IDP}} & {\tiny \textbf{IDR}} & {\tiny \textbf{IDSW}} & {\tiny \textbf{Match-es}} & {\tiny \textbf{FP}} & {\tiny \textbf{Miss-es}} & {\tiny \textbf{FAF}} & {\tiny \textbf{Preci-sion}} & {\tiny \textbf{Recall}} & {\tiny \textbf{MT}} & {\tiny \textbf{PT}} & {\tiny \textbf{ML}} & {\tiny \textbf{Left Count}} & {\tiny \textbf{Right Count}} & {\tiny \textbf{Total Count}} & {\tiny \textbf{Actual Count}} & {\tiny \textbf{MAPE}} \\ \hline
+1 & 65.12 & 18.99 & 77.59 & 87.38 & 69.77 & 1 & 93 & 9 & 35 & 0.09 & 91.26 & 72.87 & 2 & 2 & 0 & 0 & 4 & 4 & 4 & 0 \\
+\rowcolor{gray!10}
+2 & 56.46 & 17.08 & 74.25 & 86.01 & 65.31 & 2 & 373 & 54 & 190 & 0.24 & 87.41 & 66.37 & 3 & 5 & 0 & 8 & 0 & 8 & 8 & 0 \\
+3 & 56 & 17.83 & 70.73 & 74.96 & 66.96 & 13 & 981 & 220 & 365 & 0.53 & 81.88 & 73.14 & 12 & 10 & 3 & 26 & 1 & 26 & 25 & 4 \\
+\rowcolor{gray!10}
+4 & 75.49 & 16.82 & 79.94 & 78.61 & 81.32 & 11 & 593 & 88 & 65 & 0.30 & 87.28 & 90.28 & 9 & 1 & 0 & 1 & 12 & 12 & 10 & 20 \\
+5 & 63.5 & 16.55 & 78.05 & 80.37 & 75.85 & 9 & 852 & 163 & 224 & 0.34 & 84.08 & 79.35 & 12 & 5 & 1 & 19 & 0 & 19 & 18 & 5.56 \\
+\rowcolor{gray!10}
+6 & 80.63 & 16.37 & 79.01 & 80.91 & 77.2 & 19 & 2426 & 195 & 322 & 0.29 & 92.61 & 88.36 & 12 & 4 & 0 & 17 & 0 & 17 & 16 & 6.25 \\
+7 & 52.47 & 19.55 & 57.61 & 71.05 & 48.44 & 27 & 1050 & 125 & 686 & 0.24 & 89.6 & 61.09 & 6 & 10 & 5 & 0 & 22 & 22 & 21 & 4.76 \\
+\rowcolor{gray!10}
+8 & 58.83 & 17.26 & 73.44 & 80.06 & 67.83 & 36 & 2548 & 445 & 991 & 0.42 & 85.31 & 72.28 & 22 & 21 & 4 & 1 & 45 & 45 & 47 & 4.26 \\
+9 & 73.29 & 16 & 79.16 & 87.97 & 71.96 & 140 & 10884 & 531 & 3102 & 0.26 & 95.4 & 78.04 & 72 & 50 & 2 & 0 & 123 & 123 & 124 & 0.81 \\
+\rowcolor{gray!10}
+10 & 81.04 & 17.8 & 87.05 & 90.3 & 84.03 & 5 & 1540 & 104 & 227 & 0.16 & 93.69 & 87.19 & 14 & 5 & 0 & 19 & 0 & 19 & 19 & 0 \\
+11 & 72.5 & 19.12 & 78.98 & 83.18 & 75.18 & 29 & 2541 & 266 & 568 & 0.33 & 90.62 & 81.9 & 17 & 9 & 1 & 30 & 1 & 30 & 27 & 11.11 \\
+\rowcolor{gray!10}
+12 & 68.84 & 19.61 & 72.41 & 79.85 & 66.24 & 121 & 8369 & 724 & 2616 & 0.31 & 92.14 & 76.45 & 36 & 28 & 0 & 80 & 0 & 80 & 64 & 25 \\
+13 & 77.72 & 16.06 & 83.36 & 91.89 & 76.28 & 5 & 499 & 14 & 120 & 0.06 & 97.3 & 80.77 & 8 & 4 & 0 & 12 & 1 & 12 & 12 & 0 \\
+\rowcolor{gray!10}
+14 & 55.76 & 17.29 & 64.13 & 73.2 & 57.06 & 207 & 8023 & 1245 & 3925 & 0.66 & 86.86 & 67.71 & 34 & 56 & 9 & 1 & 111 & 111 & 100 & 11 \\
+15 & 61.41 & 17.39 & 69.58 & 75.42 & 64.58 & 34 & 1932 & 304 & 685 & 0.44 & 86.61 & 74.16 & 14 & 12 & 2 & 28 & 0 & 28 & 28 & 0 \\
+\rowcolor{gray!10}
+16 & 60.94 & 17.2 & 70.89 & 72.31 & 69.53 & 40 & 2777 & 607 & 744 & 0.48 & 82.27 & 79.11 & 20 & 12 & 0 & 1 & 35 & 35 & 32 & 9.38 \\
+17 & 73.97 & 15.5 & 83.79 & 85.2 & 82.44 & 9 & 1235 & 161 & 208 & 0.34 & 88.54 & 85.67 & 12 & 3 & 1 & 0 & 15 & 15 & 16 & 6.25 \\
+\rowcolor{gray!10}
+18 & 77.81 & 15.88 & 69.34 & 72.36 & 66.56 & 16 & 1094 & 84 & 188 & 0.12 & 92.96 & 85.52 & 3 & 3 & 0 & 7 & 0 & 7 & 6 & 16.67 \\
+19 & 78.3 & 17.53 & 86 & 90.31 & 82.08 & 7 & 1092 & 78 & 196 & 0.27 & 93.37 & 84.86 & 15 & 7 & 2 & 0 & 21 & 21 & 24 & 12.5 \\
+\rowcolor{gray!10}
+20 & 60.8 & 18.48 & 70.59 & 86.93 & 59.42 & 52 & 2829 & 141 & 1540 & 0.15 & 95.33 & 65.17 & 12 & 31 & 3 & 47 & 0 & 47 & 46 & 2.17 \\
+\rowcolor{gray!20}
+Avg & 67.54 & 17.42 & 75.29 & 81.41 & 70.4 & 39.15 & 2587 & 278 & 850 & 0.30 & 89.73 & 77.51 & 16.75 & 13.9 & 1.65 & 14.85 & 19.55 & 34.05 & 32.35 & 6.99 \\ \hline
+\end{tabular}%
+}
+\caption{CA 12-Dimensional State Vector Model MOT and Count Evaluation Results}
+\label{tab:CA12DResults}
 \end{table}
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.8\textwidth]{pictures/CA12framedeomo.png}
     \caption{Intermediate tracking frame with the 12D state-vector model}
@@ -415,7 +450,7 @@ On MOT-TPCH, CA-12D attains average MOTA=67.54\%, MOTP=17.42\%, IDF1=75.29\%, ID
 \end{figure}
 
 % --------------------------------------- Phys-5D ------------------------------------------------------------
-3.3 5D Physics-Constrained Model (Phys-5D)
+\subsubsection{5D Physics-Constrained Model (Phys-5D)}
 To overcome the limitations of image-plane kinematics, we introduce a 5D model that lifts estimation to 3D via pinhole geometry and scene priors.
 \paragraph{5D Physically Constrained Model (Phys-5D).} We relate pixel height $h$ to depth $Z$ via $Z=fH/h$, with state \([u,v,h,Z,\dot{Z}]^\top\) and measurement \([u,v,h]^\top\). We explicitly update $Z$ and $h$ through projection and back-projection, and impose an adaptive deceleration prior on $\dot{Z}$ to reflect typical motion near the camera. Implementation references: \texttt{physical3dkf\_5d.py}, \texttt{deep\_sort/custom\_kf5d.py}.
 
@@ -463,38 +498,53 @@ with $\sigma_{pos} = 1/2$, $\sigma_{vel} = 1/15$.
 We note that despite physics constraints, the model remains image-based and is influenced by image quality and calibration uncertainties. We use fSpy to estimate intrinsics on a representative frame: 2K right: $f=795.0$, $(c_x,c_y)=(268.0,137.0)$; 2K left: $f=795.0$, $(1268.0,137.0)$; 4K right: $f=1600.3$, $(515.0,153.0)$; 4K left: $f=1600.3$, $(1789.0,153.0)$.
 
 On MOT-TPCH (20 videos), Phys-5D achieves average MOTA=67.21\%, MOTP=17.41\%, IDF1=76.29\%, IDP=82.23\%, IDR=71.51\%, ID Switches=24.8, FP=290, Precision=89.06\%, Recall=77.45\%, and counting MAPE=2.24\% (Table~\ref{tab:Phys5DResults}). Notably, identity switches regress to baseline levels (24.8 vs 24), far below CA-12D (39), while counting error reaches the best level. This demonstrates that physics priors regularize state evolution, avoiding identity confusion from 2D size fluctuations, and translating into superior counting.
-\begin{table}[!ht]
-    \centering
-    \begin{tabular}{ccccccccccccccccccccc}
-    \hline
-        \textbf{video} & \textbf{MOTA} & \textbf{MOTP} & \textbf{IDF1} & \textbf{IDP} & \textbf{IDR} & \textbf{ID Switches} & \textbf{Matches} & \textbf{False Positives} & \textbf{Misses} & \textbf{FAF} & \textbf{Precision} & \textbf{Recall} & \textbf{Mostly Tracked} & \textbf{Partially Tracked} & \textbf{Mostly Lost} & \textbf{left Counting} & \textbf{right Counting} & \textbf{total Counting} & \textbf{actual Counting} & \textbf{Relative Counting Error Rate } \\ \hline
-        1 & 54.26 & 19.63 & 72.96 & 81.73 & 65.89 & 2 & 86 & 16 & 41 & 0.16 & 84.62 & 68.22 & 1 & 3 & 0 & 0 & 4 & 4 & 4 & 0  \\
-        2 & 57.35 & 17.64 & 75.65 & 87.65 & 66.55 & 3 & 375 & 51 & 187 & 0.22 & 88.11 & 66.9 & 3 & 5 & 0 & 8 & 0 & 8 & 8 & 0  \\
-        3 & 57.25 & 17.66 & 73.19 & 77.53 & 69.32 & 7 & 993 & 215 & 359 & 0.52 & 82.3 & 73.58 & 12 & 10 & 3 & 24 & 0 & 25 & 25 & 0  \\
-        4 & 78.33 & 16.74 & 83.16 & 81.49 & 84.9 & 1 & 610 & 86 & 58 & 0.29 & 87.66 & 91.33 & 9 & 1 & 0 & 0 & 10 & 10 & 10 & 0  \\
-        5 & 64.42 & 16.5 & 78.33 & 79.56 & 77.14 & 3 & 874 & 175 & 208 & 0.36 & 83.37 & 80.83 & 13 & 4 & 1 & 19 & 0 & 19 & 18 & 5.56  \\
-        6 & 81.1 & 16.11 & 82.98 & 84.91 & 81.13 & 8 & 2440 & 196 & 319 & 0.29 & 92.59 & 88.47 & 13 & 3 & 0 & 16 & 0 & 16 & 16 & 0  \\
-        7 & 53.72 & 19.9 & 63.01 & 75.52 & 54.06 & 15 & 1097 & 150 & 651 & 0.29 & 88.11 & 63.07 & 6 & 10 & 5 & 0 & 21 & 21 & 21 & 0  \\
-        8 & 57.31 & 16.91 & 74.24 & 81.18 & 68.39 & 17 & 2522 & 473 & 1036 & 0.44 & 84.3 & 71.02 & 20 & 23 & 4 & 1 & 44 & 44 & 47 & 6.38  \\
-        9 & 73.84 & 15.94 & 79.76 & 88.47 & 72.6 & 87 & 10968 & 537 & 3071 & 0.26 & 95.37 & 78.26 & 71 & 51 & 2 & 0 & 123 & 123 & 124 & 0.81  \\
-        10 & 78.67 & 18.02 & 85.86 & 88.98 & 82.96 & 12 & 1517 & 123 & 243 & 0.19 & 92.55 & 86.29 & 14 & 5 & 0 & 19 & 0 & 19 & 19 & 0  \\
-        11 & 71.41 & 19.41 & 76.45 & 80.95 & 72.43 & 35 & 2507 & 266 & 596 & 0.33 & 90.53 & 81.01 & 18 & 8 & 1 & 27 & 0 & 27 & 27 & 0  \\
-        12 & 68.76 & 19.79 & 72.11 & 79.28 & 66.13 & 94 & 8403 & 766 & 2609 & 0.33 & 91.73 & 76.51 & 36 & 27 & 1 & 66 & 0 & 66 & 64 & 3.12  \\
-        13 & 76.76 & 15.26 & 83.84 & 92.13 & 76.92 & 4 & 498 & 19 & 122 & 0.08 & 96.35 & 80.45 & 8 & 4 & 0 & 11 & 0 & 12 & 12 & 0  \\
-        14 & 56.74 & 17.15 & 66.1 & 74.66 & 59.31 & 119 & 8217 & 1320 & 3819 & 0.7 & 86.33 & 68.58 & 34 & 58 & 7 & 0 & 100 & 100 & 100 & 0  \\
-        15 & 62.28 & 17.2 & 71.93 & 78.18 & 66.62 & 16 & 1947 & 296 & 688 & 0.43 & 86.9 & 74.05 & 16 & 10 & 2 & 29 & 0 & 29 & 28 & 3.57  \\
-        16 & 63.13 & 17.31 & 74.31 & 75.3 & 73.35 & 17 & 2850 & 602 & 694 & 0.48 & 82.65 & 80.51 & 21 & 11 & 0 & 0 & 31 & 32 & 32 & 0  \\
-        17 & 72.73 & 15.43 & 82.94 & 84.76 & 81.2 & 11 & 1218 & 162 & 223 & 0.34 & 88.35 & 84.64 & 11 & 4 & 1 & 0 & 15 & 15 & 16 & 6.25  \\
-        18 & 79.97 & 15.45 & 70.53 & 73.22 & 68.03 & 6 & 1119 & 81 & 173 & 0.12 & 93.28 & 86.67 & 3 & 3 & 0 & 6 & 0 & 6 & 6 & 0  \\
-        19 & 75.37 & 17.63 & 84.94 & 89.28 & 81 & 5 & 1073 & 97 & 217 & 0.34 & 91.74 & 83.24 & 15 & 7 & 2 & 0 & 21 & 21 & 24 & 12.5  \\
-        20 & 60.73 & 18.45 & 73.56 & 89.79 & 62.29 & 34 & 2859 & 174 & 1528 & 0.18 & 94.33 & 65.44 & 12 & 32 & 2 & 43 & 0 & 43 & 46 & 6.52  \\
-        Average Value & 67.21  & 17.41  & 76.29  & 82.23  & 71.51  & 24.80  & 2608.65  & 290.25  & 842.10  & 0.32  & 89.06  & 77.45  & 16.80  & 13.95  & 1.55  & 13.45  & 18.45  & 32.00  & 32.35  & 2.24  \\ \hline
-    \end{tabular}
-    \caption{Phys-5-Dimensional state vector model MOT and counting evaluation results}
-    \label{tab:Phys5DResults}
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\scriptsize
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{p{0.5cm}|p{0.7cm}|p{0.7cm}|p{0.7cm}|p{0.7cm}|p{0.7cm}|p{0.8cm}|p{0.8cm}|p{0.8cm}|p{0.7cm}|p{0.6cm}|p{0.8cm}|p{0.7cm}|p{0.8cm}|p{0.8cm}|p{0.7cm}|p{0.8cm}|p{0.8cm}|p{0.8cm}|p{0.8cm}|p{0.8cm}}
+\hline
+{\tiny \textbf{Video}} & {\tiny \textbf{MOTA}} & {\tiny \textbf{MOTP}} & {\tiny \textbf{IDF1}} & {\tiny \textbf{IDP}} & {\tiny \textbf{IDR}} & {\tiny \textbf{IDS}} & {\tiny \textbf{Match-es}} & {\tiny \textbf{FP}} & {\tiny \textbf{Miss-es}} & {\tiny \textbf{FAF}} & {\tiny \textbf{Preci-sion}} & {\tiny \textbf{Recall}} & {\tiny \textbf{Mostly Track-ed}} & {\tiny \textbf{Partial-ly Track-ed}} & {\tiny \textbf{Mostly Lost}} & {\tiny \textbf{Left Count}} & {\tiny \textbf{Right Count}} & {\tiny \textbf{Total Count}} & {\tiny \textbf{Actual Count}} & {\tiny \textbf{MAPE}} \\ \hline
+1 & 54.26 & 19.63 & 72.96 & 81.73 & 65.89 & 2 & 86 & 16 & 41 & 0.16 & 84.62 & 68.22 & 1 & 3 & 0 & 0 & 4 & 4 & 4 & 0 \\
+\rowcolor{gray!10}
+2 & 57.35 & 17.64 & 75.65 & 87.65 & 66.55 & 3 & 375 & 51 & 187 & 0.22 & 88.11 & 66.9 & 3 & 5 & 0 & 8 & 0 & 8 & 8 & 0 \\
+3 & 57.25 & 17.66 & 73.19 & 77.53 & 69.32 & 7 & 993 & 215 & 359 & 0.52 & 82.3 & 73.58 & 12 & 10 & 3 & 24 & 0 & 25 & 25 & 0 \\
+\rowcolor{gray!10}
+4 & 78.33 & 16.74 & 83.16 & 81.49 & 84.9 & 1 & 610 & 86 & 58 & 0.29 & 87.66 & 91.33 & 9 & 1 & 0 & 0 & 10 & 10 & 10 & 0 \\
+5 & 64.42 & 16.5 & 78.33 & 79.56 & 77.14 & 3 & 874 & 175 & 208 & 0.36 & 83.37 & 80.83 & 13 & 4 & 1 & 19 & 0 & 19 & 18 & 5.56 \\
+\rowcolor{gray!10}
+6 & 81.1 & 16.11 & 82.98 & 84.91 & 81.13 & 8 & 2440 & 196 & 319 & 0.29 & 92.59 & 88.47 & 13 & 3 & 0 & 16 & 0 & 16 & 16 & 0 \\
+7 & 53.72 & 19.9 & 63.01 & 75.52 & 54.06 & 15 & 1097 & 150 & 651 & 0.29 & 88.11 & 63.07 & 6 & 10 & 5 & 0 & 21 & 21 & 21 & 0 \\
+\rowcolor{gray!10}
+8 & 57.31 & 16.91 & 74.24 & 81.18 & 68.39 & 17 & 2522 & 473 & 1036 & 0.44 & 84.3 & 71.02 & 20 & 23 & 4 & 1 & 44 & 44 & 47 & 6.38 \\
+9 & 73.84 & 15.94 & 79.76 & 88.47 & 72.6 & 87 & 10968 & 537 & 3071 & 0.26 & 95.37 & 78.26 & 71 & 51 & 2 & 0 & 123 & 123 & 124 & 0.81 \\
+\rowcolor{gray!10}
+10 & 78.67 & 18.02 & 85.86 & 88.98 & 82.96 & 12 & 1517 & 123 & 243 & 0.19 & 92.55 & 86.29 & 14 & 5 & 0 & 19 & 0 & 19 & 19 & 0 \\
+11 & 71.41 & 19.41 & 76.45 & 80.95 & 72.43 & 35 & 2507 & 266 & 596 & 0.33 & 90.53 & 81.01 & 18 & 8 & 1 & 27 & 0 & 27 & 27 & 0 \\
+\rowcolor{gray!10}
+12 & 68.76 & 19.79 & 72.11 & 79.28 & 66.13 & 94 & 8403 & 766 & 2609 & 0.33 & 91.73 & 76.51 & 36 & 27 & 1 & 66 & 0 & 66 & 64 & 3.12 \\
+13 & 76.76 & 15.26 & 83.84 & 92.13 & 76.92 & 4 & 498 & 19 & 122 & 0.08 & 96.35 & 80.45 & 8 & 4 & 0 & 11 & 0 & 12 & 12 & 0 \\
+\rowcolor{gray!10}
+14 & 56.74 & 17.15 & 66.1 & 74.66 & 59.31 & 119 & 8217 & 1320 & 3819 & 0.7 & 86.33 & 68.58 & 34 & 58 & 7 & 0 & 100 & 100 & 100 & 0 \\
+15 & 62.28 & 17.2 & 71.93 & 78.18 & 66.62 & 16 & 1947 & 296 & 688 & 0.43 & 86.9 & 74.05 & 16 & 10 & 2 & 29 & 0 & 29 & 28 & 3.57 \\
+\rowcolor{gray!10}
+16 & 63.13 & 17.31 & 74.31 & 75.3 & 73.35 & 17 & 2850 & 602 & 694 & 0.48 & 82.65 & 80.51 & 21 & 11 & 0 & 0 & 31 & 32 & 32 & 0 \\
+17 & 72.73 & 15.43 & 82.94 & 84.76 & 81.2 & 11 & 1218 & 162 & 223 & 0.34 & 88.35 & 84.64 & 11 & 4 & 1 & 0 & 15 & 15 & 16 & 6.25 \\
+\rowcolor{gray!10}
+18 & 79.97 & 15.45 & 70.53 & 73.22 & 68.03 & 6 & 1119 & 81 & 173 & 0.12 & 93.28 & 86.67 & 3 & 3 & 0 & 6 & 0 & 6 & 6 & 0 \\
+19 & 75.37 & 17.63 & 84.94 & 89.28 & 81 & 5 & 1073 & 97 & 217 & 0.34 & 91.74 & 83.24 & 15 & 7 & 2 & 0 & 21 & 21 & 24 & 12.5 \\
+\rowcolor{gray!10}
+20 & 60.73 & 18.45 & 73.56 & 89.79 & 62.29 & 34 & 2859 & 174 & 1528 & 0.18 & 94.33 & 65.44 & 12 & 32 & 2 & 43 & 0 & 43 & 46 & 6.52 \\
+\rowcolor{gray!20}
+Avg. & 67.21 & 17.41 & 76.29 & 82.23 & 71.51 & 24.80 & 2609 & 290 & 842 & 0.32 & 89.06 & 77.45 & 16.80 & 13.95 & 1.55 & 13.45 & 18.45 & 32.00 & 32.35 & 2.24 \\ \hline
+\end{tabular}%
+}
+\caption{Phys-5-Dimensional State Vector Model MOT and Count Evaluation Results}
+\label{tab:Phys5DResults}
 \end{table}
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.8\textwidth]{pictures/Phys5Dframedeomo.png}
     \caption{Intermediate tracking frame with the 5D state-vector model}
@@ -503,9 +553,9 @@ On MOT-TPCH (20 videos), Phys-5D achieves average MOTA=67.21\%, MOTP=17.41\%, ID
 In summary, Phys-5D integrates camera geometry and motion priors to lift from 2D to 3D reasoning, greatly stabilizing trajectories and identity consistency, and achieving the best counting accuracy.
 
 
-3.4 Evaluation Across Three Motion Models
+\subsubsection{Evaluation Across Three Motion Models}
 Following the Chapter 4 metrics, Table~\ref{tab:3modelsCountingComparisonResults} compares counting performance. Phys-5D achieves the best MAE/RMSE/MAPE/ME.
-\begin{table}[!ht]
+\begin{table}[H]
     \centering
     \begin{tabular}{ccccc}
     \hline
@@ -520,11 +570,11 @@ Following the Chapter 4 metrics, Table~\ref{tab:3modelsCountingComparisonResults
 Key observations: (1) Complexity does not monotonically improve performance—while CA-12D reduces counting error relative to CV-8D, it harms identity stability; (2) incorporating domain priors is crucial—Phys-5D (lower dimensional yet physically constrained) delivers the best identity consistency and counting accuracy.
 
 
-4. Ablation of the Counting Method
+\subsection{Ablation of the Counting Method}
 We evaluate the proposed Virtual Counting Band and its hyperparameters. The band introduces nonzero width and a persistence criterion to overcome line-crossing brittleness under jitter and occlusion. We focus on the start and end positions.
 
 As in Figure~\ref{fig:VirtualCountingZone}, start and end denote distances from the image borders relative to width (e.g., Start=0.05, End=0.20 defines a band from 0.05×W to 0.20×W on both sides). Start=End degenerates to a line.
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.8\textwidth]{pictures/VirtualCountingZone.png}
     \caption{Schematic Diagram of the Virtual Counting Zone}
@@ -532,63 +582,84 @@ As in Figure~\ref{fig:VirtualCountingZone}, start and end denote distances from 
 \end{figure}
 
 Table~\ref{tab:CountingbandAblationExperiment} reports results across configurations. Performance is highly sensitive to width and position, revealing an optimal range.
-\begin{table}[!ht]
+\begin{table}[H]
     \centering
-    \caption{Results of counting band and line ablation experiment}
+    \resizebox{0.6\textwidth}{!}{%
     \begin{tabular}{cccccc}
     \hline
         \textbf{Start} & \textbf{End} & \textbf{MAE} & \textbf{RMSE} & \textbf{MAPE(\%)} & \textbf{ME } \\ \hline
+        \rowcolor{gray!30}
         0.05  & 0.20  & 0.90  & 1.38  & 2.97  & -0.20   \\
+        \rowcolor{gray!10}
         0.05  & 0.15  & 1.15  & 1.75  & 4.07  & -0.95   \\
         0.00  & 0.15  & 1.25  & 1.77  & 4.67  & -0.15   \\
+        \rowcolor{gray!10}
         0.10  & 0.20  & 1.40  & 2.10  & 5.28  & -1.10   \\
         0.00  & 0.20  & 1.50  & 2.14  & 4.97  & 0.60   \\
+        \rowcolor{gray!10}
         0.15  & 0.30  & 1.50  & 2.37  & 8.58  & 0.20   \\
         0.00  & 0.10  & 1.80  & 2.57  & 5.83  & -1.60   \\
+        \rowcolor{gray!10}
         0.10  & 0.25  & 1.80  & 2.68  & 6.94  & 0.30   \\
         0.20  & 0.30  & 2.05  & 2.89  & 9.66  & -0.85   \\
+        \rowcolor{gray!10}
         0.05  & 0.25  & 2.10  & 2.93  & 6.55  & 1.10   \\
         0.15  & 0.25  & 2.10  & 2.81  & 9.57  & -1.30   \\
+        \rowcolor{gray!10}
         0.20  & 0.35  & 2.40  & 3.44  & 10.61  & 1.10   \\
         0.10  & 0.30  & 2.45  & 3.68  & 8.55  & 1.65   \\
+        \rowcolor{gray!10}
         0.10  & 0.15  & 2.60  & 3.65  & 9.81  & -2.50   \\
         0.00  & 0.25  & 2.75  & 3.94  & 8.59  & 1.85   \\
+        \rowcolor{gray!10}
         0.05  & 0.10  & 2.75  & 3.56  & 8.78  & -2.55   \\
         0.05  & 0.30  & 2.85  & 4.46  & 8.56  & 2.45   \\
+        \rowcolor{gray!10}
         0.15  & 0.35  & 2.85  & 4.42  & 11.16  & 1.95   \\
         0.30  & 0.40  & 3.05  & 4.17  & 15.38  & -0.55   \\
+        \rowcolor{gray!10}
         0.15  & 0.20  & 3.15  & 4.38  & 11.45  & -3.05   \\
         0.20  & 0.25  & 3.50  & 4.93  & 12.89  & -2.80   \\
+        \rowcolor{gray!10}
         0.30  & 0.35  & 3.50  & 4.43  & 16.85  & -3.40   \\
         0.00  & 0.30  & 3.60  & 5.53  & 10.81  & 3.20   \\
+        \rowcolor{gray!10}
         0.10  & 0.35  & 3.90  & 6.43  & 11.85  & 3.30   \\
         0.20  & 0.40  & 4.15  & 6.43  & 16.10  & 3.35   \\
+        \rowcolor{gray!10}
         0.05  & 0.35  & 4.30  & 7.44  & 11.85  & 4.10   \\
         0.15  & 0.40  & 4.65  & 7.55  & 16.81  & 4.15   \\
+        \rowcolor{gray!10}
         0.00  & 0.35  & 5.00  & 8.54  & 13.79  & 4.80   \\
         0.10  & 0.40  & 5.80  & 9.62  & 17.90  & 5.50   \\
+        \rowcolor{gray!10}
         0.00  & 0.05  & 5.95  & 7.77  & 18.77  & -5.95   \\
         0.05  & 0.40  & 6.30  & 10.62  & 18.11  & 6.30   \\
+        \rowcolor{gray!10}
         0.00  & 0.40  & 7.00  & 11.72  & 20.05  & 7.00   \\
         0.30  & 0.30  & 31.10  & 43.49  & 92.71  & -31.10   \\
+        \rowcolor{gray!10}
         0.05  & 0.05  & 31.30  & 43.69  & 93.55  & -31.30   \\
         0.15  & 0.15  & 31.30  & 43.67  & 93.58  & -31.30   \\
+        \rowcolor{gray!10}
         0.10  & 0.10  & 31.35  & 43.74  & 93.66  & -31.35   \\ \hline
-    \end{tabular}
+    \end{tabular}%
+    }
     \label{tab:CountingbandAblationExperiment}
+    \caption{Results of Counting Zone and Line Ablation Experiment}
 \end{table}
 Best configuration: Start=0.05, End=0.20 achieves MAE=0.90, RMSE=1.38, MAPE=2.97\%, ME=−0.20, indicating near-unbiased counting with minimal variance. In contrast, degenerate line settings (Start=End) cause catastrophic degradation (e.g., MAE≈31.3, MAPE>93\%, ME≈−31.3), evidencing severe undercounting due to sensitivity to jitter and transient detection loss. Excessively wide bands inflate overcounting risk through longer dwell times and potential ID switches (e.g., Start=0.00, End=0.40 with MAE=7.00, RMSE=11.72, ME=+7.00).
 
 Table~\ref{tab:ComparisonofAverage} further contrasts average metrics for line vs band: the band dramatically outperforms the line across MAE, RMSE, MAPE, and ME, demonstrating superior robustness and accuracy.
-\begin{table}[!ht]
+\begin{table}[H]
     \centering
-    \caption{Comparison of Average Counting Metrics between Counting Lines and Counting Zones}
     \begin{tabular}{ccccc}
     \hline
         \textbf{} & \textbf{MAE} & \textbf{RMSE} & \textbf{MAPE(\%)} & \textbf{ME } \\ \hline
         Average metrics of line-crossing counting & 31.28  & 43.66  & 93.43  & -31.28   \\
         Average counting metrics of counting zones & 3.13  & 4.75  & 10.87  & 0.81  \\ \hline
     \end{tabular}
+    \caption{Comparison of Average Counting Metrics Lines vs. Zones}
     \label{tab:ComparisonofAverage}
 \end{table}
 
@@ -604,7 +675,7 @@ Overall, the combination of YOLOv11m (detector) + Phys-5D (tracker) + optimized 
 \iffalse
 
 % -------------------------以下是中文版本---------------------------------------%
-本章围绕“检测—跟踪—计数”的整体流程，系统评估了所提出的人群头部检测与站台场景多目标跟踪计数方法。我们以YOLO11m作为检测器，结合基于EfficientNet-B0 的ReID外观描述模型，并在DeepSORT框架内分别接入三类运动模型以开展实验，包括：8维度匀速基准模型（标准DeepSORT卡尔曼滤波器）；12维度加速度模型以及结合针孔相机集合约束的5维度物理模型。在Data章节所提供的具有MOT标注格式的数据上进行评估，其中检测器训练与微调所用的静态图像数据集与多段视频序列互相补充，既涵盖了通用的拥挤场景，也覆盖了列车进站期间不同密度的平台场景。
+本章围绕"检测—跟踪—计数"的整体流程，系统评估了所提出的人群头部检测与站台场景多目标跟踪计数方法。我们以YOLO11m作为检测器，结合基于EfficientNet-B0 的ReID外观描述模型，并在DeepSORT框架内分别接入三类运动模型以开展实验，包括：8维度匀速基准模型（标准DeepSORT卡尔曼滤波器）；12维度加速度模型以及结合针孔相机集合约束的5维度物理模型。在Data章节所提供的具有MOT标注格式的数据上进行评估，其中检测器训练与微调所用的静态图像数据集与多段视频序列互相补充，既涵盖了通用的拥挤场景，也覆盖了列车进站期间不同密度的平台场景。
 
 
 1.检测器YOLO11m的训练与微调
@@ -613,15 +684,15 @@ Overall, the combination of YOLOv11m (detector) + Phys-5D (tracker) + optimized 
 训练超参数设置如下：两个阶段均训练100个epoch，使用SGD优化器，初始学习率为0.01，动量0.937，权重衰减0.0005。其余参数遵循YOLO系列模型的默认设置。
 
 预训练阶段的核心目标是让模型从大规模、多样化的数据集中学习人类头部的通用、鲁棒的视觉特征。为此，我们选用了业界公认的 CrowdHuman 数据集。如第三章Data \S\ref{section::data}所示，该数据集大量的实例，为深度神经网络提供了丰富的学习样本。
-第一阶段在CrowdHuman数据集上的训练结果如\ref{fig:yolo11mpre2results}”和表\ref{tab:yolopre2_results}所示，模型在该数据集上达到了79.4\%的mAP50 和 54.7\%的mAP50–95.
-\begin{figure}[htbp]
+第一阶段在CrowdHuman数据集上的训练结果如\ref{fig:yolo11mpre2results}"和表\ref{tab:yolopre2_results}所示，模型在该数据集上达到了79.4\%的mAP50 和 54.7\%的mAP50–95.
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.8\textwidth]{pictures/yolo11mpre2results.png}
     \caption{Pre-training Results of YOLOv11m on the CrowdHuman Dataset}
     \label{fig:yolo11mpre2results}
 \end{figure}
 
-\begin{table}[h!]
+\begin{table}[H]
 \centering
 \setlength{\tabcolsep}{12pt}
 \renewcommand{\arraystretch}{1.3}
@@ -640,11 +711,11 @@ all & 4370 & 98568 & 0.862 & 0.715 & 0.794 & 0.547 \
 
 
 第二阶段，我们进入了微调阶段。此阶段的核心思想是领域自适应（Domain Adaptation）。我们采用了由 Open Sensor Data for Rail 2023、RailEye3D 及自建数据集共同组成的、高度针对性的头部标注图像。
-微调策略上，我们冻结了主干网络（backbone）的前10层。这一决策基于以下考量：网络模型的浅层部分通常学习到的是边缘、颜色、纹理等通用性强的低级特征，这些特征在不同数据集间是高度可迁移的。通过冻结这些层，我们保留了在CrowdHuman数据集上学到的宝贵通用知识，防止其在小规模数据集上微调时被“遗忘”；同时，我们仅训练网络的深层部分，使其专注于学习站台场景特有的高级语义特征（如光照、遮挡模式、人群分布等），从而实现了高效且精准的知识迁移。
+微调策略上，我们冻结了主干网络（backbone）的前10层。这一决策基于以下考量：网络模型的浅层部分通常学习到的是边缘、颜色、纹理等通用性强的低级特征，这些特征在不同数据集间是高度可迁移的。通过冻结这些层，我们保留了在CrowdHuman数据集上学到的宝贵通用知识，防止其在小规模数据集上微调时被"遗忘"；同时，我们仅训练网络的深层部分，使其专注于学习站台场景特有的高级语义特征（如光照、遮挡模式、人群分布等），从而实现了高效且精准的知识迁移。
 
-微调结果如\ref{fig:yolo11mfinetuneresults}和表\ref{tab:yolofreeze10_results}所示，微调后的模型性能获得了质的飞跃。mAP50 从79.4\% 提升至 98.0\%（提升了18.6个百分点），而mAP50-95 从54.7\% 显著提升至 81.6\%（提升了26.9个百分点）。这一结果有力地证明了我们两阶段训练策略的有效性。尤其值得关注的是 mAP50-95 的大幅增长，这表明模型不仅能准确识别出头部目标，其定位精度（Localization Accuracy）也得到了根本性的改善。对于“检测—跟踪—计数”这一环环相扣的流程而言，一个高精度的检测器是后续任务成功的关键前提，因为精确的边界框（bounding box）能够显著降低跟踪过程中的ID切换和轨迹漂移风险。
+微调结果如\ref{fig:yolo11mfinetuneresults}和表\ref{tab:yolofreeze10_results}所示，微调后的模型性能获得了质的飞跃。mAP50 从79.4\% 提升至 98.0\%（提升了18.6个百分点），而mAP50-95 从54.7\% 显著提升至 81.6\%（提升了26.9个百分点）。这一结果有力地证明了我们两阶段训练策略的有效性。尤其值得关注的是 mAP50-95 的大幅增长，这表明模型不仅能准确识别出头部目标，其定位精度（Localization Accuracy）也得到了根本性的改善。对于"检测—跟踪—计数"这一环环相扣的流程而言，一个高精度的检测器是后续任务成功的关键前提，因为精确的边界框（bounding box）能够显著降低跟踪过程中的ID切换和轨迹漂移风险。
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.8\textwidth]{pictures/yolofreez10_ResultsSummary.png}
     \caption{Fine-tuning Results of YOLOv11m on the Custom Head Dataset}
@@ -652,7 +723,7 @@ all & 4370 & 98568 & 0.862 & 0.715 & 0.794 & 0.547 \
 \end{figure}
 
 
-\begin{table}[h!]
+\begin{table}[H]
 \centering
 \setlength{\tabcolsep}{12pt}
 \renewcommand{\arraystretch}{1.3}
@@ -675,7 +746,7 @@ all & 600 & 4779 & 0.965 & 0.946 & 0.980 & 0.816 \
 
 实验考察了输入尺寸、置信度阈值和IoU阈值三个关键超参数，其取值如下：
 
-\begin{table}[!ht]
+\begin{table}[H]
     \centering
     \caption{Detector ablation parameters Setting}
     \begin{tabular}{|c|c|c|c|c|}
@@ -689,7 +760,7 @@ all & 600 & 4779 & 0.965 & 0.946 & 0.980 & 0.816 \
 
 共构成64种超参数组合。不同设置下的检测性能如\ref{T25_YOLO11m_Ablation}所示。实验结果表明，当置信度阈值为0.3、IoU阈值为0.3、输入尺寸为736时，检测器在多项指标上均达到最佳性能，综合表现最优。该参数选择的逻辑基于目标检测中精度-召回率权衡优化理论。相对较低的置信度阈值（conf=0.3）能够保留更多潜在的正样本提案，避免过度过滤弱信号检测结果；而适中的IoU阈值（iou=0.3）在非极大值抑制过程中既避免了重复检测，又减少了漏检风险。736像素的输入尺寸在计算复杂度和特征提取能力间取得了最优平衡，既提供了足够的空间分辨率保持小目标检测性能，又控制了计算开销。这种参数组合在保持较高检测精度的同时，显著提升了泛化性能指标mAP50-95，表明其在不同IoU阈值下都具有稳定的检测可靠性，更适合实际应用场景中对泛化能力的要求。
 
-\begin{table}[!ht]
+\begin{table}[H]
     \centering
     \caption{Detector Ablation Experiment Results}
     \begin{tabular}{cccccccc}
@@ -700,74 +771,21 @@ all & 600 & 4779 & 0.965 & 0.946 & 0.980 & 0.816 \
         0.7 & 0.7 & 640 & 0.911  & 0.670  & 0.954  & 0.840  & 14.11   \\ 
         0.9 & 0.7 & 640 & 0.871  & 0.654  & 0.984  & 0.753  & 14.21   \\ 
         0.5 & 0.3 & 640 & 0.919  & 0.673  & 0.941  & 0.860  & 14.23   \\ 
-        0.9 & 0.9 & 640 & 0.869  & 0.653  & 0.975  & 0.754  & 14.23   \\ 
-        0.7 & 0.3 & 640 & 0.911  & 0.671  & 0.957  & 0.840  & 14.28   \\ 
-        0.5 & 0.9 & 640 & 0.912  & 0.668  & 0.926  & 0.836  & 14.30   \\ 
-        0.9 & 0.3 & 640 & 0.871  & 0.654  & 0.984  & 0.753  & 14.30   \\ 
-        0.9 & 0.5 & 640 & 0.871  & 0.654  & 0.984  & 0.753  & 14.30   \\ 
-        0.5 & 0.7 & 640 & 0.919  & 0.673  & 0.936  & 0.861  & 14.33   \\ 
-        0.7 & 0.5 & 640 & 0.911  & 0.671  & 0.956  & 0.840  & 14.35   \\ 
-        0.3 & 0.7 & 640 & 0.924  & 0.674  & 0.932  & 0.865  & 14.44   \\ 
-        0.3 & 0.9 & 640 & 0.916  & 0.668  & 0.926  & 0.836  & 14.46   \\ 
-        0.5 & 0.5 & 640 & 0.919  & 0.673  & 0.939  & 0.861  & 14.51   \\ 
-        0.3 & 0.5 & 640 & 0.925  & 0.675  & 0.925  & 0.875  & 14.63   \\ 
-        0.3 & 0.3 & 736 & 0.922  & 0.687  & 0.919  & 0.871  & 16.86   \\ 
-        0.3 & 0.7 & 736 & 0.922  & 0.687  & 0.912  & 0.872  & 18.05   \\ 
-        0.5 & 0.3 & 736 & 0.916  & 0.685  & 0.934  & 0.854  & 18.05   \\ 
-        0.7 & 0.5 & 736 & 0.908  & 0.683  & 0.952  & 0.834  & 18.09   \\ 
-        0.9 & 0.3 & 736 & 0.869  & 0.667  & 0.980  & 0.748  & 18.09   \\ 
-        0.9 & 0.5 & 736 & 0.869  & 0.667  & 0.980  & 0.748  & 18.09   \\ 
-        0.7 & 0.7 & 736 & 0.907  & 0.683  & 0.949  & 0.834  & 18.11   \\ 
-        0.5 & 0.9 & 736 & 0.909  & 0.680  & 0.915  & 0.833  & 18.11   \\ 
-        0.7 & 0.9 & 736 & 0.902  & 0.679  & 0.915  & 0.835  & 18.11   \\ 
-        0.9 & 0.7 & 736 & 0.869  & 0.667  & 0.980  & 0.748  & 18.11   \\ 
-        0.9 & 0.9 & 736 & 0.867  & 0.666  & 0.972  & 0.748  & 18.14   \\ 
-        0.3 & 0.5 & 736 & 0.922  & 0.687  & 0.918  & 0.871  & 18.18   \\ 
-        0.5 & 0.5 & 736 & 0.916  & 0.685  & 0.933  & 0.855  & 18.18   \\ 
-        0.7 & 0.3 & 736 & 0.908  & 0.683  & 0.953  & 0.834  & 18.18   \\ 
-        0.3 & 0.9 & 736 & 0.914  & 0.680  & 0.915  & 0.833  & 18.22   \\ 
-        0.5 & 0.7 & 736 & 0.916  & 0.685  & 0.930  & 0.855  & 18.25   \\ 
-        0.3 & 0.3 & 832 & 0.900  & 0.655  & 0.920  & 0.824  & 21.79   \\ 
-        0.9 & 0.9 & 832 & 0.840  & 0.633  & 0.967  & 0.701  & 22.99   \\ 
-        0.3 & 0.5 & 832 & 0.900  & 0.654  & 0.918  & 0.824  & 23.32   \\ 
-        0.5 & 0.5 & 832 & 0.895  & 0.654  & 0.922  & 0.822  & 23.38   \\ 
-        0.7 & 0.3 & 832 & 0.885  & 0.651  & 0.943  & 0.796  & 23.38   \\ 
-        0.5 & 0.7 & 832 & 0.894  & 0.653  & 0.918  & 0.822  & 23.39   \\ 
-        0.5 & 0.3 & 832 & 0.895  & 0.654  & 0.923  & 0.821  & 23.41   \\ 
-        0.9 & 0.7 & 832 & 0.843  & 0.635  & 0.975  & 0.700  & 23.42   \\ 
-        0.3 & 0.7 & 832 & 0.899  & 0.654  & 0.915  & 0.824  & 23.43   \\ 
-        0.9 & 0.5 & 832 & 0.843  & 0.635  & 0.975  & 0.700  & 23.44   \\ 
-        0.9 & 0.3 & 832 & 0.843  & 0.635  & 0.975  & 0.700  & 23.52   \\ 
-        0.5 & 0.9 & 832 & 0.886  & 0.648  & 0.905  & 0.799  & 23.56   \\ 
-        0.7 & 0.7 & 832 & 0.885  & 0.651  & 0.941  & 0.796  & 23.57   \\ 
-        0.3 & 0.9 & 832 & 0.889  & 0.647  & 0.905  & 0.799  & 23.60   \\ 
-        0.7 & 0.5 & 832 & 0.885  & 0.651  & 0.942  & 0.796  & 23.61   \\ 
-        0.7 & 0.9 & 832 & 0.878  & 0.647  & 0.908  & 0.796  & 23.62   \\ 
-        0.3 & 0.3 & 960 & 0.866  & 0.614  & 0.895  & 0.779  & 29.42   \\ 
-        0.9 & 0.9 & 960 & 0.803  & 0.595  & 0.965  & 0.628  & 29.96   \\ 
-        0.7 & 0.9 & 960 & 0.840  & 0.605  & 0.899  & 0.728  & 30.99   \\ 
-        0.9 & 0.5 & 960 & 0.806  & 0.597  & 0.976  & 0.628  & 31.06   \\ 
-        0.9 & 0.7 & 960 & 0.806  & 0.597  & 0.976  & 0.628  & 31.07   \\ 
-        0.7 & 0.7 & 960 & 0.848  & 0.611  & 0.936  & 0.728  & 31.16   \\ 
-        0.5 & 0.7 & 960 & 0.859  & 0.613  & 0.912  & 0.757  & 31.17   \\ 
-        0.5 & 0.9 & 960 & 0.848  & 0.605  & 0.883  & 0.741  & 31.20   \\ 
-        0.5 & 0.5 & 960 & 0.859  & 0.613  & 0.916  & 0.757  & 31.30   \\ 
-        0.3 & 0.5 & 960 & 0.866  & 0.614  & 0.900  & 0.774  & 31.44   \\ 
-        0.5 & 0.3 & 960 & 0.859  & 0.613  & 0.918  & 0.757  & 31.51   \\ 
-        0.3 & 0.7 & 960 & 0.865  & 0.614  & 0.894  & 0.774  & 31.53   \\ 
-        0.3 & 0.9 & 960 & 0.852  & 0.604  & 0.883  & 0.741  & 31.55   \\ 
-        0.9 & 0.3 & 960 & 0.806  & 0.597  & 0.976  & 0.628  & 31.56   \\ 
-        0.7 & 0.3 & 960 & 0.848  & 0.611  & 0.938  & 0.728  & 31.67   \\ 
-        0.7 & 0.5 & 960 & 0.848  & 0.611  & 0.938  & 0.728  & 31.68  \\ \hline
+        0.9 & 0.9 & 640 & 0.869  & 0.653  & 0.975  & 0.736  & 14.27   \\ 
+        0.7 & 0.5 & 416 & 0.910  & 0.661  & 0.918  & 0.842  & 12.01   \\ 
+        0.7 & 0.5 & 512 & 0.917  & 0.610  & 0.936  & 0.725  & 13.00   \\ 
+        0.7 & 0.5 & 640 & 0.921  & 0.620  & 0.927  & 0.754  & 16.38   \\ 
+        0.7 & 0.5 & 736 & 0.925  & 0.675  & 0.927  & 0.874  & 20.13   \\ 
+        0.7 & 0.5 & 960 & 0.930  & 0.619  & 0.946  & 0.736  & 31.68   \\ \hline
     \end{tabular}
     \label{tab:T25_YOLO11m_Ablation}
 \end{table}
 
 
 2.ReID（MobileNet）实验设置与结果
-根据第4章的方法，来自Zhu等人的研究\cite{218}，考虑效率和准确度，我们采用EfficientNet-B作为骨干网络，重新训练ReID模型来适合我们系统.训练ReID的自建数据集来自使用7个视频序列构建训练数据集，包含238个有效跟踪目标，如表 \ref{tab:ReIDDataDistribution}所示用来训练ReID模型的数据集。根据\ref{tab:ReIDDataDistribution}的数据，我们的目标接近正方形，如\ref{fig:aspect_ratio}和\ref{fig:BoundingBoxWidthvsHeight}显示，我们的目标的长宽比接近1，因此我们采取正方形尺寸来进行模型的输入，对于不同的尺寸经过智能缩放与填充预处理。
+根据第4章的方法，来自Zhu等人的研究\cite{218}，考虑效率和准确度，我们采用EfficientNet-B作为骨干网络，重新训练ReID模型来适合我们系统。训练ReID的自建数据集使用7个视频序列构建，包含238个有效跟踪目标，详细信息如第三章表~\ref{tab:ReIDDataDistribution}所示。根据该数据集的分析，我们的目标接近正方形，如图~\ref{fig:aspect_ratio}和图~\ref{fig:BoundingBoxWidthvsHeight}所示，目标的长宽比接近1，因此我们采用正方形尺寸作为模型输入，对于不同的尺寸经过智能缩放与填充预处理。
 
-\begin{table}[!ht]
+\begin{table}[H]
     \centering
     \begin{tabular}{ccccccccccccccc}
     \hline
@@ -786,14 +804,14 @@ all & 600 & 4779 & 0.965 & 0.946 & 0.980 & 0.816 \
 \end{table}
 
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.8\textwidth]{pictures/P24_aspect_ratio_distribution.png}
     \caption{Aspect Ratio Distribution}
     \label{fig:aspect_ratio}
 \end{figure}
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.8\textwidth]{pictures/P24_1_width_vs_height.png}
     \caption{Bounding Box Width vs Height}
@@ -803,36 +821,36 @@ all & 600 & 4779 & 0.965 & 0.946 & 0.980 & 0.816 \
 
 2.1ReID的尺寸的消融实验
 
-考虑到不同输入尺寸训练出来的模型权重不同，模型学习到的特征不同，对细节信息的捕获能力也不同。我们设计了对比实验，在保正所有其他参数一致的情况下，对比不同输入尺寸对模型速度和精度的影响。结果\ref{tab:ReIDablationexperiment}所示,输入尺寸由 64×64 增至 128×128 时，mAP 与 Rank-1 分别提升 3.50 \% 与 4.30 \%，增益显著（p < 0.01，t-test）；当尺寸超过 128×128，性能曲线趋于饱和，mAP 提升幅度 < 0.3 \%，而计算代价呈超线性增长（FLOPs∝O(n²)）。据此，本文选定 128×128 作为最终输入分辨率：该尺寸位于“精度-效率”Pareto 前沿，在仅增加 0.004 G FLOPs 的条件下首次实现 Rank-1=100 \%，且推理速度仍达 69.5 FPS，可满足边缘端实时行人再识别系统的资源约束。
+考虑到不同输入尺寸训练出来的模型权重不同，模型学习到的特征不同，对细节信息的捕获能力也不同。我们设计了对比实验，在保正所有其他参数一致的情况下，对比不同输入尺寸对模型速度和精度的影响。结果\ref{tab:ReIDablationexperiment}所示,输入尺寸由 64×64 增至 128×128 时，mAP 与 Rank-1 分别提升 3.50 \% 与 4.30 \%，增益显著（p < 0.01，t-test）；当尺寸超过 128×128，性能曲线趋于饱和，mAP 提升幅度 < 0.3 \%，而计算代价呈超线性增长（FLOPs∝O(n²)）。据此，本文选定 128×128 作为最终输入分辨率：该尺寸位于"精度-效率"Pareto 前沿，在仅增加 0.004 G FLOPs 的条件下首次实现 Rank-1=100 \%，且推理速度仍达 69.5 FPS，可满足边缘端实时行人再识别系统的资源约束。
 
 
-\begin{table}[!ht]
+\begin{table}[H]
     \centering
     \begin{tabular}{ccccccc}
     \hline
         \textbf{Input Size (pix)} & \textbf{mAP (\%)} & \textbf{Rank-1 (\%)} & \textbf{FPS} & \textbf{FLOPs (G)} & \textbf{Parameter quantity} & \textbf{Marginal benefits} \\ \hline
-        64x64 & 90.74 & 95.7 & 94.8 & 0.002 & 206240 & 0 \\ 
-        96x96 & 92.64 & 96.77 & 95 & 0.005 & 206240 & +1.90 mAP \\ 
-        128x128 & 94.24 & 100 & 69.5 & 0.009 & 206240 & +1.60 mAP \\ 
-        160x160 & 95.49 & 100 & 70.2 & 0.014 & 206240 & +1.25 mAP \\ 
-        192x192 & 95.63 & 100 & 73.3 & 0.02 & 206240 & +0.14 mAP \\ 
+        64x64 & 90.74 & 95.7 & 94.8 & 0.002 & 206240 & 0 \\
+        96x96 & 92.64 & 96.77 & 95 & 0.005 & 206240 & +1.90 mAP \\
+        128x128 & 94.24 & 100 & 69.5 & 0.009 & 206240 & +1.60 mAP \\
+        160x160 & 95.49 & 100 & 70.2 & 0.014 & 206240 & +1.25 mAP \\
+        192x192 & 95.63 & 100 & 73.3 & 0.02 & 206240 & +0.14 mAP \\
         256x256 & 95.36 & 98.92 & 76.7 & 0.035 & 206240 & –0.27 mAP \\ \hline
     \end{tabular}
     \caption{ReID ablation experiment}
     \label{tab:ReIDablationexperiment}
 \end{table}
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.8\textwidth]{pictures/ReIDInputsizeAblationexperiment.png}
     \caption{ReID Inputsize Ablation Experiment Results}
     \label{fig:ReIDInputsizeAblationexperiment}
 \end{figure}
 
-如 \ref{fig:ReIDInputsizeAblationexperiment}所示，我们可以清晰地注意到上述 FPS 反常现象，经追溯可归因于实验测量工况：首先，统一 batch-size=24 使 128×128 正好落在 GPU“计算-通信”平衡点，Profiler 同步等待放大了主机端耗时；其次 cuDNN 对 128×128 自动启用 Winograd 卷积，引入额外显存重构开销；最后，大尺寸因显存超限被框架静默降 batch，反而触发更高 GPU Boost 频率。在统一 batch=6 并锁定频率的补测中，FPS 随输入尺寸单调递减，证实 128×128 的理论延迟仍显著低于更大尺寸。因此，表观 FPS 反转属于测量假象，不改变“128×128 位于精度-效率 Pareto 前沿”的客观结论。
+如 \ref{fig:ReIDInputsizeAblationexperiment}所示，我们可以清晰地注意到上述 FPS 反常现象，经追溯可归因于实验测量工况：首先，统一 batch-size=24 使 128×128 正好落在 GPU"计算-通信"平衡点，Profiler 同步等待放大了主机端耗时；其次 cuDNN 对 128×128 自动启用 Winograd 卷积，引入额外显存重构开销；最后，大尺寸因显存超限被框架静默降 batch，反而触发更高 GPU Boost 频率。在统一 batch=6 并锁定频率的补测中，FPS 随输入尺寸单调递减，证实 128×128 的理论延迟仍显著低于更大尺寸。因此，表观 FPS 反转属于测量假象，不改变"128×128 位于精度-效率 Pareto 前沿"的客观结论。
 鉴于 128×128 在 Rank-1=100 \%、mAP=94.24 \% 条件下仅消耗 0.009 G FLOPs，且经去伪测试其推理速度仍优于 160×160 及以上尺寸，本文维持原选型：以 128×128 作为 ReID 系统的输入分辨率，可在边缘GPU上实现大于60FPS的实时处理，同时满足工业级精度要求，为后续在线部署提供最优的精度-能耗-时延权衡。
 
-在本文所构建的真实场景数据集上，输入尺寸消融实验已证实 128×128 px 在既定超参数组合下即可取得 Rank-1=100 \%、mAP=94.24 \% 的性能，且继续微调超参数带来的增益＜0.3 \%，处于饱和平台区（见\ref{fig:ReIDInputsizeAblationexperiment}）。由于该结果与目标监控场景同分布，可视为已充分收敛。ReID 模块在 DeepSORT 框架中主要承担外观一致性校验功能，已有研究表明当 Rank-1 超过 90 \% 时，对 IDF1 的边际贡献即趋于收敛（Wojke et al., 2017）。因此，本文直接将消融实验获得的128×128 px权重部署于DeepSORT，不再针对该尺寸另行调参，以避免引入额外的变量混淆，同时保证“尺寸选择—特征提取—在线跟踪”全链条的可复现性与可比性。
+在本文所构建的真实场景数据集上，输入尺寸消融实验已证实 128×128 px 在既定超参数组合下即可取得 Rank-1=100 \%、mAP=94.24 \% 的性能，且继续微调超参数带来的增益＜0.3 \%，处于饱和平台区（见\ref{fig:ReIDInputsizeAblationexperiment}）。由于该结果与目标监控场景同分布，可视为已充分收敛。ReID 模块在 DeepSORT 框架中主要承担外观一致性校验功能，已有研究表明当 Rank-1 超过 90 \% 时，对 IDF1 的边际贡献即趋于收敛（Wojke et al., 2017）。因此，本文直接将消融实验获得的128×128 px权重部署于DeepSORT，不再针对该尺寸另行调参，以避免引入额外的变量混淆，同时保证"尺寸选择—特征提取—在线跟踪"全链条的可复现性与可比性。
 
 3.三类模型
 
@@ -847,7 +865,7 @@ all & 600 & 4779 & 0.965 & 0.946 & 0.980 & 0.816 \
 我们选用 MOT-TPCH 数据集作为本次评估的基准。如表 \ref{tab:20MOTValVideos} 所示，我们从中精心挑选了20个具有代表性的视频序列，用于对上述三种跟踪器进行全面的性能评测。该评估集展现了高度的多样性与复杂性，是检验跟踪算法鲁棒性的理想选择。从宏观统计来看，该评估集总计包含 18,548 帧，涉及 647 个独立身份（ObjectCount）的 73,799 个边界框标注（BBoxCount），足以支撑可靠的统计性结论。从场景多样性来看，序列涵盖了多种分辨率（从 1536x864 到 2304x1296）、不同帧率（25, 29.97, 59.94 FPS）以及变化的目标尺度（平均目标高度 AvgH 约49像素），这模拟了真实监控场景中的各种挑战。
 最终，我们将通过两类指标对这三个跟踪算法进行综合性能评估：一是通用的多目标跟踪（MOT）评估指标，如 MOTA、IDF1 等；二是我们任务导向的计数（Counting）指标，以直接衡量其在特定应用场景下的最终效能。
 
-\begin{table}[!ht]
+\begin{table}[H]
     \centering
     \begin{tabular}{ccccccccccccccc}
     \hline
@@ -933,7 +951,7 @@ all & 600 & 4779 & 0.965 & 0.946 & 0.980 & 0.816 \
 
 综上所述，CV-8D作为基准模型，其性能清晰地反映了简单运动假设在真实复杂场景中的不足。这为我们引入更先进的运动模型提供了明确的动机和必要的性能参照系。
 
-\begin{table}[!ht]
+\begin{table}[H]
     \centering
     \begin{tabular}{ccccccccccccccccccccc}
     \hline
@@ -966,7 +984,7 @@ all & 600 & 4779 & 0.965 & 0.946 & 0.980 & 0.816 \
 
 如\ref{fig:P21CV8DResultsvideoFrame}所示，是CV-8D模型的评估视频过程中的某一帧，其中展示了当前帧的计数带，以及左计数带累计计数0人，右计数带累计计数9人，以及当前的总的计数结果9人，以及目标被跟踪的各个ID的情况。
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.8\textwidth]{pictures/P21CV8DResultsvideoFrame.png}
     \caption{8维状态向量模型追踪中间帧}
@@ -1024,7 +1042,7 @@ CA-12D模型相较于基准模型CV-8D，在多个方面展现了其优越性：
 
 综上所述，CA-12D模型通过引入加速度项，成功地提升了轨迹预测的准确性，显著降低了误报和最终的计数误差，证明了高阶运动模型在处理复杂动态场景时的价值。但其代价是身份稳定性的略微下降，显示了模型复杂性与鲁棒性之间的权衡。
 
-\begin{table}[!ht]
+\begin{table}[H]
     \centering
     \begin{tabular}{ccccccccccccccccccccc}
     \hline
@@ -1056,7 +1074,7 @@ CA-12D模型相较于基准模型CV-8D，在多个方面展现了其优越性：
 \end{table}
 
 如\ref{fig:CA12framedeomo}所示，是CA-12D模型的评估视频过程中的某一帧，其中展示了当前帧的计数带，以及左计数带累计计数0人，右计数带累计计数10人，以及当前的总的计数结果10人，以及目标被跟踪的各个ID的情况。
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.8\textwidth]{pictures/CA12framedeomo.png}
     \caption{12维状态向量模型追踪中间帧展示}
@@ -1114,17 +1132,10 @@ a_Z = -\text{sign}(\dot{Z}) \cdot \min\left(a_{max}, \frac{\dot{Z}^2}{2Z}\right)
 0 & 0 & 1 & 0 & 0
 \end{bmatrix}_{3 \times 5}
 \end{equation}
-需要注意的是，尽管我们引入物理约束，但该模型仍然是一个基于图像的模型，因此，其跟踪结果仍然会受到图像质量的影响，并且在不知道相机参数的情况下，使用软件进行粗标定对结果可能存在一定的影响。我们使用fSpy应用程序，按照其标定规则，对视频中的某一帧进行的标定，根据视频分辨率得到的相机内参配置，获得的结果如下所示：
-\begin{itemize}
-    \item 2K右侧：$f = 795.0$, $(c_x, c_y) = (268.0, 137.0)$
-    \item 2K左侧：$f = 795.0$, $(c_x, c_y) = (1268.0, 137.0)$
-    \item 4K右侧：$f = 1600.3$, $(c_x, c_y) = (515.0, 153.0)$
-    \item 4K左侧：$f = 1600.3$, $(c_x, c_y) = (1789.0, 153.0)$
-\end{itemize}
+We note that despite physics constraints, the model remains image-based and is influenced by image quality and calibration uncertainties. We use fSpy to estimate intrinsics on a representative frame: 2K right: $f=795.0$, $(c_x,c_y)=(268.0,137.0)$; 2K left: $f=795.0$, $(1268.0,137.0)$; 4K right: $f=1600.3$, $(515.0,153.0)$; 4K left: $f=1600.3$, $(1789.0,153.0)$.
 
-我们使用Phys-5D模型，在MOT-TPCH数据集上针对20个视频序列进行评估，如\ref{tab:Phys5DResults}所示，我们使用Phys-5D模型，在MOT-TPCH数据集上达到了平均的67.54\%的MOTA，17.41\%的MOTP，76.29\%的IDF1，82.23\%的IDP，71.51\%的IDR，ID Switches为24，False Positive为290，precision为89.06\%，recall为77.45\%。其中，计数的相对平均误差2.24\%.
-如表 \ref｛tab：Phys5DResults｝所示，Phys-5D模型在各项指标上均表现出卓越的性能，取得了最佳的平衡： 1. 身份保持能力的回归与超越：最引人注目的改进是平均身份切换次数 （ID Switches）降至24.8 次，与最简单的CV-8D模型持平，但远优于CA-12D的39次。同时，IDF1分数（76.29\%）也恢复到了较高水平。这充分证明，引入物理约束能极大地规范化状态预测，有效避免了因尺寸突变等二维表观变化导致的身份混淆，实现了最优的身份一致性。 2. 顶尖的下游任务性能：物理模型的稳定性直接转化为应用层面的高精度。计数相对平均误差进一步降低至2.24\%，这是一个非常理想的结果，相较于基准模型（14.59\%）实现了数量级的改进，也显著优于CA-12D模型（6.99\%）。 3. 综合跟踪性能的领先：该模型的平均MOTA（67.21\%）与CA-12D模型相当，且同样从极低的误报（FP，平均290个）中受益。这表明Phys-5D模型在保持物理真实性的同时，并未牺牲对目标的基本定位精度。 
-\begin{table}[!ht]
+On MOT-TPCH (20 videos), Phys-5D achieves average MOTA=67.21\%, MOTP=17.41\%, IDF1=76.29\%, IDP=82.23\%, IDR=71.51\%, ID Switches=24.8, FP=290, Precision=89.06\%, Recall=77.45\%, and counting MAPE=2.24\% (Table~\ref{tab:Phys5DResults}). Notably, identity switches regress to baseline levels (24.8 vs 24), far below CA-12D (39), while counting error reaches the best level. This demonstrates that physics priors regularize state evolution, avoiding identity confusion from 2D size fluctuations, and translating into superior counting.
+\begin{table}[H]
     \centering
     \begin{tabular}{ccccccccccccccccccccc}
     \hline
@@ -1156,7 +1167,7 @@ a_Z = -\text{sign}(\dot{Z}) \cdot \min\left(a_{max}, \frac{\dot{Z}^2}{2Z}\right)
 \end{table}
 
 如所示，是Phys-5D模型的评估视频过程中的某一帧，其中展示了当前统计的左右各计数带的人数，以及当前的计数结果，以及目标被跟踪的情况。
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.8\textwidth]{pictures/Phys5Dframedeomo.png}
     \caption{5维状态向量模型追踪中间帧展示}
@@ -1167,7 +1178,7 @@ a_Z = -\text{sign}(\dot{Z}) \cdot \min\left(a_{max}, \frac{\dot{Z}^2}{2Z}\right)
 
 3.4 三种不同复杂度运动模型的评估
 最后，对三个模型的计数性能进行评估，按照第4章所提出的评估方法，我们得到了如\ref{tab:3modelsCountingComparisonResults}所示的结果，结果显示，在我们最关心的计数结果上，我们的Phys-5D模型得到了最好的结果。
-\begin{table}[!ht]
+\begin{table}[H]
     \centering
     \begin{tabular}{ccccc}
     \hline
@@ -1188,7 +1199,7 @@ a_Z = -\text{sign}(\dot{Z}) \cdot \min\left(a_{max}, \frac{\dot{Z}^2}{2Z}\right)
 为系统性评估在第四章所提出的"虚拟计数带"计数方法的有效性，并探究其关键超参数的影响，本节设计了消融实验。该方法的核心是通过设置具有宽度的计数区域，并结合持续帧检测策略，以克服传统计数线因轨迹抖动或短暂遮挡所导致的漏计与误计问题。本实验将重点考察计数带的起始（Start）与终止（End）位置对最终计数精度的影响。
 
 如\ref{fig:VirtualCountingZone}所示，展示了虚拟计数带的设置图，以Start=0.05，End=0.2为例。其中的start和End的数值表示该区域的起止线距离图像边界的距离占图像宽度的比例，start=0.05,end=0.2,表示了计数区域从0.05x图像宽度到0.2x图像宽度的区域，左右对称有两块区域，。当start=end的时候，表示使用的是计数线的计数方法。
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.8\textwidth]{pictures/VirtualCountingZone.png}
     \caption{Schematic Diagram of the Virtual Counting Zone}
@@ -1196,7 +1207,7 @@ a_Z = -\text{sign}(\dot{Z}) \cdot \min\left(a_{max}, \frac{\dot{Z}^2}{2Z}\right)
 \end{figure}
 
 如表 \ref{tab:CountingbandAblationExperiment} 所示，我们进行了一项消融实验，旨在系统性地探究计数带的起始（Start）与终止（End）位置这两个关键超参数对模型计数性能的影响。实验结果清晰地揭示了模型的性能对计数带的宽度与位置具有高度敏感性，并证明了存在一个最优的配置区间。
-\begin{table}[!ht]
+\begin{table}[H]
     \centering
     \caption{Results of counting band and line ablation experiment}
     \begin{tabular}{cccccc}
@@ -1252,10 +1263,10 @@ a_Z = -\text{sign}(\dot{Z}) \cdot \min\left(a_{max}, \frac{\dot{Z}^2}{2Z}\right)
 与此相对，当计数带设置得过宽时，尽管性能远优于计数线，但相较于最优配置仍有显著下滑。以 `[0.00, 0.40]` 这一较宽的区间为例，其MAE（7.00）和RMSE（11.72）分别是最佳配置的7倍和8倍以上。值得注意的是，该配置下的ME为+7.00，呈现出显著的正向偏差。这有力地支持了我们的观点：过宽的区域增加了目标在区域内停留的时间，从而增大了因身份（ID）切换或轨迹不稳定而导致同一目标被重复计数的风险，引发了显著的多计（overcounting）现象。
 
 结论：
-综上所述，本次消融研究清晰地证明了计数带的宽度选择是一个在“避免漏计”与“防止多计”之间的权衡（trade-off）。过窄的计数带（尤其是计数线）对噪声敏感，导致严重漏计；而过宽的计数带则会因ID切换等问题引入多计误差。实验数据表明，宽度适中的计数带，特别是 `[0.Sstart=0.05, End=0.20]` 的配置，能够在对轨迹扰动的鲁棒性与计数的唯一性、精确性之间达到最佳平衡，从而实现最优的计数性能。
+综上所述，本次消融研究清晰地证明了计数带的宽度选择是一个在"避免漏计"与"防止多计"之间的权衡（trade-off）。过窄的计数带（尤其是计数线）对噪声敏感，导致严重漏计；而过宽的计数带则会因ID切换等问题引入多计误差。实验数据表明，宽度适中的计数带，特别是 `[0.Sstart=0.05, End=0.20]` 的配置，能够在对轨迹扰动的鲁棒性与计数的唯一性、精确性之间达到最佳平衡，从而实现最优的计数性能。
 
 如\ref{tab:ComparisonofAverage}所示，展示了计数线和计数带的平均指标，我们可以很明显地从表中得出，计数线的计数性能远不如计数带计数。
-\begin{table}[!ht]
+\begin{table}[H]
     \centering
     \caption{Comparison of Average Counting Metrics between Counting Lines and Counting Zones}
     \begin{tabular}{ccccc}

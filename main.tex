@@ -6,14 +6,14 @@
 	12pt,
 	% twoside,    % + BCOR darunter: für doppelseitigen Druck aktivieren, sonst beide deaktivieren
 	% BCOR=5mm,   % Dicke der Bindung berücksichtigen (Copyshop fragen, wie viel das ist)
-	ngerman,
+	english,
 	fleqn,
 	final,
 	]{scrartcl}
     
 % PACKAGES FOR THE INSTITUTSVORLAGE
 \usepackage[utf8]{inputenc}
-\usepackage[ngerman]{babel}
+\usepackage[english]{babel}
 % CHINESE LANGUAGE SUPPORT FOR PDFLATEX
 \usepackage{CJKutf8}
 \usepackage{CJKspace}
@@ -34,6 +34,7 @@
 \CJKspace
 \usepackage[unicode=true]{hyperref} % label, references, websites and crosslinks in PDF
 \usepackage{setspace} % für Elemente der Titelseite
+\usepackage[table]{xcolor} % for colored tables and rows
 \usepackage{tikz} % für Elemente der Titelseite
 \usepackage{tabularx} % für Elemente der Titelseite
 \usepackage[draft=false,babel,tracking=true,kerning=true,spacing=true]{microtype} % optischer Randausgleich
@@ -56,7 +57,6 @@
 \usepackage{caption}    % better captions for figures
 \usepackage{subcaption} % captions for subfigures
 % PRESENTATION PACKAGES
-\usepackage[table]{xcolor} % for colored tables and rows
 \usepackage{booktabs} % for professional tables
 \usepackage{longtable} % for tables over multiple pages
 \usepackage{pdflscape} % enables landscape mode for multiple pages in PDF (with longtable)
@@ -81,13 +81,18 @@
 \mitverteidigung % entfernen, falls keine Verteidigung erfolgt
 \makeTitel
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%_ABSTRACT_%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\pagenumbering{gobble}  % page numbers invisible for Abstract, TOC and filler pages
 \begin{abstract}
-	\textbf{Abstract.} Write your abstract here.
+	\textbf{Abstract.} This work addresses real-time crowd detection, multi-object tracking, and unique counting on railway platforms, a setting characterized by heavy occlusions, strong scale variation, and camera motion that often invalidates purely kinematic assumptions. We build a practical detect--track--count system by combining a two-stage transfer-learned YOLOv11m head detector with an EfficientNet-B0 appearance encoder in a DeepSORT pipeline, and introduce a physics-constrained five-dimensional Kalman model (Phys-5D) that embeds perspective geometry and physically plausible motion priors. In addition, we design a virtual counting band that converts stable trajectories into robust counts by tolerating brief occlusions and measurement jitter.
+
+	Pretraining on CrowdHuman and domain fine-tuning with platform data (Open Sensor Data for Rail 2023, RailEye3D, and a new TrainPlatformCrowdHead set) lift detection performance from mAP50=79.4\%/mAP50--95=54.7\% to 98.0\%/81.6\%. On the MOT-TPCH benchmark, Phys-5D achieves a counting MAPE of 2.24\%, markedly lower than a standard 8D constant-velocity baseline (14.59\%) and a 12D constant-acceleration model (6.99\%), while maintaining comparable MOTA (67\%) and substantially fewer identity switches. The EfficientNet-B0 Re-ID encoder attains Rank-1=100\% at $128\times 128$ with real-time throughput, enabling recovery from long occlusions and stabilizing identity consistency.
+
+	Together, these components yield an accurate, stable, and efficient system ready for deployment in intelligent transportation scenarios, providing reliable passenger counts for safety management, operations optimization, and emergency response. Beyond an engineering solution, our results demonstrate that fusing first-principles geometry with learned representations is a decisive path to robust performance in physically constrained vision tasks.
 \end{abstract}
 \newpage
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%_TABLE_OF_CONTENTS_%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\pagenumbering{gobble}  % page numbers invisible for TOC and filler pages
 \tableofcontents
 \cleardoublepage    % deactivate for one-sided printing
 %\newpage           % activate for one-sided printing
@@ -103,6 +108,7 @@
 \input{chapters/05_Experiments and Results}
 \input{chapters/06_Discussion}
 \input{chapters/07_Conclusion and Future Work}
+\input{chapters/08_Data and Source Appendix}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%_BIBLIOGRAPHY_%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -110,7 +116,7 @@
 % remember to edit \addbibresource in the TEMPLATE_PACKAGSES area above!
 \newpage
 \pagenumbering{roman} % start roman page numbers from here (optional)
-\bibliographystyle{abbrv}
+\bibliographystyle{unsrt}
 \bibliography{library/citations.bib}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%_APPENDIX_%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section*{Appendix} \label{Appendix}

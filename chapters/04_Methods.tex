@@ -1,10 +1,11 @@
+\clearpage
 \section{Methods}\label{section::Methods}
 
 This study proposes a deep learning-based framework for accurate crowd counting on railway platforms by combining the YOLOv11 detector with the DeepSORT tracker and a robust counting strategy. As shown in Figure~\ref{fig:OurMOTSystemArchitecture}, the overall multi-object tracking (MOT) system integrates YOLO-based detection, EfficientNet-B0-based ReID feature extraction, and a physics-inspired Kalman filter to enable robust pedestrian tracking. The system employs a five-dimensional Extended Kalman Filter (EKF) whose state vector is $[u, v, Z, dZ, H]$, representing pixel coordinates, depth, depth velocity, and head height, respectively. Multiple gating mechanisms are adopted, including Mahalanobis distance, directional motion corridors, and adaptive appearance thresholds, to ensure reliable data association.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.99\textwidth]{pictures/OurMulti-ObjectTrackingSystemArchitecture.png}
+    \includegraphics[width=0.75\textwidth]{pictures/OurMulti-ObjectTrackingSystemArchitecture.png}
     \caption{Overall multi-object tracking system architecture.}
     \label{fig:OurMOTSystemArchitecture}
 \end{figure}
@@ -30,7 +31,7 @@ YOLOv11 represents a significant step forward in the YOLO family, announced at t
 As shown in Figure~\ref{fig:yolo11architecture-cn}, YOLOv11 introduces notable architectural and training enhancements that push the boundary of accuracy, speed, and efficiency \cite{75_khanam2024yolov11overviewkeyarchitectural}.
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.8\textwidth]{pictures/Yolo11architecture.png}
+    \includegraphics[width=0.99\textwidth]{pictures/Yolo11architecture.png}
     \caption{YOLO11 Architecture\cite{80_ghosh_yolo11_2024}}
     \label{fig:yolo11architecture-cn}
 \end{figure}
@@ -61,11 +62,11 @@ YOLOv11 retains the Spatial Pyramid Pooling - Fast (SPPF) block and introduces t
 The neck bridges backbone and head, aggregating features from multiple scales for downstream prediction.
 
 C3K2 block
-YOLOv11 replaces the neck’s C2f blocks with C3k2 blocks, a more computationally efficient variant of the CSP (Cross Stage Partial) bottleneck. As shown in Figure~\ref{fig:C3K2-cn}, it uses two smaller convolutions instead of a single large convolution (as in YOLOv8 \cite{81_noauthor_what_2024}). The “k2” indicates smaller kernel sizes, improving speed while maintaining performance \cite{75_khanam2024yolov11overviewkeyarchitectural}.
+YOLOv11 replaces the neck's C2f blocks with C3k2 blocks, a more computationally efficient variant of the CSP (Cross Stage Partial) bottleneck. As shown in Figure~\ref{fig:C3K2-cn}, it uses two smaller convolutions instead of a single large convolution (as in YOLOv8 \cite{81_noauthor_what_2024}). The "k2" indicates smaller kernel sizes, improving speed while maintaining performance \cite{75_khanam2024yolov11overviewkeyarchitectural}.
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.9\linewidth]{pictures/C3K2.png}
-    \caption{C3K2 Module\cite{83_noauthor_ultralytics_nodate}}
+    \includegraphics[width=0.8\linewidth]{pictures/C3K2.png}
+    \caption{C3K2 Module\cite{83_ultralytics_yolo11_2025}}
     \label{fig:C3K2-cn}
 \end{figure}
 
@@ -75,29 +76,29 @@ An important addition in YOLOv11 is increased emphasis on spatial attention via 
 \subsubsection{Detection Head}
 The head performs multi-scale predictions, outputting bounding-box parameters (center, width, height), class probabilities, and objectness scores. The input image is partitioned into grid cells, each responsible for objects whose centers fall within it.
 
-C3k2 blocks
-YOLOv11 employs multiple C3k2 blocks within the head to process and refine features across different depths. Behavior varies with the parameter c3k:
-    • If c3k = False, C3k2 behaves similarly to C2f with a standard bottleneck.
-    • If c3k = True, the bottleneck is replaced with a C3 module for deeper, more expressive feature extraction.
-Key properties of C3k2:
-    • Faster processing via two smaller convolutions instead of a single large convolution.
-    • Parameter efficiency as a more compact CSP bottleneck.
+\paragraph{C3k2 blocks}
+YOLOv11 employs multiple C3k2 blocks within the head to process and refine features across different depths. Behavior varies with the parameter c3k:\\
+    • If c3k = False, C3k2 behaves similarly to C2f with a standard bottleneck.\\
+    • If c3k = True, the bottleneck is replaced with a C3 module for deeper, more expressive feature extraction.\\
+Key properties of C3k2:\\
+    • Faster processing via two smaller convolutions instead of a single large convolution.\\
+    • Parameter efficiency as a more compact CSP bottleneck.\\
 Additionally, the C3k module allows customizable kernel sizes for improved flexibility.
 
-CBS blocks
-After C3k2 blocks, YOLOv11’s head includes several CBS (Convolution–BatchNorm–SiLU) layers \cite{81_noauthor_what_2024}, which further refine features by extracting salient cues, stabilizing flow via batch normalization, and introducing nonlinearity through SiLU.
+\paragraph{CBS blocks}
+After C3k2 blocks, YOLOv11's head includes several CBS (Convolution–BatchNorm–SiLU) layers \cite{81_noauthor_what_2024}, which further refine features by extracting salient cues, stabilizing flow via batch normalization, and introducing nonlinearity through SiLU.
 
-Final convolution and detection layers
-Each detection branch ends with Conv2D layers that reduce features to the required outputs for bounding-box regression and classification. The final detection layer aggregates predictions:
-    • Bounding-box coordinates for localization.
-    • Objectness scores.
-    • Class probabilities.
+\paragraph{Final convolution and detection layers}  
+Each detection branch ends with Conv2D layers that reduce features to the required outputs for bounding-box regression and classification. The final detection layer aggregates predictions:\\
+    • Bounding-box coordinates for localization.\\  
+    • Objectness scores.\\  
+    • Class probabilities.\\
 
 \subsection{DeepSORT}
-We next introduce the DeepSORT multi-object tracker. In MOT, the goal is to detect, localize, and maintain identities of multiple targets across video frames. DeepSORT (Wojke et al., 2017), an extension of SORT (Bewley et al., 2016), combines deep appearance embeddings with motion information, substantially improving tracking under complex conditions and long occlusions, and reducing identity switches (IDSW). The pipeline (Figure~\ref{fig:DeepSORT-cn}) comprises deep appearance feature extraction, a Kalman filter, and data association.
+We next introduce the DeepSORT multi-object tracker. In MOT, the goal is to detect, localize, and maintain identities of multiple targets across video frames. DeepSORT (Wojke et al., 2017), an extension of SORT (Bewley et al., 2016), combines deep appearance embeddings with motion information, substantially improving tracking under complex conditions and long occlusions, and reducing IDSW. The pipeline (Figure~\ref{fig:DeepSORT-cn}) comprises deep appearance feature extraction, a Kalman filter, and data association.
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.8\textwidth]{pictures/DeepSORTAlgorithmStructure.png}
+    \includegraphics[width=0.95\textwidth]{pictures/DeepSORTAlgorithmStructure.png}
     \caption{DeepSORT architecture\cite{212}}
     \label{fig:DeepSORT-cn}
 \end{figure}
@@ -112,7 +113,7 @@ The workflow can be summarized as follows:
 \subsection{DeepSORT Core Modules}
 
 \subsubsection{Object Detector}
-Tracking performance depends critically on the detector’s accuracy and speed. Typical detectors include:
+Tracking performance depends critically on the detector's accuracy and speed. Typical detectors include:
 • YOLO family: widely adopted for its real-time performance and accuracy (e.g., YOLOv5/YOLOv7), and in our case YOLOv11.
 • Faster R-CNN: representative two-stage detector used in early variants.
 • SSD: one-stage detector also used in DeepSORT systems.
@@ -120,13 +121,14 @@ Tracking performance depends critically on the detector’s accuracy and speed. 
 Detector improvements (e.g., lightweight backbones, dilated convolutions, SPP) are often tailored to the application.
 
 \subsubsection{Motion Model and Kalman Filter}
-Kalman filtering estimates target motion states via iterative prediction and update. The classic DeepSORT state vector is an 8-dimensional vector $\mathbf{x} = [u, v, r, h, u', v', r', h']^T$ with $(u,v)$ the center, $r$ the aspect ratio, $h$ the height, and primes denoting velocities. Prediction and update follow standard linear dynamical systems formulas:
-    • $\mathbf{X}_k = \mathbf{A}\mathbf{X}_{k-1} + \mathbf{B}\mathbf{u}_k$
-    • $\mathbf{P}_k = \mathbf{A}\mathbf{P}_{k-1}\mathbf{A}^T + \mathbf{Q}$
-and
-    • $\mathbf{G}_k = \mathbf{P}_k\mathbf{H}^T (\mathbf{H}\mathbf{P}_k\mathbf{H}^T + \mathbf{R})^{-1}$
-    • $\mathbf{X}_k \leftarrow \mathbf{X}_k + \mathbf{G}_k (\mathbf{Z}_k - \mathbf{H}\mathbf{X}_k)$
-    • $\mathbf{P}_k \leftarrow (\mathbf{I} - \mathbf{G}_k\mathbf{H})\mathbf{P}_k$.
+Kalman filtering estimates target motion states via iterative prediction and update. The classic DeepSORT state vector is an 8-dimensional vector $\mathbf{x} = [u, v, r, h, u', v', r', h']^T$ with $(u,v)$ the center, $r$ the aspect ratio, $h$ the height, and primes denoting velocities. Prediction and update follow standard linear dynamical systems formulas:\\
+    \begin{align*}
+        \mathbf{X}_k &= \mathbf{A}\mathbf{X}_{k-1} + \mathbf{B}\mathbf{u}_k\\
+        \mathbf{P}_k &= \mathbf{A}\mathbf{P}_{k-1}\mathbf{A}^T + \mathbf{Q}\\
+        \mathbf{G}_k &= \mathbf{P}_k\mathbf{H}^T (\mathbf{H}\mathbf{P}_k\mathbf{H}^T + \mathbf{R})^{-1}\\
+        \mathbf{X}_k &\leftarrow \mathbf{X}_k + \mathbf{G}_k (\mathbf{Z}_k - \mathbf{H}\mathbf{X}_k)\\
+        \mathbf{P}_k &\leftarrow (\mathbf{I} - \mathbf{G}_k\mathbf{H})\mathbf{P}_k
+    \end{align*}
 While effective, a constant-velocity model can be inaccurate under strong acceleration or camera motion; extensions such as UKF and adaptive noise can better handle nonlinearities.
 
 Physics-inspired perspective model for platform scenarios
@@ -144,57 +146,66 @@ Training commonly uses large-scale video person Re-ID datasets such as MARS \cit
 
 \begin{figure}
     \centering
-    \includegraphics[width=0.8\linewidth]{pictures/ComparisonofEfficient.png}
+    \includegraphics[width=0.7\linewidth]{pictures/ComparisonofEfficient.png}
     \caption{Comparison of EfficientNet with different networks on ImageNet\cite{219}}
     \label{fig:ComparisonofEfficient}
 \end{figure}
 
-Considering our scenario and prior findings, we adopt EfficientNet-B0 \cite{218} as the backbone for ReID to balance accuracy and efficiency. As shown in Table~\ref{tab:EfficientnetB0Architecture}, EfficientNet-B0 provides strong feature extraction with fewer parameters and lower compute. Based on the results in Table~\ref{tab:video_reid_comparison}, EfficientNet reduces compute by 73.6% (23.5 vs 88.9 GMACs) and speeds inference by 3.5× (78 ms vs 272 ms per video) compared to ViT-B, with only a 0.6% mAP drop (86.1% vs 86.7%), making it suitable for resource-constrained real-time applications.
+Considering our scenario and prior findings, we adopt EfficientNet-B0 \cite{218} as the backbone for ReID to balance accuracy and efficiency. As shown in Table~\ref{tab:EfficientnetB0Architecture}, EfficientNet-B0 provides strong feature extraction with fewer parameters and lower compute. Based on the results in Table~\ref{tab:video_reid_comparison2}, EfficientNet reduces compute by 73.6\% (23.5 vs 88.9 GMACs) and speeds inference by 3.5× (78 ms vs 272 ms per video) compared to ViT-B, with only a 0.6\% mAP drop (86.1\% vs 86.7\%), making it suitable for resource-constrained real-time applications.
 
-\begin{table}[htbp]
+\begin{table}[H]
     \centering
-    \caption{EfficientNet B0 Architecture}
     \label{tab:EfficientnetB0Architecture}
-    \resizebox{0.6\textwidth}{!}{%
+    \resizebox{0.7\textwidth}{!}{%
     \begin{tabular}{cccccc}
     \hline
     Stage $i$ & Operator $\hat{F}_i$ & Resolution $\hat{H}_i \times \hat{W}_i$ & \#Channels $\hat{C}_i$ & \#Layers $\hat{L}_i$ \\
     \hline
     1 & Conv3x3 & $224 \times 224$ & 32 & 1 \\
+    \rowcolor{gray!10}
     2 & MBConv1, k3x3 & $112 \times 112$ & 16 & 1 \\
     3 & MBConv6, k3x3 & $112 \times 112$ & 24 & 2 \\
+    \rowcolor{gray!10}
     4 & MBConv6, k5x5 & $56 \times 56$ & 40 & 2 \\
     5 & MBConv6, k3x3 & $28 \times 28$ & 80 & 3 \\
+    \rowcolor{gray!10}
     6 & MBConv6, k5x5 & $14 \times 14$ & 112 & 3 \\
     7 & MBConv6, k5x5 & $14 \times 14$ & 192 & 4 \\
+    \rowcolor{gray!10}
     8 & MBConv6, k3x3 & $7 \times 7$ & 320 & 1 \\
     9 & Conv1x1 \& Pooling \& FC & $7 \times 7$ & 1280 & 1 \\
     \hline
     \end{tabular}
     }
+    \caption{EfficientNet B0 Architecture}
+    \label{tab:EfficientnetB0Architecture}
     \end{table}
 
-\begin{table}[htbp]
+\begin{table}[H]
     \centering
-    \caption{Comparison of video person re-identification performance}
-    \label{tab:video_reid_comparison}
-    \begin{tabular}{lccccccc}
+    \resizebox{0.99\textwidth}{!}{%
+    \begin{tabular}{lcccccccccc}
     \toprule
     \textbf{Method} & \textbf{Backbone} & \textbf{GMACs} & \textbf{ms/video} & \textbf{mAP} & \textbf{MARS rank-1} & \textbf{LS-VID mAP} & \textbf{LS-VID rank-1} & \textbf{iLiDS-VID rank-1} & \textbf{PRID-2011 rank-1} \\
     \midrule
     ResNet50 & ResNet50 & 32.7 & 94 & 81.0 & 88.1 & 68.5 & 80.4 & 83.3 & 90.2 \\
+    \rowcolor{gray!10}
     ViT-B & ViT-B & 88.9 & 272 & 86.7 & 90.0 & 78.3 & 87.4 & 90.0 & 93.8 \\
     EfficientNet-B & EfficientNet-B & 23.5 & 78 & 86.1 & 89.5 & 71.7 & 86.9 & 89.3 & 93.4 \\
+    \rowcolor{gray!10}
     ViT-S & ViT-S & 51.1 & 144 & 85.4 & 89.2 & 77.0 & 85.8 & 88.5 & 93.1 \\
     EfficientNet-S & EfficientNet-S & 14.4 & 45 & 84.8 & 89.1 & 76.5 & 85.4 & 88.0 & 92.8 \\
     \bottomrule
     \end{tabular}
+    }
+    \caption{Comparison of Video Person Re-identification Performance}
+    \label{tab:video_reid_comparison2}
     \end{table}
 
 \begin{figure}
     \centering
-    \includegraphics[width=0.8\linewidth]{pictures/OverallFeatureExtraction.png}
-    \caption{Overall feature extraction and output in our system}
+    \includegraphics[width=0.9\linewidth]{pictures/OverallFeatureExtraction.png}
+    \caption{Overall Feature Extraction and Output in Our System}
     \label{fig:OverallFeatureExtraction}
 \end{figure}
 
@@ -210,18 +221,18 @@ $$L_{triplet} = \max(0, d(a,p) - d(a,n) + \alpha)$$
 with $\alpha=0.5$. Training uses AdamW (lr=2×10⁻⁴, weight decay=1×10⁻⁴), OneCycleLR scheduling, mixed precision, and batch size 32.
 
 \subsubsection{Data Association}
-Data association matches detections to tracks by combining motion and appearance cues. The similarity measures include:
-• Mahalanobis distance for motion compatibility: $D_M(i, j) = (d_j - y_i)^T S_i^{-1} (d_j - y_i)$, where $d_j$ is the detection, $y_i$ the prediction, and $S_i$ the covariance \cite{105}.
-• Cosine distance for appearance: $D_C(i, j) = \min \{ 1 - \mathbf{r}_j^T \mathbf{r}_k^{(i)} \mid \mathbf{r}_k^{(i)} \in R_i \}$, where $R_i$ stores up to 100 recent descriptors per track \cite{105}.
-• Combined cost: $c_{i,j} = \lambda D_M(i,j) + (1-\lambda) D_C(i,j)$ \cite{105}.
-Matching strategy:
-• Cascaded matching prioritizes recently seen, longer-lived tracks to reduce ID switches under long occlusions \cite{134}.
-• IoU matching as a fallback for remaining unmatched pairs.
+Data association matches detections to tracks by combining motion and appearance cues. The similarity measures include:\\
+• Mahalanobis distance for motion compatibility: $D_M(i, j) = (d_j - y_i)^T S_i^{-1} (d_j - y_i)$, where $d_j$ is the detection, $y_i$ the prediction, and $S_i$ the covariance \cite{105}.\\
+• Cosine distance for appearance: $D_C(i, j) = \min \{ 1 - \mathbf{r}_j^T \mathbf{r}_k^{(i)} \mid \mathbf{r}_k^{(i)} \in R_i \}$, where $R_i$ stores up to 100 recent descriptors per track \cite{105}.\\
+• Combined cost: $c_{i,j} = \lambda D_M(i,j) + (1-\lambda) D_C(i,j)$ \cite{105}.\\
+Matching strategy:\\
+• Cascaded matching prioritizes recently seen, longer-lived tracks to reduce ID switches under long occlusions \cite{134}.\\
+• IoU matching as a fallback for remaining unmatched pairs.\\
 • Hungarian algorithm solves the final assignment on the combined cost matrix \cite{103}.
 
 \subsubsection{Track Management}
-• Initialization: new detections start as “unconfirmed.” After three consecutive matches, a track becomes confirmed.
-• Termination: tracks unmatched for a prolonged period (e.g., beyond max\_age) are removed.
+• Initialization: new detections start as "unconfirmed." After three consecutive matches, a track becomes confirmed.\\  
+• Termination: tracks unmatched for a prolonged period (e.g., beyond max\_age) are removed.\\
 • ID retention and re-identification: combined motion and appearance cues enable re-identification after temporary disappearance; prolonged absence may result in a new ID.
 
 \subsection{Adaptivity Across Scenarios}
@@ -239,37 +250,39 @@ We propose a Virtual Counting Band with nonzero width near the left/right image 
     \item \textbf{Improves robustness}: a buffer region tolerates brief occlusions and detection jitter;
     \item \textbf{Stabilizes counting}: avoids repeated or spurious counts due to oscillations around a thin line.
 \end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{pictures/VirtualCountingZone.png}
+    \caption{Virtual Counting Band Illustration}
+    \label{fig:VirtualCountingZone}
+\end{figure}
 In practice, we set the band to 5\%–20\% of the width from the image borders (relative coordinates for resolution invariance). We maintain per-track state (consecutive in-band frames, counted flag). The target position is the box center; boxes partially outside the frame are clipped for display while preserving original coordinates for logic.
 
 Integrity mechanisms include: (1) end-of-video compensation to include targets that nearly meet the persistence threshold; (2) deduplication by maintaining the set of counted IDs; and (3) using the maximum of left/right counts as the final result (we count one side), which avoids bias from non-platform-side flows.
 
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.8\textwidth]{pictures/VirtualCountingZone.png}
-    \caption{Virtual counting band illustration}
-    \label{fig:VirtualCountingZone}
-\end{figure}
+
 
 \subsection{Evaluation Metrics}
 
 \subsubsection{Detection Metrics}
-We report head detection performance on a static validation set using \textbf{mAP@0.5} and \textbf{Recall}. Formally:
-\textbf{mAP50}: mean AP at IoU threshold 0.5,
+We report head detection performance on a static validation set using mAP@0.5 and Recall. Formally:\\
+\textbf{mAP50}: mean AP at IoU threshold 0.5,\\
 \begin{equation}
 \text{mAP50} = \frac{1}{N}\sum_{i=1}^{N}\text{AP}_i \quad \text{at IoU threshold of 0.5}
 \end{equation}
-\textbf{mAP50-95}: mean AP averaged over IoU thresholds from 0.5 to 0.95 in steps of 0.05,
+\textbf{mAP50-95}: mean AP averaged over IoU thresholds from 0.5 to 0.95 in steps of 0.05,\\
 \begin{equation}
 \text{mAP50-95} = \frac{1}{10}\sum_{t=0.5}^{0.95}\text{mAP}_t
 \end{equation}
-\textbf{Box Precision} and \textbf{Recall} are
+\textbf{Box Precision} and \textbf{Recall} are\\
 \begin{equation}
 \text{Precision} = \frac{TP_{\text{box}}}{TP_{\text{box}} + FP_{\text{box}}}, \quad
 \text{Recall} = \frac{TP_{\text{box}}}{TP_{\text{box}} + FN_{\text{box}}}.
 \end{equation}
 
 \subsubsection{Tracking Metrics}
-On MOT-TPCH we adopt MOTChallenge metrics: \textbf{IDF1}, \textbf{MOTA}, \textbf{ID Switches (IDSW)}, \textbf{MT/ML}. Following CLEAR-MOT and ID-based protocols (\texttt{py-motmetrics}):
+On MOT-TPCH we adopt MOTChallenge metrics: IDF1, MOTA, IDSW, Mostly Tracked(MT), Partially Tracked(PT), Mostly Lost(ML). Following CLEAR-MOT and ID-based protocols (\texttt{py-motmetrics jia yinyong }):\\
 \paragraph{CLEAR-MOT}
 \begin{align}
 \text{MOTA} &= 1 - \frac{\sum_t (FN_t + FP_t + IDSW_t)}{\sum_t GT_t}, \\
@@ -475,7 +488,7 @@ v(t)=c_v+f\dfrac{H}{x(t)},
 
 如\ref{fig:ComparisonofEfficient}比较了多个先进的模型，我们充分考虑我们的使用场景和前人的研究，考虑参数量和准确率对我们任务的影响，平衡之下决定采用来自Zhu等人的研究\cite{218}提出的EfficientNet-B0作为骨干网络，如\ref{tab:EfficientnetB0Architecture}，是EfficientNet-B的网络结构图。我们考虑到效率和准确度，重新训练ReID模型来适合我们系统。基于表~\ref{tab:video_reid_comparison}的实验结果分析，本方法采用的EfficientNet架构在视频行人重识别任务中展现出显著的优势。在计算效率方面，EfficientNet-B模型相比ViT-B将计算复杂度降低了73.6\%（23.5 vs 88.9 GMACs），推理速度提升了3.5倍（78ms vs 272ms per video），同时仅带来0.6\%的mAP性能损失（86.1\% vs 86.7\%）。这种效率提升源于EfficientNet的复合缩放策略和深度可分离卷积设计，其在保持特征提取能力的同时显著减少了参数数量和计算量。更重要的是，该方法在多个基准数据集（MARS、LS-VID、iLiDS-VID、PRID-2011）上均保持了与ViT基准模型相当的识别精度，特别是在rank-1准确率指标上的差距均控制在0.5\%以内。这种计算效率与识别精度的优异平衡使得该方法特别适合于资源受限的实时应用场景，为边缘计算设备上的视频分析任务提供了可行的解决方案。
 
-\begin{table}[htbp]
+\begin{table}[H]
     \centering
     \caption{EfficientNet B0 Architecture}
     \label{tab:EfficientnetB0Architecture}
@@ -499,11 +512,11 @@ v(t)=c_v+f\dfrac{H}{x(t)},
     \end{table}
 
 
-\begin{table}[htbp]
+\begin{table}[H]
     \centering
     \caption{Comparison of performance of different methods on video pedestrian re-identification task}
     \label{tab:video_reid_comparison}
-    \begin{tabular}{lccccccc}
+    \begin{tabular}{lcccccccccc}
     \toprule
     \textbf{Method} & \textbf{Backbone} & \textbf{GMACs} & \textbf{ms/video} & \textbf{mAP} & \textbf{MARS rank-1} & \textbf{LS-VID mAP} & \textbf{LS-VID rank-1} & \textbf{iLiDS-VID rank-1} & \textbf{PRID-2011 rank-1} \\
     \midrule
@@ -614,7 +627,7 @@ Re-ID 网络提供具有判别性的外观描述符，以支持鲁棒关联。
 \end{itemize}
 通过这种方式，虚拟计数带能有效减少因遮挡导致的漏计，显著提高计数的稳定性与准确性。
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.8\textwidth]{pictures/VirtualCountingZone.png}
     \caption{虚拟计数带示意图}

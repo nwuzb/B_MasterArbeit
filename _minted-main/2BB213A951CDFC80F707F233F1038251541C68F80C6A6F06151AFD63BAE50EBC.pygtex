@@ -1,0 +1,16 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+    \PYG{c+c1}{\PYGZsh{} Construct ffmpeg command}
+    \PYG{n}{crop\PYGZus{}filter} \PYG{o}{=} \PYG{l+s+sa}{f}\PYG{l+s+s2}{\PYGZdq{}crop=}\PYG{l+s+si}{\PYGZob{}}\PYG{n}{crop\PYGZus{}w}\PYG{l+s+si}{\PYGZcb{}}\PYG{l+s+s2}{:}\PYG{l+s+si}{\PYGZob{}}\PYG{n}{crop\PYGZus{}h}\PYG{l+s+si}{\PYGZcb{}}\PYG{l+s+s2}{:}\PYG{l+s+si}{\PYGZob{}}\PYG{n}{crop\PYGZus{}x}\PYG{l+s+si}{\PYGZcb{}}\PYG{l+s+s2}{:}\PYG{l+s+si}{\PYGZob{}}\PYG{n}{crop\PYGZus{}y}\PYG{l+s+si}{\PYGZcb{}}\PYG{l+s+s2}{\PYGZdq{}}
+    \PYG{n}{cmd} \PYG{o}{=} \PYG{p}{[}
+        \PYG{n}{FFMPEG\PYGZus{}PATH}\PYG{p}{,} \PYG{l+s+s2}{\PYGZdq{}\PYGZhy{}y\PYGZdq{}}\PYG{p}{,}
+        \PYG{l+s+s2}{\PYGZdq{}\PYGZhy{}ss\PYGZdq{}}\PYG{p}{,} \PYG{n}{start\PYGZus{}time}\PYG{p}{,}
+        \PYG{l+s+s2}{\PYGZdq{}\PYGZhy{}to\PYGZdq{}}\PYG{p}{,} \PYG{n}{end\PYGZus{}time}\PYG{p}{,}
+        \PYG{l+s+s2}{\PYGZdq{}\PYGZhy{}i\PYGZdq{}}\PYG{p}{,} \PYG{n}{video\PYGZus{}path}\PYG{p}{,}
+        \PYG{l+s+s2}{\PYGZdq{}\PYGZhy{}vf\PYGZdq{}}\PYG{p}{,} \PYG{n}{crop\PYGZus{}filter}\PYG{p}{,}
+        \PYG{l+s+s2}{\PYGZdq{}\PYGZhy{}c:v\PYGZdq{}}\PYG{p}{,} \PYG{l+s+s2}{\PYGZdq{}libx264\PYGZdq{}}\PYG{p}{,}
+        \PYG{l+s+s2}{\PYGZdq{}\PYGZhy{}crf\PYGZdq{}}\PYG{p}{,} \PYG{l+s+s2}{\PYGZdq{}15\PYGZdq{}}\PYG{p}{,}  \PYG{c+c1}{\PYGZsh{} High quality, almost lossless}
+        \PYG{l+s+s2}{\PYGZdq{}\PYGZhy{}preset\PYGZdq{}}\PYG{p}{,} \PYG{l+s+s2}{\PYGZdq{}veryslow\PYGZdq{}}\PYG{p}{,}
+        \PYG{l+s+s2}{\PYGZdq{}\PYGZhy{}an\PYGZdq{}}\PYG{p}{,}  \PYG{c+c1}{\PYGZsh{} Remove audio}
+        \PYG{n}{out\PYGZus{}path}
+    \PYG{p}{]}
+\end{Verbatim}

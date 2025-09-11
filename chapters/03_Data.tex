@@ -1,104 +1,67 @@
+\clearpage
 \section{Data}\label{section::data}
-In this study, we meticulously selected four datasets, leveraging both publicly available large-scale datasets and our own self-constructed ones to achieve more efficient and accurate methods for crowd detection, tracking, and counting on railway platforms. The datasets are summarized in Table \ref{tab:datasets}.
-\begin{center}
-    \captionof{table}{Features and Application Stages of Each Dataset}
-    \label{tab:datasets}
-    \resizebox{\textwidth}{!}{%
-        \setlength{\tabcolsep}{6pt}
-        \renewcommand{\arraystretch}{1.2}
-        \begin{tabular}{lccccc}
-            \toprule
-            \textbf{Dataset} & \textbf{Image Resolution} & \textbf{train/validation/test} & \textbf{Instances} & \textbf{Type} & \textbf{Stage} \\
-            \midrule
-            CrowdHuman & Multiple resolutions & 15000/4370/0 & 435168 & Head bounding box & 1. Training \\
-            Open Sensor Data for Rail2023 & 2464×1600 & 0/0/20 & 180 & Head bounding box & 2. Fine-tuning \\
-            RailEye3D Dataset & 1920×1088 & 0/0/320 & 1221 & Head bounding box & 2. Fine-tuning \\
-            TrainPlatformCrowd & 2560×1440/3840×2160 & 0/0/1660 & 6022 & Head bounding box &  2. Fine-tuning \\
-            \bottomrule
-        \end{tabular}%
-    }
-\end{center}
-
-In this study, we carefully selected four datasets by combining publicly available large-scale datasets with self-constructed datasets to enable more efficient and accurate crowd detection, tracking, and counting on railway platforms. A summary is provided in Table \ref{tab:datasets}.
+In this study, we meticulously selected four datasets, leveraging both publicly available large-scale datasets and our own self-constructed ones to achieve more efficient and accurate methods for crowd detection, tracking, and counting on railway platforms. This section presents a detailed description of each dataset used in our experiments.
 
 \subsection{Dataset for YOLO Detector}
 CrowdHuman \cite{shao2018crowdhuman} is a benchmark dataset that is large-scale, richly annotated, and highly diverse. It contains images of crowds across different scenes, illumination conditions, densities, ages, and skin tones. Each human instance is annotated with a head bounding box, a visible-region bounding box, and a full-body bounding box, aiming to address the limitations of detection models when confronting occlusion in crowded scenes. The dataset consists of 15,000 training images and 4,370 validation images. In total, there are approximately 470K human instances from the training and validation subsets, with an average of about 22–23 people per image, covering a spectrum from negative samples to high-density scenes with various occlusions. We focus on head detection, where head sizes range across pixels. We use the 15,000 training images and 4,370 validation images as the training and test sets, respectively, for the first-stage training of our YOLOv11m-size model.
 
 As illustrated in Figure~\ref{fig:crowdhuman-samples-zh}, sample images from the CrowdHuman dataset are shown.
-\begin{figure}
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.75\linewidth]{pictures/P1-CrowdHuman Dataset 6 samples.png}
-    \caption{Sample images from the CrowdHuman dataset, demonstrating diverse crowd scenes.}
+    \caption{Sample images from the CrowdHuman dataset, demonstrating diverse crowd scenes}
     \label{fig:crowdhuman-samples-zh}
 \end{figure}
 
 \subsection{Fine-tuning Datasets for the YOLO Detector}
 We fine-tune the detector using datasets that we curated and annotated. Data from three different sources were integrated and labeled; the annotated data were then used to fine-tune the model weights trained in the first stage.
 
-1. Open Sensor Data for Rail 2023 \cite{OpenSensorDataforRail2023}. This dataset comprises 45 annotated multi-sensor sequences (RGB cameras, infrared cameras, LiDAR, radar, positioning, IMU). Images have a resolution of 2464×1600, and the data were collected on various rail tracks in Hamburg, Germany. We adopted video sequences captured by the RGB camera located at the middle front of the train head and extracted one image every 50 frames to reduce redundancy, resulting in 20 images and 180 human instances. We annotated head bounding boxes using Roboflow and incorporated these images into our second-stage fine-tuning.
+ \paragraph{1. Open Sensor Data for Rail 2023} \cite{OpenSensorDataforRail2023}. This dataset comprises \textbf{45 annotated multi-sensor sequences} (RGB cameras, infrared cameras, LiDAR, radar, positioning, IMU). Images have a resolution of \textbf{2464×1600}, and the data were collected on various rail tracks in Hamburg, Germany. We adopted video sequences captured by the RGB camera located at the middle front of the train head and extracted one image every 50 frames to reduce redundancy, resulting in \textbf{20 images} and \textbf{180 human instances}. We annotated head bounding boxes using Roboflow and incorporated these images into our second-stage fine-tuning.
 
 As shown in Figure~\ref{fig:opensensor-samples-zh}, we present sample images from the Open Sensor Data for Rail 2023 dataset.
-\begin{figure}
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.75\linewidth]{pictures/P2-Open Sensor Data for Rail 2023 6samples.png}
-    \caption{Sample images from the Open Sensor Data for Rail 2023 dataset.}
+    \caption{Sample images from the Open Sensor Data for Rail 2023 dataset}
     \label{fig:opensensor-samples-zh}
 \end{figure}
 
-2. RailEye3D Dataset \cite{RailEye3D_Dataset}. This dataset targets applications in passenger safety and train dispatch automation in railway platform scenes, with cameras positioned on the side of the train. It contains 10 image sequences captured at six Austrian stations, with a resolution of 1920×1088. We requested the images via email and extracted one frame every 60 frames to avoid excessive similarity, yielding 320 images and 1,221 human instances. We annotated human heads in Roboflow and used these images in our second-stage fine-tuning.
+ \paragraph{2. RailEye3D Dataset} \cite{RailEye3D_Dataset}. This dataset targets applications in passenger safety and train dispatch automation in railway platform scenes, with cameras positioned on the side of the train. It contains 10 image sequences captured at six Austrian stations, with a resolution of 1920×1088. We requested the images via email and extracted one frame every 60 frames to avoid excessive similarity, yielding 320 images and 1,221 human instances. We annotated human heads in Roboflow and used these images in our second-stage fine-tuning.
 
 As shown in Figure~\ref{fig:raileye3d-samples-zh}, we present sample images from the RailEye3D dataset.
-\begin{figure}
+\begin{figure}[H]
     \centering
-    \includegraphics[width=0.75\linewidth]{pictures/P3-RailEye3D Datase 6 Samples.png}
-    \caption{Sample images from the RailEye3D dataset showing railway platform scenes.}
+    \includegraphics[width=0.6\linewidth]{pictures/P3-RailEye3D Datase 6 Samples.png}
+    \caption{Sample Images from the RailEye3D Dataset Showing Railway Platform Scenes}
     \label{fig:raileye3d-samples-zh}
 \end{figure}
 
-3. TrainPlatformCrowd Dataset. This is a self-constructed image dataset in which human heads are annotated using rectangular boxes in YOLO format. The images are mainly extracted from publicly available YouTube videos, covering 60 different railway platform scenes and a range of crowd densities. The camera viewpoint is located above the front center of the train. To mitigate redundancy, we extracted at least one image every 30 frames from these video clips, resulting in 1,660 images and 5,831 human head instances. The image resolutions include 2560×1440 and 3840×2160.
+ \paragraph{3. TrainPlatformCrowd Dataset}. This is a self-constructed image dataset in which human heads are annotated using rectangular boxes in YOLO format. The images are mainly extracted from publicly available YouTube videos, covering 60 different railway platform scenes and a range of crowd densities. The camera viewpoint is located above the front center of the train. To mitigate redundancy, we extracted at least one image every 30 frames from these video clips, resulting in 1,660 images and 5,831 human head instances. The image resolutions include 2560×1440 and 3840×2160.
 
 As shown in Figure~\ref{fig:trainplatform-samples-zh}, we present samples from our TrainPlatformCrowd dataset.
-\begin{figure}
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.75\linewidth]{pictures/P5-TrainPlatformCrowd Dataset 6 Samples.png}
-    \caption{TrainPlatformCrowd dataset sample images.}
+    \caption{Sample Images from TrainPlatformCrowd Dataset}
     \label{fig:trainplatform-samples-zh}
 \end{figure}
 
-Accordingly, detailed information about the self-constructed dataset used to fine-tune the detector is summarized in Table~\ref{tab:datasets-zh}.
-\begin{center}
-    \captionof{table}{Characteristics and Application Stages of Each Dataset}
-    \label{tab:datasets-zh}
-    \resizebox{\textwidth}{!}{%
-        \setlength{\tabcolsep}{6pt}
-        \renewcommand{\arraystretch}{1.2}
-        \begin{tabular}{lccccc}
-            \toprule
-            \textbf{Dataset} & \textbf{Image Resolution} & \textbf{train/validation/test} & \textbf{Instances} & \textbf{Type} & \textbf{Stage} \\
-            \midrule
-            CrowdHuman & Multiple resolutions & 15000/4370/0 & 435168 & Head bounding box & 1. Training \\
-            Open Sensor Data for Rail2023 & 2464×1600 & 0/0/20 & 180 & Head bounding box & 2. Fine-tuning \\
-            RailEye3D Dataset & 1920×1088 & 0/0/320 & 1221 & Head bounding box & 2. Fine-tuning \\
-            TrainPlatformCrowd & 2560×1440/3840×2160 & 0/0/1660 & 6022 & Head bounding box &  2. Fine-tuning \\
-            \bottomrule
-        \end{tabular}%
-    }
-\end{center}
+The fine-tuning datasets are combined to create a comprehensive training set for domain adaptation.
 
 In total, we curated 2,000 annotated images with single-class human head bounding boxes. These are split into 1,400 images for the training set and 600 for the validation set in our second stage. We set backbone=10 to fine-tune and obtain the YOLO11freeze10.pt model weights, which are used as the detector in our tracking system.
 
 \subsection{Detector Ablation Experiment Dataset}
 We additionally prepared a static dataset for detector ablation to evaluate performance under different hyperparameter settings. This dataset contains 1,784 images, all used as a validation set. The images are derived by cropping frames from videos annotated for MOT tasks and randomly sampling from datasets with MOT annotations. As shown in Figure~\ref{fig:DetectorAblationSample}, we present sample images used for the detector ablation experiments; the annotation format is compatible with detection. Using this dataset avoids extra collection and labeling costs, ensures experimental consistency, and allows direct validation in the target scenario, aligning with standard evaluation practices.
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
-    \includegraphics[width=0.75\linewidth]{pictures/DetectorAblationExperimentDatasetSample.png}
-    \caption{Detector ablation experiment dataset sample.}
+    \includegraphics[width=0.6\linewidth]{pictures/DetectorAblationExperimentDatasetSample.png}
+    \caption{Sample images from Detector Ablation Experiment Dataset}
     \label{fig:DetectorAblationSample}
 \end{figure}
 
 \subsection{MOT Dataset: MOT-TrainPlatformCrowdHead (MOT-TPCH)}
 To thoroughly validate our proposed system—particularly in the railway platform scenario of interest—we constructed our own MOT dataset. Using the MOT format, we annotated continuous head trajectories for 27 video clips, yielding the MOT-TrainPlatformCrowdHead dataset. The videos are primarily sourced from publicly available YouTube clips and recordings we captured in similar scenes. The camera is placed above the train head, facing forward at a fixed position, as illustrated in Figure~\ref{fig:video-cropping-zh}, which shows the relationship between the camera and the target scene. The videos depict trains entering the station and decelerating to a stop. Targets of interest are located on the platform. Video durations and frame rates vary, camera devices are unknown, and viewpoints differ slightly. In a given sequence, the number of targets ranges from 3 to 124 under different illumination, occlusion, and crowd density conditions, with durations ranging from a few seconds to tens of seconds. We use the MOT-formatted videos to train a ReID MobileNet-B0 model and to evaluate system performance.
-\begin{figure}
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.75\linewidth]{pictures/P7-Schematicdiagramofvideosizecroppingdiagram0.6x0.6.png}
     \caption{Video size cropping strategy diagram.}
@@ -107,74 +70,192 @@ To thoroughly validate our proposed system—particularly in the railway platfor
 
 \paragraph{Video size cropping procedure}
 We first select and crop video segments downloaded from YouTube, prioritizing the highest possible resolution (2560×1440 or 3840×2160). Temporally, we crop starting from approximately 30 meters before the first target appears and ending when the last target leaves the frame or when the train stops. Spatially, we crop toward the side containing the crowd. Considering device limitations, we crop both width and height to 0.6× the original size. Specifically, if the crowd is on the right platform as the train enters, we crop from the bottom-right corner upward to 0.6× height and leftward to 0.6× width, retaining this region as the final video (Figure~\ref{fig:video-cropping-zh}). If the crowd is on the left platform, we crop from the bottom-left corner upward to 0.6× height and rightward to 0.6× width, retaining that region as the final video. To reduce file size, we remove audio during cropping. Consequently, an original 3840×2160 video becomes 2304×1296 after processing; an original 2560×1440 video becomes 1536×864. For 1920×1080 videos, we keep the resolution and only crop temporally to extract relevant segments. We strike a balance between preserving original quality and managing file size. The core ffmpeg command is as follows:
-    \begin{minted}[fontsize=\small, linenos, breaklines]{python}
-    # Construct ffmpeg command
-    crop_filter = f"crop={crop_w}:{crop_h}:{crop_x}:{crop_y}"
-    cmd = [
-        FFMPEG_PATH, "-y",
-        "-ss", start_time,
-        "-to", end_time,
-        "-i", video_path,
-        "-vf", crop_filter,
-        "-c:v", "libx264",
-        "-crf", "15",  # High quality, almost lossless
-        "-preset", "veryslow",
-        "-an",  # Remove audio
-        out_path
-    ]
-    \end{minted}
-Detailed statistics of the 27 processed videos are provided in Table~\ref{tab:mot-tpch-stats-zh}.
+\begin{verbatim}
+# Construct ffmpeg command
+crop_filter = f"crop={crop_w}:{crop_h}:{crop_x}:{crop_y}"
+cmd = [
+    FFMPEG_PATH, "-y",
+    "-ss", start_time,
+    "-to", end_time,
+    "-i", video_path,
+    "-vf", crop_filter,
+    "-c:v", "libx264",
+    "-crf", "15",  # High quality, almost lossless
+    "-preset", "veryslow",
+    "-an",  # Remove audio
+    out_path
+]
+\end{verbatim}
+Detailed statistics of the 27 processed videos are provided in Table~\ref{tab:20MOTValVideos} and Table~\ref{tab:ReIDDataDistribution}.
 
-\begin{landscape}
+% \begin{table}[h!]
+% \centering
+% \resizebox{\textwidth}{!}{%
+% \scriptsize
+% \renewcommand{\arraystretch}{1.5}
+% \begin{tabular}{p{0.8cm}|p{1.2cm}|p{0.8cm}|p{1.0cm}|p{1.0cm}|p{1.2cm}|p{1.0cm}|p{1.0cm}|p{0.8cm}|p{0.8cm}|p{0.8cm}|p{0.8cm}|p{0.8cm}|p{0.8cm}|p{1.0cm}}
+% \hline
+% \textbf{Video} & \textbf{Resol-ution} & \textbf{FPS} & \textbf{Durat-ion\_s} & \textbf{Frame-Count} & \textbf{Frame-Range} & \textbf{BBox-Count} & \textbf{Object-Count} & \textbf{MinH} & \textbf{MaxH} & \textbf{MinW} & \textbf{MaxW} & \textbf{AvgH} & \textbf{AvgW} & \textbf{Format} \\ \hline
+% 1 & 1920x1080 & 25 & 11.44 & 286 & 41-267 & 565 & 8 & 20.19 & 86.36 & 16.63 & 69.53 & 40.08 & 31.74 & .mp4 \\
+% \rowcolor{gray!10}
+% 2 & 1920x1080 & 25 & 18.12 & 453 & 36-451 & 1359 & 25 & 14.64 & 153.88 & 16.36 & 106.39 & 52.36 & 41.48 & .mp4 \\
+% 3 & 2304x1296 & 59.94 & 7.84 & 470 & 44-427 & 670 & 10 & 34.95 & 130.56 & 24.32 & 129.21 & 63.99 & 55.43 & .mp4 \\
+% \rowcolor{gray!10}
+% 4 & 2304x1296 & 59.94 & 11.29 & 677 & 73-639 & 1085 & 18 & 24.82 & 197.75 & 17.58 & 227.34 & 70.6 & 65.51 & .mp4 \\
+% 5 & 2304x1296 & 59.94 & 11.18 & 670 & 2-666 & 2911 & 16 & 18 & 289.02 & 20.16 & 259.88 & 77.29 & 64.89 & .mp4 \\
+% \rowcolor{gray!10}
+% 6 & 1536x864 & 59.94 & 35.64 & 2136 & 12-2038 & 17243 & 124 & 10.9 & 118.12 & 7.05 & 129.81 & 33.12 & 30.31 & .mp4 \\
+% 7 & 1536x864 & 59.94 & 13.48 & 808 & 5-790 & 1804 & 19 & 16.99 & 147.95 & 11.01 & 149.34 & 36.14 & 32.12 & .mp4 \\
+% \rowcolor{gray!10}
+% 8 & 1536x864 & 59.94 & 13.85 & 830 & 1-811 & 3317 & 27 & 19.8 & 119.8 & 13.53 & 117.22 & 38.06 & 33.33 & .mp4 \\
+% 9 & 1536x864 & 59.94 & 39.44 & 2364 & 13-2346 & 11474 & 64 & 16.06 & 125.98 & 12.54 & 160.4 & 37.65 & 34.86 & .mp4 \\
+% \rowcolor{gray!10}
+% 10 & 2304x1296 & 29.97 & 11.48 & 344 & 21-344 & 624 & 12 & 26.93 & 142.54 & 18.41 & 146.67 & 55.66 & 48.32 & .mp4 \\
+% 11 & 2304x1296 & 59.94 & 33.38 & 2001 & 92-1988 & 12249 & 100 & 16.18 & 183.24 & 13.09 & 205.83 & 53.81 & 51.92 & .mp4 \\
+% \rowcolor{gray!10}
+% 12 & 1536x864 & 59.94 & 19.19 & 1150 & 343-1077 & 2651 & 28 & 12.78 & 104 & 9.62 & 119.77 & 37.33 & 34.88 & .mp4 \\
+% 13 & 1536x864 & 59.94 & 24.07 & 1443 & 178-1443 & 3561 & 32 & 15.15 & 115.6 & 12.86 & 118.58 & 41.97 & 38.9 & .mp4 \\
+% \rowcolor{gray!10}
+% 14 & 1536x864 & 59.94 & 8.51 & 510 & 14-510 & 1494 & 16 & 20.4 & 120.98 & 14.72 & 120.92 & 43.05 & 38.02 & .mp4 \\
+% 15 & 2304x1296 & 59.94 & 12.01 & 720 & 1-720 & 1303 & 6 & 30.38 & 204.36 & 21.6 & 222.35 & 66.81 & 57.2 & .mp4 \\
+% \rowcolor{gray!10}
+% 16 & 2304x1296 & 59.94 & 5.09 & 305 & 16-299 & 1341 & 24 & 24.39 & 167.54 & 20.14 & 154.06 & 56.02 & 52.94 & .mp4 \\
+% 17 & 1536x864 & 59.94 & 24.96 & 1496 & 146-1215 & 3575 & 47 & 11.61 & 121.28 & 9.15 & 123.57 & 38.45 & 35.6 & .mp4 \\
+% \rowcolor{gray!10}
+% 18 & 1920x1080 & 25 & 8.2 & 205 & 98-196 & 129 & 4 & 27.24 & 57.35 & 20.38 & 52.67 & 37.75 & 30.39 & .mp4 \\
+% 19 & 2304x1296 & 59.94 & 17.43 & 1045 & 53-1045 & 4637 & 46 & 14.33 & 116.91 & 10.62 & 131.26 & 44.73 & 43.78 & .mp4 \\
+% \rowcolor{gray!10}
+% 20 & 2304x1296 & 59.94 & 10.59 & 635 & 38-615 & 1807 & 21 & 26.9 & 146.26 & 18.23 & 153.21 & 57.48 & 52.73 & .mp4 \\
+% 21 & 1920x1080 & 25 & 7.24 & 181 & 67-166 & 437 & 8 & 22.44 & 103.24 & 17.95 & 87.47 & 46.75 & 36.23 & .mp4 \\
+% \rowcolor{gray!10}
+% 22 & 1920x1080 & 25 & 7.16 & 179 & 64-151 & 181 & 3 & 22.85 & 58.42 & 14.31 & 49.01 & 36.74 & 27.28 & .mp4 \\
+% 23 & 2304x1296 & 59.94 & 11.54 & 692 & 51-664 & 1914 & 53 & 15.91 & 194.65 & 14.42 & 221.6 & 57.45 & 51.93 & .mp4 \\
+% \rowcolor{gray!10}
+% 24 & 2560x1440 & 59.94 & 6.99 & 419 & 90-419 & 905 & 18 & 12.72 & 127.42 & 10.28 & 117.93 & 26.46 & 24.48 & .mp4 \\
+% 25 & 2560x1440 & 59.94 & 45.71 & 2740 & 1-2697 & 7415 & 93 & 10.84 & 122.27 & 8.69 & 127.9 & 29.51 & 29.76 & .mp4 \\
+% \rowcolor{gray!10}
+% 26 & 2304x1296 & 59.94 & 15.01 & 900 & 22-898 & 1171 & 9 & 26.7 & 214.66 & 21.27 & 179.46 & 68.55 & 55.99 & .mp4 \\
+% 27 & 2304x1296 & 59.94 & 18.84 & 1129 & 1-724 & 3265 & 54 & 16.65 & 162.63 & 10 & 199.17 & 56.05 & 54.55 & .mp4 \\
+% Total & ~ & ~ & 449.68 & 24788 & ~ & 89087 & 885 & 19.66 & 141.95 & 14.99 & 143.72 & 48.29 & 42.76 & ~ \\ \hline
+% \end{tabular}%
+% }
+% \caption{Statistics for 27 Processed MOT-TPCH Video Clips}
+% \label{tab:mot-tpch-stats-zh}
+% \end{table}
+\subsubsection{MOT-Evaluation Dataset}
+For comprehensive evaluation of our multi-object tracking and counting system, we select a representative subset of 20 video sequences from the complete MOT-TPCH dataset. This evaluation benchmark is carefully designed to cover diverse operational conditions encountered in real railway platform scenarios. As shown in Table~\ref{tab:20MOTValVideos}, the selected sequences span multiple resolutions (1536×864 to 2304×1296), frame rates (25, 29.97, 59.94 FPS), and target scales (AvgH≈49 px), ensuring robust performance assessment across varying technical specifications. The benchmark totals 18,548 frames, 647 identities, and 73,799 bounding boxes, providing sufficient statistical power for meaningful conclusions. We report both standard MOT metrics (MOTA, MOTP, IDF1) and task-oriented counting metrics (MAE, RMSE, MAPE) on this evaluation set.
 \begin{table}[H]
     \centering
-    \caption{Statistics for 27 processed MOT-TPCH video clips}
-    \label{tab:mot-tpch-stats-zh}
+\resizebox{\textwidth}{!}{%
     \scriptsize
-    \begin{tabular}{|l|l|l|l|l|l|l|l|l|l|l|l|l|l|l|}
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{p{0.8cm}|p{1.2cm}|p{0.8cm}|p{1.0cm}|p{1.0cm}|p{1.2cm}|p{1.0cm}|p{1.0cm}|p{0.8cm}|p{0.8cm}|p{0.8cm}|p{0.8cm}|p{0.8cm}|p{0.8cm}|p{1.0cm}}
     \hline
-        Video & Resolution & FPS & Duration\_s & FrameCount & FrameRange & BBoxCount & ObjectCount & MinH & MaxH & MinW & MaxW & AvgH & AvgW & Format  \\ \hline
-        1 & 1920x1080 & 25 & 11.44 & 286 & 41-267 & 565 & 8 & 20.19 & 86.36 & 16.63 & 69.53 & 40.08 & 31.74 & mp4.H264  \\ \hline
-        2 & 1920x1080 & 25 & 18.12 & 453 & 36-451 & 1359 & 25 & 14.64 & 153.88 & 16.36 & 106.39 & 52.36 & 41.48 & mp4.H264  \\ \hline
-        3 & 2304x1296 & 59.94 & 7.84 & 470 & 44-427 & 670 & 10 & 34.95 & 130.56 & 24.32 & 129.21 & 63.99 & 55.43 & mp4.H264  \\ \hline
-        4 & 2304x1296 & 59.94 & 11.29 & 677 & 73-639 & 1085 & 18 & 24.82 & 197.75 & 17.58 & 227.34 & 70.6 & 65.51 & mp4.H264  \\ \hline
-        5 & 2304x1296 & 59.94 & 11.18 & 670 & 2-666 & 2911 & 16 & 18 & 289.02 & 20.16 & 259.88 & 77.29 & 64.89 & mp4.H264  \\ \hline
-        6 & 1536x864 & 59.94 & 35.64 & 2136 & 12-2038 & 17243 & 124 & 10.9 & 118.12 & 7.05 & 129.81 & 33.12 & 30.31 & mp4.H264  \\ \hline
-        7 & 1536x864 & 59.94 & 13.48 & 808 & 5-790 & 1804 & 19 & 16.99 & 147.95 & 11.01 & 149.34 & 36.14 & 32.12 & mp4.H264  \\ \hline
-        8 & 1536x864 & 59.94 & 13.85 & 830 & 1-811 & 3317 & 27 & 19.8 & 119.8 & 13.53 & 117.22 & 38.06 & 33.33 & mp4.H264  \\ \hline
-        9 & 1536x864 & 59.94 & 39.44 & 2364 & 13-2346 & 11474 & 64 & 16.06 & 125.98 & 12.54 & 160.4 & 37.65 & 34.86 & mp4.H264  \\ \hline
-        10 & 2304x1296 & 29.97 & 11.48 & 344 & 21-344 & 624 & 12 & 26.93 & 142.54 & 18.41 & 146.67 & 55.66 & 48.32 & mp4.H264  \\ \hline
-        11 & 2304x1296 & 59.94 & 33.38 & 2001 & 92-1988 & 12249 & 100 & 16.18 & 183.24 & 13.09 & 205.83 & 53.81 & 51.92 & mp4.H264  \\ \hline
-        12 & 1536x864 & 59.94 & 19.19 & 1150 & 343-1077 & 2651 & 28 & 12.78 & 104 & 9.62 & 119.77 & 37.33 & 34.88 & mp4.H264  \\ \hline
-        13 & 1536x864 & 59.94 & 24.07 & 1443 & 178-1443 & 3561 & 32 & 15.15 & 115.6 & 12.86 & 118.58 & 41.97 & 38.9 & mp4.H264  \\ \hline
-        14 & 1536x864 & 59.94 & 8.51 & 510 & 14-510 & 1494 & 16 & 20.4 & 120.98 & 14.72 & 120.92 & 43.05 & 38.02 & mp4.H264  \\ \hline
-        15 & 2304x1296 & 59.94 & 12.01 & 720 & 1-720 & 1303 & 6 & 30.38 & 204.36 & 21.6 & 222.35 & 66.81 & 57.2 & mp4.H264  \\ \hline
-        16 & 2304x1296 & 59.94 & 5.09 & 305 & 16-299 & 1341 & 24 & 24.39 & 167.54 & 20.14 & 154.06 & 56.02 & 52.94 & mp4.H264  \\ \hline
-        17 & 1536x864 & 59.94 & 24.96 & 1496 & 146-1215 & 3575 & 47 & 11.61 & 121.28 & 9.15 & 123.57 & 38.45 & 35.6 & mp4.H264  \\ \hline
-        18 & 1920x1080 & 25 & 8.2 & 205 & 98-196 & 129 & 4 & 27.24 & 57.35 & 20.38 & 52.67 & 37.75 & 30.39 & mp4.H264  \\ \hline
-        19 & 2304x1296 & 59.94 & 17.43 & 1045 & 53-1045 & 4637 & 46 & 14.33 & 116.91 & 10.62 & 131.26 & 44.73 & 43.78 & mp4.H264  \\ \hline
-        20 & 2304x1296 & 59.94 & 10.59 & 635 & 38-615 & 1807 & 21 & 26.9 & 146.26 & 18.23 & 153.21 & 57.48 & 52.73 & mp4.H264  \\ \hline
-        21 & 1920x1080 & 25 & 7.24 & 181 & 67-166 & 437 & 8 & 22.44 & 103.24 & 17.95 & 87.47 & 46.75 & 36.23 & mp4.H264  \\ \hline
-        22 & 1920x1080 & 25 & 7.16 & 179 & 64-151 & 181 & 3 & 22.85 & 58.42 & 14.31 & 49.01 & 36.74 & 27.28 & mp4.H264  \\ \hline
-        23 & 2304x1296 & 59.94 & 11.54 & 692 & 51-664 & 1914 & 53 & 15.91 & 194.65 & 14.42 & 221.6 & 57.45 & 51.93 & mp4.H264  \\ \hline
-        24 & 2560x1440 & 59.94 & 6.99 & 419 & 90-419 & 905 & 18 & 12.72 & 127.42 & 10.28 & 117.93 & 26.46 & 24.48 & mp4.H264  \\ \hline
-        25 & 2560x1440 & 59.94 & 45.71 & 2740 & 1-2697 & 7415 & 93 & 10.84 & 122.27 & 8.69 & 127.9 & 29.51 & 29.76 & mp4.H264  \\ \hline
-        26 & 2304x1296 & 59.94 & 15.01 & 900 & 22-898 & 1171 & 9 & 26.7 & 214.66 & 21.27 & 179.46 & 68.55 & 55.99 & mp4.H264  \\ \hline
-        27 & 2304x1296 & 59.94 & 18.84 & 1129 & 1-724 & 3265 & 54 & 16.65 & 162.63 & 10 & 199.17 & 56.05 & 54.55 & mp4.H264  \\ \hline
-        Summary & ~ & ~ & 449.68 & 24788 & ~ & 89087 & 885 & 19.66 & 141.95 & 14.99 & 143.72 & 48.29 & 42.76 & ~ \\ \hline
-    \end{tabular}
+\textbf{video} & \textbf{Resol-ution} & \textbf{FPS} & \textbf{Durat-ion\_s} & \textbf{Frame-Count} & \textbf{Frame-Range} & \textbf{BBox-Count} & \textbf{Object-Count} & \textbf{MinH} & \textbf{MaxH} & \textbf{MinW} & \textbf{MaxW} & \textbf{AvgH} & \textbf{AvgW} & \textbf{Format} \\ \hline
+1 & 1920x1080 & 25 & 8.2 & 205 & 98-196 & 129 & 4 & 27.24 & 57.35 & 20.38 & 52.67 & 37.75 & 30.39 & .mp4 \\
+\rowcolor{gray!10}
+2 & 1920x1080 & 25 & 11.44 & 286 & 41-267 & 565 & 8 & 20.19 & 86.36 & 16.63 & 69.53 & 40.08 & 31.74 & .mp4 \\
+3 & 1920x1080 & 25 & 18.12 & 453 & 36-451 & 1359 & 25 & 14.64 & 153.88 & 16.36 & 106.39 & 52.36 & 41.48 & .mp4 \\
+\rowcolor{gray!10}
+4 & 2304x1296 & 59.94 & 7.84 & 470 & 44-427 & 670 & 10 & 34.95 & 130.56 & 24.32 & 129.21 & 63.99 & 55.43 & .mp4 \\
+5 & 2304x1296 & 59.94 & 11.29 & 677 & 73-639 & 1085 & 18 & 24.82 & 197.75 & 17.58 & 227.34 & 70.6 & 65.51 & .mp4 \\
+\rowcolor{gray!10}
+6 & 2304x1296 & 59.94 & 11.18 & 670 & 2-666 & 2911 & 16 & 18 & 289.02 & 20.16 & 259.88 & 77.29 & 64.89 & .mp4 \\
+7 & 2304x1296 & 59.94 & 10.59 & 635 & 38-615 & 1807 & 21 & 26.9 & 146.26 & 18.23 & 153.21 & 57.48 & 52.73 & .mp4 \\
+\rowcolor{gray!10}
+8 & 1536x864 & 59.94 & 24.96 & 1496 & 146-1215 & 3575 & 47 & 11.61 & 121.28 & 9.15 & 123.57 & 38.45 & 35.6 & .mp4 \\
+9 & 1536x864 & 59.94 & 35.64 & 2136 & 12-2038 & 17243 & 124 & 10.9 & 118.12 & 7.05 & 129.81 & 33.12 & 30.31 & .mp4 \\
+\rowcolor{gray!10}
+10 & 1536x864 & 59.94 & 13.48 & 808 & 5-790 & 1804 & 19 & 16.99 & 147.95 & 11.01 & 149.34 & 36.14 & 32.12 & .mp4 \\
+11 & 1536x864 & 59.94 & 13.85 & 830 & 1-811 & 3317 & 27 & 19.8 & 119.8 & 13.53 & 117.22 & 38.06 & 33.33 & .mp4 \\
+\rowcolor{gray!10}
+12 & 1536x864 & 59.94 & 39.44 & 2364 & 13-2346 & 11474 & 64 & 16.06 & 125.98 & 12.54 & 160.4 & 37.65 & 34.86 & .mp4 \\
+13 & 2304x1296 & 29.97 & 11.48 & 344 & 21-344 & 624 & 12 & 26.93 & 142.54 & 18.41 & 146.67 & 55.66 & 48.32 & .mp4 \\
+\rowcolor{gray!10}
+14 & 2304x1296 & 59.94 & 33.38 & 2001 & 92-1988 & 12249 & 100 & 16.18 & 183.24 & 13.09 & 205.83 & 53.81 & 51.92 & .mp4 \\
+15 & 1536x864 & 59.94 & 19.19 & 1150 & 343-1077 & 2651 & 28 & 12.78 & 104 & 9.62 & 119.77 & 37.33 & 34.88 & .mp4 \\
+\rowcolor{gray!10}
+16 & 1536x864 & 59.94 & 24.07 & 1443 & 178-1443 & 3561 & 32 & 15.15 & 115.6 & 12.86 & 118.58 & 41.97 & 38.9 & .mp4 \\
+17 & 1536x864 & 59.94 & 8.51 & 510 & 14-510 & 1494 & 16 & 20.4 & 120.98 & 14.72 & 120.92 & 43.05 & 38.02 & .mp4 \\
+\rowcolor{gray!10}
+18 & 2304x1296 & 59.94 & 12.01 & 720 & 1-720 & 1303 & 6 & 30.38 & 204.36 & 21.6 & 222.35 & 66.81 & 57.2 & .mp4 \\
+19 & 2304x1296 & 59.94 & 5.09 & 305 & 16-299 & 1341 & 24 & 24.39 & 167.54 & 20.14 & 154.06 & 56.02 & 52.94 & .mp4 \\
+\rowcolor{gray!10}
+20 & 2304x1296 & 59.94 & 17.43 & 1045 & 53-1045 & 4637 & 46 & 14.33 & 116.91 & 10.62 & 131.26 & 44.73 & 43.78 & .mp4 \\
+\rowcolor{gray!20}
+Total & ~ & ~ & 337.19 & 18548 & ~ & 73799 & 647 & 20.13 & 142.47 & 15.40 & 144.90 & 49.12 & 43.72 & ~ \\ \hline
+\end{tabular}%
+}
+\caption{20 Videos Sequences for MOT and Counting Evaluation on MOT-TPCH}
+\label{tab:20MOTValVideos}
 \end{table}
-\end{landscape}
-
 As shown in Figure~\ref{fig:P6-MOT-TPCHsamples}, we present samples from the TrainPlatformCrowdHead dataset with MOT-format annotations.
-\begin{figure}
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.75\linewidth]{pictures/P6-MOT-TPCHsamples.png}
-    \caption{Sample images from the TrainPlatformCrowdHead dataset (MOT format).}
+    \caption{Sample Images from the TrainPlatformCrowdHead dataset (MOT Format)}
     \label{fig:P6-MOT-TPCHsamples}
 \end{figure}
 
-In summary, we used a total of 21,950 images and approximately 500k object instances in our experiments. Among them, we manually annotated 2,000 images and 27 video sequences (24,788 frames, 89,087 bounding boxes, 885 object identities), yielding about 23k object instances. This multi-source dataset strategy ensures that the model performs well not only in conventional crowd scenes but also in challenging, high-density, and dynamic railway platform environments, laying a solid foundation for further optimization and deployment.
+\subsubsection{ReID Training and Ablation Dataset}
+For training the ReID model used in our DeepSORT framework, we extract a subset of 7 video sequences from the complete MOT-TPCH dataset. This subset is specifically selected to provide diverse appearance variations and sufficient identity samples for effective feature learning. The ReID training dataset encompasses 238 tracked identities across 6,240 frames, as detailed in Table~\ref{tab:ReIDDataDistribution}. 
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\scriptsize
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{p{0.8cm}|p{1.2cm}|p{0.8cm}|p{1.0cm}|p{1.0cm}|p{1.2cm}|p{1.0cm}|p{1.0cm}|p{0.8cm}|p{0.8cm}|p{0.8cm}|p{0.8cm}|p{0.8cm}|p{0.8cm}|p{1.0cm}}
+\hline
+\textbf{Folder} & \textbf{Resol-ution} & \textbf{FPS} & \textbf{Durat-ion\_s} & \textbf{Frame-Count} & \textbf{Frame-Range} & \textbf{BBox-Count} & \textbf{Object-Count} & \textbf{MinH} & \textbf{MaxH} & \textbf{MinW} & \textbf{MaxW} & \textbf{AvgH} & \textbf{AvgW} & \textbf{Format} \\ \hline
+1 & 1920x1080 & 25 & 7.24 & 181 & 67-166 & 437 & 8 & 22.44 & 103.24 & 17.95 & 87.47 & 46.75 & 36.23 & .mp4 \\
+\rowcolor{gray!10}
+2 & 1920x1080 & 25 & 7.16 & 179 & 64-151 & 181 & 3 & 22.85 & 58.42 & 14.31 & 49.01 & 36.74 & 27.28 & .mp4 \\
+3 & 2304x1296 & 59.94 & 11.54 & 692 & 51-664 & 1914 & 53 & 15.91 & 194.65 & 14.42 & 221.6 & 57.45 & 51.93 & .mp4 \\
+\rowcolor{gray!10}
+4 & 2560x1440 & 59.94 & 6.99 & 419 & 90-419 & 905 & 18 & 12.72 & 127.42 & 10.28 & 117.93 & 26.46 & 24.48 & .mp4 \\
+5 & 2560x1440 & 59.94 & 45.71 & 2740 & 1-2697 & 7415 & 93 & 10.84 & 122.27 & 8.69 & 127.9 & 29.51 & 29.76 & .mp4 \\
+\rowcolor{gray!10}
+6 & 2304x1296 & 59.94 & 15.01 & 900 & 22-898 & 1171 & 9 & 26.7 & 214.66 & 21.27 & 179.46 & 68.55 & 55.99 & .mp4 \\
+7 & 2304x1296 & 59.94 & 18.84 & 1129 & 1-724 & 3265 & 54 & 16.65 & 162.63 & 10 & 199.17 & 56.05 & 54.55 & .mp4 \\
+\rowcolor{gray!20}
+Total & ~ & ~ & 112.49 & 6240 & ~ & 15288 & 238 & 18.30 & 140.47 & 13.85 & 140.36 & 45.93 & 40.03 & ~ \\ \hline
+\end{tabular}%
+}
+\caption{7 Videos Sequences for ReID Training and Ablation}
+\label{tab:ReIDDataDistribution}
+\end{table}
+
+The ReID training subset represents approximately 25\% of the complete MOT-TPCH dataset, carefully selected to maintain diversity in terms of resolution, crowd density, and lighting conditions. This subset provides a balanced training environment with an average of 34 identities per video sequence, ranging from small groups (3 identities) to dense crowds (93 identities), ensuring the ReID model learns robust feature representations across different crowd scenarios.
+
+
+Table~\ref{tab:dataset-summary} provides a comprehensive summary of all datasets used in this study.
+
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\scriptsize
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{p{3.5cm}|p{2.8cm}|p{2.0cm}|p{2.5cm}|p{2.5cm}}
+\hline
+\textbf{Dataset} & \textbf{Resolution} & \textbf{Scale} & \textbf{Instances} & \textbf{Purpose} \\ \hline
+CrowdHuman & Multiple & 19,370 images & 435,168 boxes & Pre-training \\
+\rowcolor{gray!10}
+Open Sensor Data for Rail & 2464×1600 & 20 images & 180 boxes & Fine-tuning \\
+RailEye3D & 1920×1088 & 320 images & 1,221 boxes & Fine-tuning \\
+\rowcolor{gray!10}
+TrainPlatformCrowd & 2560×1440/3840×2160 & 1,660 images & 6,022 boxes & Fine-tuning \\
+Detector Ablation & Various & 1,784 images & 8,206 boxes & Ablation  \\
+\rowcolor{gray!10}
+MOT-Evaluation  & 1536×864/2304×1296 & 20 videos & 73,799 boxes, 647 IDs & Evaluation \\
+ReID Dataset  & 1920×1080/2560×1440 & 7 videos & 15,288 boxes, 238 IDs & Model Training \& Ablation \\
+\rowcolor{gray!20}
+Full MOT-TPCH & 1536×864/2560×1440 & 27 videos & 89,087 boxes, 885 IDs & Reference \\ \hline
+\end{tabular}%
+}
+\caption{Comprehensive Summary of All Datasets Used in This Study}
+\label{tab:dataset-summary}
+\end{table}
+In summary, we constructed a comprehensive multi-modal dataset ecosystem encompassing 21,950 images and approximately 500k object instances. Our manual annotations include 2,000 images and 27 video sequences (24,788 frames, 89,087 bounding boxes, 885 object identities), yielding about 23k object instances. The dataset is strategically partitioned to serve different experimental phases: from large-scale pre-training to domain-specific fine-tuning, evaluation benchmarks, and specialized tasks like MOT and ReID training. This multi-source dataset strategy ensures that the model performs well not only in conventional crowd scenes but also in challenging, high-density, and dynamic railway platform environments, laying a solid foundation for further optimization and deployment.
 
 % -----------------------------------------以下是中文版，含义表达以中文版为主
 \iffalse
@@ -284,22 +365,22 @@ In summary, we used a total of 21,950 images and approximately 500k object insta
 
 视频尺寸裁剪处理的方式
 首先，我们将Youtube下载好的视频进行片段的选择和裁剪，我们的原则是，尽可能地下载该视频的高分辨率版本，我们得到了2560x1440或3840x2160分辨率的多个视频，我们在时序上裁剪的原则的是从距离第一个目标约30m左右作为被裁剪片段的开始，从最后一个目标刚从画面消失或者列车刚好停止结束；画面尺寸上的处理则是以人群所在的一侧为主要画面进行裁剪，考虑我们用来处理数据的设备的局限，我们将画面按照原尺寸的长和宽的0.6倍进行裁剪，具体是，当火车进站的时候，如果人群在右边站台，那么我们将拍摄的画面以右下角为原点，向上对高裁剪0.6倍高度，向左对宽裁剪0.6倍的宽度，我们保留这部分尺寸的连续画面我们最终的视频，如图\ref{fig:video-cropping-zh}所示；如果人群在左边站台，那么我们将拍摄的画面以左下角为原点，向上对高裁剪0.6倍高度，向右对宽裁剪0.6倍的宽度，我们保留这部分这部分尺寸的连续画面作为我们最终的视频，与此同时为了减小视频的体积，我们在裁剪的过程中删除了视频的音频。这意味着，原3840x2160的视频经过处理后得到了分辨率为2304x1296像素的视频，原2560x1440经过处理后得到的是1536x864像素分辨率的视频，然后我们保留了1920x1080的视频尺寸，只是在时序上进行了裁剪得到我们关注的视频片段。我们在尽可能保证画面原始质量和文件大小平衡的情况下进行，使用ffmpeg技术裁剪的核心代码如下所示：
-    \begin{minted}[fontsize=\small, linenos, breaklines]{python}
-    # Construct ffmpeg command
-    crop_filter = f"crop={crop_w}:{crop_h}:{crop_x}:{crop_y}"
-    cmd = [
-        FFMPEG_PATH, "-y",
-        "-ss", start_time,
-        "-to", end_time,
-        "-i", video_path,
-        "-vf", crop_filter,
-        "-c:v", "libx264",
-        "-crf", "15",  # High quality, almost lossless
-        "-preset", "veryslow",
-        "-an",  # Remove audio
-        out_path
-    ]
-    \end{minted}
+\begin{verbatim}
+# Construct ffmpeg command
+crop_filter = f"crop={crop_w}:{crop_h}:{crop_x}:{crop_y}"
+cmd = [
+    FFMPEG_PATH, "-y",
+    "-ss", start_time,
+    "-to", end_time,
+    "-i", video_path,
+    "-vf", crop_filter,
+    "-c:v", "libx264",
+    "-crf", "15",  # High quality, almost lossless
+    "-preset", "veryslow",
+    "-an",  # Remove audio
+    out_path
+]
+\end{verbatim}
 将27个视频经过上面的处理方法裁剪得到的详细信息统计如表\ref{tab:mot-tpch-stats-zh}所示。
 
 \begin{landscape}
