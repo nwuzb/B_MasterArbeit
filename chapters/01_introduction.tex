@@ -24,17 +24,20 @@ Finally, substantial intra-class appearance variation further increases complexi
 \subsection{Motivation and Objectives}
 Motivated by the above challenges, we focus on railway platforms—public transport environments characterized by highly dense crowds and frequent occlusions—where accurate, real-time detection, tracking, and counting are of pressing practical importance and research value. Reliable crowd management is not only critical to ensuring operational safety\cite{214}, but also fundamental for optimizing passenger flow\cite{215} and improving emergency response efficiency\cite{216}.
 
-Accordingly, our goal is to develop an efficient and robust automated crowd analytics system tailored to the railway platform scenario. Leveraging state-of-the-art deep learning techniques, the system aims to effectively address high-density and severe occlusion, providing reliable data support for platform management, operational efficiency, and passenger experience.
+Accordingly, our goal is to develop an efficient and robust automated crowd counting system tailored to the railway platform scenario. Leveraging state-of-the-art deep learning techniques, the system aims to effectively address high-density and severe occlusion, providing reliable data support for platform management, operational efficiency, and passenger experience.
 
-To this end, we adopt YOLOv11—the latest iteration in the YOLO family—as the object detector, and integrate DeepSORT as the tracker. YOLOv11 is selected for its strong balance between speed and accuracy\cite{141}, and for architectural advances that are expected to improve small-object detection and robustness in complex scenes. DeepSORT is chosen for its high tracking accuracy, computational efficiency, and compatibility with diverse detectors, which make it well-suited to handling occlusion and re-identification. By tightly coupling YOLOv11's strong detection capacity with DeepSORT's robust association mechanism, we seek to build a system that delivers high accuracy, real-time performance, and robustness for detection, tracking, and counting in dense and dynamic railway platform environments—ultimately supporting intelligent transportation and public safety.
+To this end, we adopt YOLOv11—an important iteration in the YOLO family—as the object detector, and integrate DeepSORT as the tracker. YOLOv11 is selected for its strong balance between speed and accuracy\cite{141}, and for architectural advances that are expected to improve small-object detection and robustness in complex scenes. DeepSORT is chosen for its high tracking accuracy, computational efficiency, and compatibility with diverse detectors, which make it well-suited to handling occlusion and re-identification. By tightly coupling YOLOv11's strong detection capacity with DeepSORT's robust association mechanism, we seek to build a system that delivers high accuracy, real-time performance, and robustness for detection, tracking, and counting in dense and dynamic railway platform environments—ultimately supporting intelligent transportation and public safety.
 
 \subsection{Main Contributions}
 We focus on the specific characteristics of railway platforms—high crowd density, frequent occlusions under fixed viewpoints, and stringent requirements on both real-time performance and accuracy—and explore a YOLOv11-based approach to crowd detection, tracking, and counting. Through comprehensive evaluation on publicly available datasets and a self-constructed platform dataset, we assess the applicability of YOLOv11 to this scenario and provide empirical evidence to inform future research and deployment.
 
-Our main contributions are summarized as follows:
-First, we apply the state-of-the-art YOLOv11 architecture to dense crowd counting. While the YOLO family has achieved notable success in generic object detection, directly deploying its latest version for crowd counting and conducting an in-depth performance analysis remains a novel and informative endeavor.
-Second, we propose two improved variants of DeepSORT and train a lightweight convolutional neural network (CNN), EfficientNet-B0, for specialized head feature extraction to enhance robustness under occlusions.
-Third, to train and rigorously evaluate the proposed models, we employ multiple public datasets—CrowdHuman\cite{shao2018crowdhuman}, NWPU-Crowd\cite{nwpcrowd}, Open Sensor Data for Rail 2023\cite{OpenSensorDataforRail2023}, and RailEye3D\cite{RailEye3D_Dataset}—together with a self-constructed railway platform dataset named TrainPlatformCrowdHead (TPCH), containing 885 unique IDs for evaluation in real-world settings.
+Our main contributions are summarized as follows:\\
+First, we apply the state-of-the-art YOLOv11 architecture to dense crowd counting. While the YOLO family has achieved notable success in generic object detection, directly deploying its important iteration version for crowd counting and conducting an in-depth performance analysis remains a novel and informative endeavor.\\
+
+Second, we propose two improved variants of DeepSORT and train a lightweight convolutional neural network (CNN), EfficientNet-B0, for specialized head feature extraction to enhance robustness under occlusions.\\
+
+Third, to train and rigorously evaluate the proposed models, we employ multiple public datasets—CrowdHuman\cite{shao2018crowdhuman}, NWPU-Crowd\cite{nwpcrowd}, Open Sensor Data for Rail 2023\cite{OpenSensorDataforRail2023}, and RailEye3D\cite{RailEye3D_Dataset}—together with a self-constructed railway platform dataset named MOT RailwayPlatformCrowdHead (MOT-RPCH), containing 885 unique IDs for evaluation in real-world settings.\\
+
 Finally, we conduct a comprehensive comparison against a standard 8-dimensional Kalman filtering baseline. Experimental results clearly demonstrate the superiority of our approach and validate the feasibility and effectiveness of combining YOLOv11 with improved DeepSORT for crowd analytics.
 
 \subsection{Outline of the Dissertation}
@@ -94,7 +97,7 @@ The remainder of this paper is organized as follows:
 本研究的主要贡献可概括如下：
 首先，我们创新性地将前沿的YOLOv11架构应用于高密度人群计数任务。尽管YOLO系列在通用目标检测领域成就斐然，但将其最新版本直接应用于人群计数并进行深入的性能探究，仍是一项具有开创性的工作。
 其次，我们提出了两种改进的DeepSORT算法，并训练了一个专用于人头特征提取的轻量级卷积神经网络（CNN）EfficientNet-B0，以提升在遮挡情况下的跟踪鲁棒性。
-第三，为全面训练与验证所提模型的性能，我们采用了多个公开数据集（CrowdHuman\cite{shao2018crowdhuman}、NWPU-Crowd\cite{nwpcrowd}、Open Sensor Data for Rail 2023\cite{OpenSensorDataforRail2023}、RailEye3D\cite{RailEye3D_Dataset}）以及一个自建的火车站台数据集。该自建数据集名为TrainPlatformCrowdHead (TPCH)，包含885个独立ID，专门用于评估模型在真实场景下的跟踪与计数性能。
+第三，为全面训练与验证所提模型的性能，我们采用了多个公开数据集（CrowdHuman\cite{shao2018crowdhuman}、NWPU-Crowd\cite{nwpcrowd}、Open Sensor Data for Rail 2023\cite{OpenSensorDataforRail2023}、RailEye3D\cite{RailEye3D_Dataset}）以及一个自建的铁路站台数据集。该自建数据集名为RailwayPlatformCrowdHead (RPCH)，包含885个独立ID，专门用于评估模型在真实场景下的跟踪与计数性能。
 最后，我们将所提出的两种模型与基准的8维卡尔曼滤波模型进行了全面的性能比较。实验结果清晰地展示了我们方法的优越性，验证了YOLOv11与改进DeepSORT相结合在人群分析任务中的可行性与高效性。
 
 \subsection{本文结构}

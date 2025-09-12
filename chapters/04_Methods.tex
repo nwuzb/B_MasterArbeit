@@ -1,7 +1,7 @@
 \clearpage
 \section{Methods}\label{section::Methods}
 
-This study proposes a deep learning-based framework for accurate crowd counting on railway platforms by combining the YOLOv11 detector with the DeepSORT tracker and a robust counting strategy. As shown in Figure~\ref{fig:OurMOTSystemArchitecture}, the overall multi-object tracking (MOT) system integrates YOLO-based detection, EfficientNet-B0-based ReID feature extraction, and a physics-inspired Kalman filter to enable robust pedestrian tracking. The system employs a five-dimensional Extended Kalman Filter (EKF) whose state vector is $[u, v, Z, dZ, H]$, representing pixel coordinates, depth, depth velocity, and head height, respectively. Multiple gating mechanisms are adopted, including Mahalanobis distance, directional motion corridors, and adaptive appearance thresholds, to ensure reliable data association.
+This study proposes a deep learning-based framework for accurate crowd counting on railway platforms by combining the YOLOv11 detector with the DeepSORT tracker and a robust counting strategy. As shown in \textbf{Fig.}~\ref{fig:OurMOTSystemArchitecture}, the overall multi-object tracking (MOT) system integrates YOLO-based detection, EfficientNet-B0-based ReID feature extraction, and a physics-inspired Kalman filter to enable robust pedestrian tracking. The system employs a five-dimensional Extended Kalman Filter, whose state vector is $[u, v, Z, dZ, H]$, representing pixel coordinates, depth, depth velocity, and head height, respectively. Multiple gating mechanisms are adopted, including Mahalanobis distance, directional motion corridors, and adaptive appearance thresholds, to ensure reliable data association.
 
 \begin{figure}[H]
     \centering
@@ -12,37 +12,48 @@ This study proposes a deep learning-based framework for accurate crowd counting 
 
 \subsection{YOLOv11 Model}
 
-In 2015, Redmon et al. introduced the YOLO algorithm, a landmark in object detection \cite{76_redmon2016lookonceunifiedrealtime}. As its name suggests, YOLO detects objects and their locations in a single pass over the image by formulating detection as a regression problem, in contrast to traditional two-stage pipelines \cite{76_redmon2016lookonceunifiedrealtime}. As illustrated in Figures~\ref{fig:yolosystem-cn} and \ref{fig:yoloarchitecture-cn}, a single convolutional neural network (CNN) jointly predicts bounding boxes and class probabilities across the entire image \cite{77_Du_article}, simplifying the detection process compared to more complex traditional methods.
+In 2015, Redmon et al. introduced the YOLO algorithm, a landmark in object detection \cite{76_redmon2016lookonceunifiedrealtime}. As its name suggests, YOLO detects objects and their locations in a single pass over the image by formulating detection as a regression problem, in contrast to traditional two-stage pipelines. As illustrated in \textbf{Fig.}~\ref{fig:yolosystem-cn} and \textbf{Fig.}~\ref{fig:yoloarchitecture-cn}, a single convolutional neural network (CNN) jointly predicts bounding boxes and class probabilities across the entire image \cite{77_Du_article}, simplifying the detection process compared to more complex traditional methods.
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.8\textwidth]{pictures/The YOLO Detection System.png}
-    \caption{YOLOv1 Detection System}
+    \caption{YOLOv1 Detection System \cite{76_redmon2016lookonceunifiedrealtime}}
     \label{fig:yolosystem-cn}
 \end{figure}
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.8\textwidth]{pictures/The YOLO Architecture.png}
-    \caption{YOLOv1 Architecture}
+    \caption{YOLOv1 Architecture \cite{76_redmon2016lookonceunifiedrealtime}}
     \label{fig:yoloarchitecture-cn}
 \end{figure}
 
 YOLOv11 represents a significant step forward in the YOLO family, announced at the YOLOVision 2024 (YV24) conference. It refines network design and training strategies to further improve detection accuracy and speed \cite{74_yolo11_Jocher_Ultralytics_YOLO_2023}. As noted in Related Work, using full-body cues for detection degrades substantially in crowded scenes due to heavy occlusions, whereas head cues are more discriminative and less occluded yet remain underexplored. In high-density settings, frequent and severe occlusions hinder full-body recognition, while heads, being at the upper body and less occluded with more stable shape cues, are easier to localize. Head sizes also vary less with pose, reducing both false positives and false negatives. Accordingly, we detect heads with YOLOv11 as the basis for counting.
 
-As shown in Figure~\ref{fig:yolo11architecture-cn}, YOLOv11 introduces notable architectural and training enhancements that push the boundary of accuracy, speed, and efficiency \cite{75_khanam2024yolov11overviewkeyarchitectural}.
+As shown in \textbf{Fig.}~\ref{fig:benchmarkingyolo11}, YOLOv11 introduces notable architectural and training enhancements that push the boundary of accuracy, speed, and efficiency \cite{75_khanam2024yolov11overviewkeyarchitectural}.
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.99\textwidth]{pictures/Yolo11architecture.png}
-    \caption{YOLO11 Architecture\cite{80_ghosh_yolo11_2024}}
+    \includegraphics[width=0.6\textwidth]{pictures/BenchmarkingYOLOv11AgainstPrevious Versions.png}
+    \caption{Benchmarking YOLOv11 Against Previous Versions\cite{74_yolo11_Jocher_Ultralytics_YOLO_2023}}
+    \label{fig:benchmarkingyolo11}
+\end{figure}
+
+
+
+
+\subsection{Key Architectural Components of YOLOv11}
+The YOLOv11 architecture comprises three fundamental components (\textbf{Fig.}~\ref{fig:yolo11architecture-cn}). First, the backbone serves as the primary feature extractor, transforming raw images into multi-scale feature maps via CNNs. Second, the neck acts as an intermediate aggregation stage, enhancing and fusing features across scales. Third, the head produces the final predictions for localization and classification \cite{75_khanam2024yolov11overviewkeyarchitectural}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.92\textwidth]{pictures/Yolo11architecture.png}
+    \caption{YOLOv11 Architecture\cite{80_ghosh_yolo11_2024}}
     \label{fig:yolo11architecture-cn}
 \end{figure}
 
-\subsection{Key Architectural Components of YOLOv11}
-The YOLOv11 architecture comprises three fundamental components (Figure~\ref{fig:yolo11architecture-cn}). First, the backbone serves as the primary feature extractor, transforming raw images into multi-scale feature maps via CNNs. Second, the neck acts as an intermediate aggregation stage, enhancing and fusing features across scales. Third, the head produces the final predictions for localization and classification \cite{75_khanam2024yolov11overviewkeyarchitectural}.
-
+YOLOv11 introduces significant architectural and training enhancements that push the boundaries of accuracy, speed and efficiency. As shown in \textbf{Fig.}~\ref{fig:Keyarchite-cn}, the key architectural components of YOLOv11 are illustrated.
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.5\linewidth]{pictures/key architectural modules in YOLO11.png}
-    \caption{Key architectural modules in YOLO11}
+    \includegraphics[width=0.7\linewidth]{pictures/key architectural modules in YOLO11.png}
+    \caption{Key Architectural Modules in YOLOv11 \cite{80_ghosh_yolo11_2024}}
     \label{fig:Keyarchite-cn}
 \end{figure}
 
@@ -50,11 +61,11 @@ The YOLOv11 architecture comprises three fundamental components (Figure~\ref{fig
 The backbone extracts features at multiple scales by stacking convolutional layers and specialized blocks to produce feature maps at varying resolutions. Initial convolutional layers downsample the input, progressively reducing spatial dimensions while increasing channel depth.
 
 SPPF and C2PSA
-YOLOv11 retains the Spatial Pyramid Pooling - Fast (SPPF) block and introduces the Cross Stage Partial with Spatial Attention (C2PSA) block \cite{80_ghosh_yolo11_2024}. As shown in Figure~\ref{fig:C2PSA-cn}, C2PSA enhances spatial attention, enabling the model to focus more effectively on salient regions. By pooling spatial features, C2PSA strengthens localization of objects at different sizes and positions.
+YOLOv11 retains the Spatial Pyramid Pooling - Fast (SPPF) block and introduces the Cross Stage Partial with Spatial Attention (C2PSA) block \cite{80_ghosh_yolo11_2024}. As shown in \textbf{Fig.}~\ref{fig:C2PSA-cn}, C2PSA enhances spatial attention, enabling the model to focus more effectively on salient regions. By pooling spatial features, C2PSA strengthens localization of objects at different sizes and positions.
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.25\linewidth]{pictures/C2PSA.png}
-    \caption{C2PSA Module}
+    \caption{YOLOv11 C2PSA Module \cite{80_ghosh_yolo11_2024}}
     \label{fig:C2PSA-cn}
 \end{figure}
 
@@ -62,7 +73,7 @@ YOLOv11 retains the Spatial Pyramid Pooling - Fast (SPPF) block and introduces t
 The neck bridges backbone and head, aggregating features from multiple scales for downstream prediction.
 
 C3K2 block
-YOLOv11 replaces the neck's C2f blocks with C3k2 blocks, a more computationally efficient variant of the CSP (Cross Stage Partial) bottleneck. As shown in Figure~\ref{fig:C3K2-cn}, it uses two smaller convolutions instead of a single large convolution (as in YOLOv8 \cite{81_noauthor_what_2024}). The "k2" indicates smaller kernel sizes, improving speed while maintaining performance \cite{75_khanam2024yolov11overviewkeyarchitectural}.
+YOLOv11 replaces the neck's C2f blocks with C3k2 blocks, a more computationally efficient variant of the CSP (Cross Stage Partial) bottleneck. As shown in \textbf{Fig.}~\ref{fig:C3K2-cn}, it uses two smaller convolutions instead of a single large convolution (as in YOLOv8 \cite{81_noauthor_what_2024}). The "k2" indicates smaller kernel sizes, improving speed while maintaining performance \cite{75_khanam2024yolov11overviewkeyarchitectural}.
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.8\linewidth]{pictures/C3K2.png}
@@ -95,7 +106,7 @@ Each detection branch ends with Conv2D layers that reduce features to the requir
     • Class probabilities.\\
 
 \subsection{DeepSORT}
-We next introduce the DeepSORT multi-object tracker. In MOT, the goal is to detect, localize, and maintain identities of multiple targets across video frames. DeepSORT (Wojke et al., 2017), an extension of SORT (Bewley et al., 2016), combines deep appearance embeddings with motion information, substantially improving tracking under complex conditions and long occlusions, and reducing IDSW. The pipeline (Figure~\ref{fig:DeepSORT-cn}) comprises deep appearance feature extraction, a Kalman filter, and data association.
+We next introduce the DeepSORT multi-object tracker. In MOT, the goal is to detect, localize, and maintain identities of multiple targets across video frames. DeepSORT\cite{211}, an extension of SORT\cite{220}, combines deep appearance embeddings with motion information, substantially improving tracking under complex conditions and long occlusions, and reducing IDSW. The pipeline (\textbf{Fig.}~\ref{fig:DeepSORT-cn}) comprises deep appearance feature extraction, a Kalman filter, and data association.
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.95\textwidth]{pictures/DeepSORTAlgorithmStructure.png}
@@ -103,21 +114,21 @@ We next introduce the DeepSORT multi-object tracker. In MOT, the goal is to dete
     \label{fig:DeepSORT-cn}
 \end{figure}
 
-The workflow can be summarized as follows:
-1) Object detection: a high-performance detector identifies targets in each frame and outputs bounding boxes with confidences \cite{174}.
-2) Motion prediction: a Kalman filter predicts current positions and motion states for existing tracks \cite{174}.
-3) Feature extraction: deep appearance embeddings are computed for detections via a ReID model \cite{179}.
-4) Data association: detections are matched to predicted tracks using a cost that combines motion (Mahalanobis distance) and appearance (cosine distance), solved with the Hungarian algorithm; a cascaded strategy further improves matching \cite{104}.
-5) Track update and management: matched tracks are updated; unmatched detections initialize new tracks; long-unmatched tracks are terminated.
+The workflow can be summarized as follows:\\
+(1) Object detection: a high-performance detector identifies targets in each frame and outputs bounding boxes with confidences \cite{174}.\\
+(2) Motion prediction: a Kalman filter predicts current positions and motion states for existing tracks \cite{174}.\\
+(3) Feature extraction: deep appearance embeddings are computed for detections via a ReID model \cite{179}.\\
+(4) Data association: detections are matched to predicted tracks using a cost that combines motion (Mahalanobis distance) and appearance (cosine distance), solved with the Hungarian algorithm; a cascaded strategy further improves matching \cite{104}.\\
+(5) Track update and management: matched tracks are updated; unmatched detections initialize new tracks; long-unmatched tracks are terminated.
 
 \subsection{DeepSORT Core Modules}
 
 \subsubsection{Object Detector}
-Tracking performance depends critically on the detector's accuracy and speed. Typical detectors include:
-• YOLO family: widely adopted for its real-time performance and accuracy (e.g., YOLOv5/YOLOv7), and in our case YOLOv11.
-• Faster R-CNN: representative two-stage detector used in early variants.
-• SSD: one-stage detector also used in DeepSORT systems.
-• CenterNet: an anchor-free detector that can jointly output boxes and identity embeddings.
+Tracking performance depends critically on the detector's accuracy and speed. Typical detectors include:\\
+• YOLO family: widely adopted for its real-time performance and accuracy (e.g., YOLOv5/YOLOv7), and in our case YOLOv11.\\
+• Faster R-CNN: representative two-stage detector used in early variants.\\
+• SSD: one-stage detector also used in DeepSORT systems.\\
+• CenterNet: an anchor-free detector that can jointly output boxes and identity embeddings.\\
 Detector improvements (e.g., lightweight backbones, dilated convolutions, SPP) are often tailored to the application.
 
 \subsubsection{Motion Model and Kalman Filter}
@@ -140,18 +151,11 @@ v(t)=c_v+f\frac{H}{x(t)},
 where $x(t)=x_0+v_0 t + \tfrac{1}{2} a t^{2}$ with deceleration $a<0$. The head bounding-box area scales as $A(t) \propto x^{-2}(t)$, exhibiting rapid magnification until the train passes. We construct and evaluate extended state models (adding acceleration) as well as a 5D perspective state vector grounded in this geometry; experimental settings and results are detailed in Section 5.
 
 \subsubsection{Appearance Feature Extraction (Re-ID)}
-Appearance descriptors are crucial for long-occlusion recovery and ID consistency. The original DeepSORT uses a compact residual CNN that outputs a 128-D descriptor with L2 normalization \cite{116}. Typical components include convolution and pooling layers, multiple residual blocks, and a final FC + L2 layer. The descriptors lie on the unit hypersphere for cosine similarity.
+Appearance descriptors are crucial for long-occlusion recovery and ID consistency. The original DeepSORT uses a compact residual CNN that outputs a 128-D descriptor with L2 normalization \cite{116}. Typical components include convolution and pooling layers, multiple residual blocks, and a final FC + L2 layer. The descriptors lie on the unit hypersphere for cosine similarity.Training commonly uses large-scale video person Re-ID datasets such as MARS \cite{214} or Market-1501 \cite{215} with identity labels and bounding boxes to ensure robustness to illumination, pose, and viewpoint changes. For our specific scenario, we utilize a custom-built dataset, with detailed statistics provided in \textbf{Tab.}~\ref{tab:ReIDDataDistribution} in Chapter 3.\\
 
-Training commonly uses large-scale video person Re-ID datasets such as MARS \cite{214} or Market-1501 \cite{215} with identity labels and bounding boxes to ensure robustness to illumination, pose, and viewpoint changes.
 
-\begin{figure}
-    \centering
-    \includegraphics[width=0.7\linewidth]{pictures/ComparisonofEfficient.png}
-    \caption{Comparison of EfficientNet with different networks on ImageNet\cite{219}}
-    \label{fig:ComparisonofEfficient}
-\end{figure}
-
-Considering our scenario and prior findings, we adopt EfficientNet-B0 \cite{218} as the backbone for ReID to balance accuracy and efficiency. As shown in Table~\ref{tab:EfficientnetB0Architecture}, EfficientNet-B0 provides strong feature extraction with fewer parameters and lower compute. Based on the results in Table~\ref{tab:video_reid_comparison2}, EfficientNet reduces compute by 73.6\% (23.5 vs 88.9 GMACs) and speeds inference by 3.5× (78 ms vs 272 ms per video) compared to ViT-B, with only a 0.6\% mAP drop (86.1\% vs 86.7\%), making it suitable for resource-constrained real-time applications.
+Considering our scenario and prior findings, we adopt EfficientNet-B0 as the backbone for ReID to balance accuracy and efficiency.
+In video-based person re-identification (ReID) tasks, selecting lightweight backbone networks is crucial for efficient deployment and real-time inference. According to the systematic experimental results by Tan et al. (2019) in the original EfficientNet paper \cite{219}, as shown in \textbf{Tab.}~\ref{tab:efficientnet_comparison}, EfficientNet-B0 serves as the baseline model of this series, achieving 77.1\% top-1 accuracy and 93.3\% top-5 accuracy on the ImageNet validation set while requiring only 0.39 GFLOPs and 5.3M parameters. Its computational cost is significantly lower than ResNet-50 (4.1× FLOPs, 25.6M parameters) in the same accuracy range. This "high accuracy-low power consumption" characteristic makes B0 an ideal feature extractor for ReID systems in edge computing or large-scale camera networks, as intuitively demonstrated in \textbf{Fig.}~\ref{fig:ComparisonofEfficient}. Furthermore, EfficientNet's compound scaling method provides balanced expansion in width and resolution dimensions, offering more stable gradient paths and reduced memory consumption for subsequent insertion of spatio-temporal modules (such as 3D convolutions or Transformers). Therefore, by adopting EfficientNet-B0 as the backbone network, we can significantly reduce the overall computational budget of the video ReID framework while maintaining discriminative power of pedestrian appearance features, leaving sufficient resource margin for subsequent online learning and incremental updates. As shown in \textbf{Tab.}~\ref{tab:EfficientnetB0Architecture}, EfficientNet-B0 provides strong feature extraction with fewer parameters and lower compute. \\
 
 \begin{table}[H]
     \centering
@@ -177,47 +181,84 @@ Considering our scenario and prior findings, we adopt EfficientNet-B0 \cite{218}
     \hline
     \end{tabular}
     }
-    \caption{EfficientNet B0 Architecture}
+    \caption{EfficientNet-B0 baseline network -- Each row describes a stage $i$ with $\hat{L}_i$ layers, with input resolution $(\hat{H}_i, \hat{W}_i)$ and output channels $\hat{C}_i$ \cite{219}. }
     \label{tab:EfficientnetB0Architecture}
     \end{table}
 
 \begin{table}[H]
     \centering
     \resizebox{0.99\textwidth}{!}{%
-    \begin{tabular}{lcccccccccc}
+    \begin{tabular}{lcccccc}
     \toprule
-    \textbf{Method} & \textbf{Backbone} & \textbf{GMACs} & \textbf{ms/video} & \textbf{mAP} & \textbf{MARS rank-1} & \textbf{LS-VID mAP} & \textbf{LS-VID rank-1} & \textbf{iLiDS-VID rank-1} & \textbf{PRID-2011 rank-1} \\
+    \textbf{Model} & \textbf{Top-1 Acc.} & \textbf{Top-5 Acc.} & \textbf{\#Params} & \textbf{Ratio-to-EfficientNet} & \textbf{\#FLOPs} & \textbf{Ratio-to-EfficientNet} \\
     \midrule
-    ResNet50 & ResNet50 & 32.7 & 94 & 81.0 & 88.1 & 68.5 & 80.4 & 83.3 & 90.2 \\
     \rowcolor{gray!10}
-    ViT-B & ViT-B & 88.9 & 272 & 86.7 & 90.0 & 78.3 & 87.4 & 90.0 & 93.8 \\
-    EfficientNet-B & EfficientNet-B & 23.5 & 78 & 86.1 & 89.5 & 71.7 & 86.9 & 89.3 & 93.4 \\
+    EfficientNet-B0 & 77.1\% & 93.3\% & 5.3M & 1.0× & 0.39B & 1.0× \\
+    ResNet-50 & 76.0\% & 93.0\% & 26M & 4.9× & 4.1B & 11× \\
     \rowcolor{gray!10}
-    ViT-S & ViT-S & 51.1 & 144 & 85.4 & 89.2 & 77.0 & 85.8 & 88.5 & 93.1 \\
-    EfficientNet-S & EfficientNet-S & 14.4 & 45 & 84.8 & 89.1 & 76.5 & 85.4 & 88.0 & 92.8 \\
+    DenseNet-169 & 76.2\% & 93.2\% & 14M & 2.6× & 3.5B & 8.9× \\
+    EfficientNet-B1 & 79.1\% & 94.4\% & 7.8M & 1.0× & 0.70B & 1.0× \\
+    \rowcolor{gray!10}
+    ResNet-152 & 77.8\% & 93.8\% & 60M & 7.6× & 11B & 16× \\
+    DenseNet-264 & 77.9\% & 93.9\% & 34M & 4.3× & 6.0B & 8.6× \\
+    \rowcolor{gray!10}
+    Inception-v3 & 78.8\% & 94.4\% & 24M & 3.0× & 5.7B & 8.1× \\
+    Xception & 79.0\% & 94.5\% & 23M & 3.0× & 8.4B & 12× \\
+    \rowcolor{gray!10}
+    EfficientNet-B2 & 80.1\% & 94.9\% & 9.2M & 1.0× & 1.0B & 1.0× \\
+    Inception-v4 & 80.0\% & 95.0\% & 48M & 5.2× & 13B & 13× \\
+    \rowcolor{gray!10}
+    Inception-ResNet-v2 & 80.1\% & 95.1\% & 56M & 6.1× & 13B & 13× \\
+    EfficientNet-B3 & 81.6\% & 95.7\% & 12M & 1.0× & 1.8B & 1.0× \\
+    \rowcolor{gray!10}
+    ResNeXt-101 & 80.9\% & 95.6\% & 84M & 7.0× & 32B & 18× \\
+    PolyNet & 81.3\% & 95.8\% & 92M & 7.7× & 35B & 19× \\
+    \rowcolor{gray!10}
+    EfficientNet-B4 & 82.9\% & 96.4\% & 19M & 1.0× & 4.2B & 1.0× \\
+    SENet & 82.7\% & 96.2\% & 146M & 7.7× & 42B & 10× \\
+    \rowcolor{gray!10}
+    NASNet-A & 82.7\% & 96.2\% & 89M & 4.7× & 24B & 5.7× \\
+    AmoebaNet-A & 82.8\% & 96.1\% & 87M & 4.6× & 23B & 5.5× \\
+    \rowcolor{gray!10}
+    PNASNet & 82.9\% & 96.2\% & 86M & 4.5× & 23B & 6.0× \\
+    EfficientNet-B5 & 83.6\% & 96.7\% & 30M & 1.0× & 9.9B & 1.0× \\
+    \rowcolor{gray!10}
+    AmoebaNet-C & 83.5\% & 96.5\% & 155M & 5.2× & 41B & 4.1× \\
+    EfficientNet-B6 & 84.0\% & 96.8\% & 43M & 1.0× & 19B & 1.0× \\
+    \rowcolor{gray!10}
+    EfficientNet-B7 & 84.3\% & 97.0\% & 66M & 1.0× & 37B & 1.0× \\
+    GPipe & 84.3\% & 97.0\% & 557M & 8.4× & -- & -- \\
     \bottomrule
     \end{tabular}
     }
-    \caption{Comparison of Video Person Re-identification Performance}
-    \label{tab:video_reid_comparison2}
-    \end{table}
+    \caption{ImageNet Performance vs. Complexity Comparison Across EfficientNet and Contemporary CNNs \cite{219}.}
+    \label{tab:efficientnet_comparison}
+\end{table}
 
-\begin{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\linewidth]{pictures/ComparisonofEfficient.png}
+    \caption{Comparison of EfficientNet with different networks on ImageNet\cite{219}}
+    \label{fig:ComparisonofEfficient}
+\end{figure}
+
+To accommodate diverse detection-box sizes in practice, we adopt an intelligent scaling and padding strategy:\\
+    (1) Aspect-ratio preserving scaling to avoid distortion;\\
+    (2) Center placement on a 128×128 black canvas for uniform input size;\\
+    (3) Data augmentation with horizontal flips, random rotations (±15°), color jitter, and random erasing to enhance generalization.\\
+This preprocessing aligns training and inference distributions and mitigates domain shift. As shown in \textbf{Fig.}~\ref{fig:OverallFeatureExtraction}, the overall feature extraction and output process in our system is illustrated.
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.9\linewidth]{pictures/OverallFeatureExtraction.png}
     \caption{Overall Feature Extraction and Output in Our System}
     \label{fig:OverallFeatureExtraction}
 \end{figure}
 
-To accommodate diverse detection-box sizes in practice, we adopt an intelligent scaling and padding strategy:
-    (1) Aspect-ratio preserving scaling to avoid distortion;
-    (2) Center placement on a 128×128 black canvas for uniform input size;
-    (3) Data augmentation with horizontal flips, random rotations (±15°), color jitter, and random erasing to enhance generalization.
-This preprocessing aligns training and inference distributions and mitigates domain shift.
-
-ReID loss and training
-We use the triplet loss:
-$$L_{triplet} = \max(0, d(a,p) - d(a,n) + \alpha)$$
+For ReID, we use the triplet loss:
+\begin{equation}
+L_{triplet} = \max(0, d(a,p) - d(a,n) + \alpha)
+\end{equation}
 with $\alpha=0.5$. Training uses AdamW (lr=2×10⁻⁴, weight decay=1×10⁻⁴), OneCycleLR scheduling, mixed precision, and batch size 32.
 
 \subsubsection{Data Association}
@@ -225,11 +266,10 @@ Data association matches detections to tracks by combining motion and appearance
 • Mahalanobis distance for motion compatibility: $D_M(i, j) = (d_j - y_i)^T S_i^{-1} (d_j - y_i)$, where $d_j$ is the detection, $y_i$ the prediction, and $S_i$ the covariance \cite{105}.\\
 • Cosine distance for appearance: $D_C(i, j) = \min \{ 1 - \mathbf{r}_j^T \mathbf{r}_k^{(i)} \mid \mathbf{r}_k^{(i)} \in R_i \}$, where $R_i$ stores up to 100 recent descriptors per track \cite{105}.\\
 • Combined cost: $c_{i,j} = \lambda D_M(i,j) + (1-\lambda) D_C(i,j)$ \cite{105}.\\
-Matching strategy:\\
-• Cascaded matching prioritizes recently seen, longer-lived tracks to reduce ID switches under long occlusions \cite{134}.\\
-• IoU matching as a fallback for remaining unmatched pairs.\\
-• Hungarian algorithm solves the final assignment on the combined cost matrix \cite{103}.
-
+•Matching strategy:\\
+(1)Cascaded matching prioritizes recently seen, longer-lived tracks to reduce ID switches under long occlusions \cite{134}.\\
+(2) IoU matching as a fallback for remaining unmatched pairs.\\
+(3) Hungarian algorithm solves the final assignment on the combined cost matrix \cite{103}.
 \subsubsection{Track Management}
 • Initialization: new detections start as "unconfirmed." After three consecutive matches, a track becomes confirmed.\\  
 • Termination: tracks unmatched for a prolonged period (e.g., beyond max\_age) are removed.\\
@@ -245,7 +285,7 @@ Given YOLOv11 detections and DeepSORT trajectories, we design a reliable countin
 The mainstream approach is line/zone crossing \cite{22_hsu_passenger_2020, 204, 68_zhao_detection_2022}, which triggers a count when a trajectory crosses a virtual line. In crowded scenes, brief occlusions near the line can cause severe undercounting (e.g., three people cross abreast but the middle person is fully occluded). As shown in our ablations (Section 5), a zero-width line (bandwidth 0) can yield MAPE as high as 93.43%.
 
 \subsubsection{Virtual counting band (ours)}
-We propose a Virtual Counting Band with nonzero width near the left/right image borders (Figure~\ref{fig:VirtualCountingZone}), defined by start/end boundaries as proportions of image width. A target is counted only if it is continuously observed within the band for a preset number of frames. This design:
+We propose a Virtual Counting Band with nonzero width near the left/right image borders (\textbf{Fig.}~\ref{fig:VirtualCountingZone}), defined by start/end boundaries as proportions of image width. A target is counted only if it is continuously observed within the band for a preset number of frames. This design:
 \begin{itemize}
     \item \textbf{Improves robustness}: a buffer region tolerates brief occlusions and detection jitter;
     \item \textbf{Stabilizes counting}: avoids repeated or spurious counts due to oscillations around a thin line.
@@ -259,7 +299,10 @@ We propose a Virtual Counting Band with nonzero width near the left/right image 
 \end{figure}
 In practice, we set the band to 5\%–20\% of the width from the image borders (relative coordinates for resolution invariance). We maintain per-track state (consecutive in-band frames, counted flag). The target position is the box center; boxes partially outside the frame are clipped for display while preserving original coordinates for logic.
 
-Integrity mechanisms include: (1) end-of-video compensation to include targets that nearly meet the persistence threshold; (2) deduplication by maintaining the set of counted IDs; and (3) using the maximum of left/right counts as the final result (we count one side), which avoids bias from non-platform-side flows.
+Integrity mechanisms include: \\
+(1) end-of-video compensation to include targets that nearly meet the persistence threshold; 
+(2) deduplication by maintaining the set of counted IDs;\\
+(3) using the maximum of left/right counts as the final result (we count one side), which avoids bias from non-platform-side flows.
 
 
 
@@ -282,7 +325,7 @@ We report head detection performance on a static validation set using mAP@0.5 an
 \end{equation}
 
 \subsubsection{Tracking Metrics}
-On MOT-TPCH we adopt MOTChallenge metrics: IDF1, MOTA, IDSW, Mostly Tracked(MT), Partially Tracked(PT), Mostly Lost(ML). Following CLEAR-MOT and ID-based protocols (\texttt{py-motmetrics jia yinyong }):\\
+On MOT-RPCH we adopt MOTChallenge metrics: IDF1, MOTA, IDSW, Mostly Tracked(MT), Partially Tracked(PT), Mostly Lost(ML). Following CLEAR-MOT and ID-based protocols (\texttt{py-motmetrics \cite{py-motmetrics} }):\\
 \paragraph{CLEAR-MOT}
 \begin{align}
 \text{MOTA} &= 1 - \frac{\sum_t (FN_t + FP_t + IDSW_t)}{\sum_t GT_t}, \\
@@ -305,12 +348,21 @@ For $N$ test videos with predicted unique count $\hat{C}_i$ and ground truth $C_
 \text{MAPE} &= \frac{100\%}{N} \sum_{i=1}^{N} \frac{|\hat{C}_i - C_i|}{C_i}, \\
 \text{ME} &= \frac{1}{N} \sum_{i=1}^{N} (\hat{C}_i - C_i).
 \end{align}
-MAE reflects average absolute deviation and is robust to outliers; RMSE emphasizes larger errors; MAPE is scale-free but unstable when $C_i$ is near zero; ME (Bias) reveals systematic over/under-counting.
+% MAE reflects average absolute deviation and is robust to outliers; RMSE emphasizes larger errors; MAPE is scale-free but unstable when $C_i$ is near zero; ME (Bias) reveals systematic over/under-counting.
+
+
+\paragraph{Mean Absolute Error (MAE)} MAE quantifies the average magnitude of the discrepancy between predicted counts and their ground-truth counterparts. Computed as the arithmetic mean of absolute deviations across all samples, MAE offers two key advantages: (i) interpretability—its value directly reflects the mean absolute deviation of estimates from true counts; and (ii) robustness—by imposing a linear penalty on each residual, MAE remains insensitive to outliers and thus delivers a stable summary of overall model performance.
+
+\paragraph{Root Mean Squared Error (RMSE)} RMSE is a widely adopted metric for assessing prediction accuracy. In contrast to MAE, RMSE squares the residuals before averaging and subsequent square-rooting. This quadratic penalty disproportionately amplifies large errors, making RMSE markedly more sensitive to extreme deviations. Consequently, RMSE is the metric of choice when large mispredictions incur disproportionately high costs or when model behavior under adverse conditions must be critically evaluated. By construction, RMSE ≥ MAE; the divergence between the two statistics exposes the presence of occasional large-scale prediction failures.
+
+\paragraph{Mean Absolute Percentage Error (MAPE)} MAPE measures relative, rather than absolute, prediction error. For each sample, the absolute error is normalized by the ground-truth count and expressed as a percentage; MAPE is the average of these percentage errors. Being scale-free, MAPE enables equitable comparison across datasets with disparate count ranges and is particularly informative when performance must remain consistent across both sparse and dense regions. A caveat arises when the true count $C_i$ approaches zero, causing the percentage to explode and rendering MAPE unstable or undefined.
+
+\paragraph{Mean Error (ME), interchangeably termed Bias} ME, interchangeably termed Bias, captures systematic deviation of predictions. It is defined as the average signed difference between estimated and true counts. A positive ME indicates a persistent over-counting tendency, whereas a negative ME signals chronic under-counting. Unlike MAE and RMSE, which quantify error magnitudes, ME diagnoses directional drift and is indispensable for calibrating models to eliminate systematic offsets in safety-critical or metrologically sensitive applications.
 
 \iffalse
 % 以下是中文部分，含义表达以中文版为主    
 4. Method 
-本研究的核心在于提出一个基于You Only Look Once (YOLOv11) 的深度学习模型，并结合DeepSORT算法及其计数算法，实现对火车站台场景中人群数量的准确估计。如\ref{fig:OurMOTSystemArchitecture}所示，是我们提出的系统的整体框架，该多目标追踪系统架构整合了基于 \textbf{YOLO} 的目标检测、\textbf{EfficientNet-B0} 的 \textbf{ReID} 特征提取以及一种新颖的物理卡尔曼滤波器，以实现稳健的行人追踪。该系统采用一个五维的扩展卡尔曼滤波器 (EKF)，其状态向量为 $[u, v, Z, dZ, H]$，分别代表像素坐标、深度、深度速度和头部高度。系统还采用多种门控机制，包括马氏距离、方向运动走廊和自适应外观阈值，以确保稳健的数据关联。
+本研究的核心在于提出一个基于You Only Look Once (YOLOv11) 的深度学习模型，并结合DeepSORT算法及其计数算法，实现对火车站台场景中人群数量的准确估计。如\textbf{Fig.}~\ref{fig:OurMOTSystemArchitecture}所示，是我们提出的系统的整体框架，该多目标追踪系统架构整合了基于 \textbf{YOLO} 的目标检测、\textbf{EfficientNet-B0} 的 \textbf{ReID} 特征提取以及一种新颖的物理卡尔曼滤波器，以实现稳健的行人追踪。该系统采用一个五维的扩展卡尔曼滤波器 (EKF)，其状态向量为 $[u, v, Z, dZ, H]$，分别代表像素坐标、深度、深度速度和头部高度。系统还采用多种门控机制，包括马氏距离、方向运动走廊和自适应外观阈值，以确保稳健的数据关联。
 
 \begin{figure}[H]
     \centering
@@ -321,7 +373,7 @@ MAE reflects average absolute deviation and is robust to outliers; RMSE emphasiz
 
 4.1 YOLOv11模型
 
-2015年，Redmon 等人提出了"YOLO"算法，这是物体检测领域的关键突破\cite{76_redmon2016lookonceunifiedrealtime}。顾名思义，这种创新方法只需一次处理整个图像即可检测物体及其位置。YOLO 的方法不同于传统的两阶段检测过程，它将物体检测定义为一个回归问题\cite{76_redmon2016lookonceunifiedrealtime}。如\ref{fig:yolosystem-cn}和\ref{fig:yoloarchitecture-cn}所示，它采用单个卷积神经网络同时预测整个图像中的边界框和类别概率\cite{77_Du_article}，与更复杂的传统方法相比，它简化了检测流程。
+2015年，Redmon 等人提出了"YOLO"算法，这是物体检测领域的关键突破\cite{76_redmon2016lookonceunifiedrealtime}。顾名思义，这种创新方法只需一次处理整个图像即可检测物体及其位置。YOLO 的方法不同于传统的两阶段检测过程，它将物体检测定义为一个回归问题\cite{76_redmon2016lookonceunifiedrealtime}。如\textbf{Fig.}~\ref{fig:yolosystem-cn}和\textbf{Fig.}~\ref{fig:yoloarchitecture-cn}所示，它采用单个卷积神经网络同时预测整个图像中的边界框和类别概率\cite{77_Du_article}，与更复杂的传统方法相比，它简化了检测流程。
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.8\textwidth]{pictures/The YOLO Detection System.png}
@@ -363,7 +415,7 @@ YOLOV11架构的核心由三个基本组件组成。如\ref{fig:yolo11architectu
 卷积层 
 YOLOv11 保持了与前代产品类似的结构，利用初始卷积层对图像进行下采样。这些层构成了特征提取过程的基础，逐渐减少空间维度，同时增加通道数量。
 SPPF和C2PSA 
-YOLOv11 保留了以前版本的 Spatial Pyramid Pooling - Fast （SPPF）块，但在其后引入了新的 Cross Stage Partial with Spatial Attention （C2PSA）块\cite{80_ghosh_yolo11_2024}。如\ref{fig:C2PSA-cn}所示，C2PSA 块是一个值得注意的新增功能，它增强了特征图中的空间注意力机制。这种空间注意力机制使模型能够更有效地关注图像中的重要区域。通过空间池化特征， C2PSA 块使 YOLOv11 能够专注于特定的兴趣区域，从而有可能提高不同大小和位置的物体的检测精度。
+YOLOv11 保留了以前版本的 Spatial Pyramid Pooling - Fast （SPPF）块，但在其后引入了新的 Cross Stage Partial with Spatial Attention （C2PSA）块\cite{80_ghosh_yolo11_2024}。如\textbf{Fig.}~\ref{fig:C2PSA-cn}所示，C2PSA 块是一个值得注意的新增功能，它增强了特征图中的空间注意力机制。这种空间注意力机制使模型能够更有效地关注图像中的重要区域。通过空间池化特征， C2PSA 块使 YOLOv11 能够专注于特定的兴趣区域，从而有可能提高不同大小和位置的物体的检测精度。
 
 \begin{figure}[H]
     \centering
@@ -375,7 +427,7 @@ YOLOv11 保留了以前版本的 Spatial Pyramid Pooling - Fast （SPPF）块，
 
 4.2.2 Neck Network
 Neck Network位于骨干网络和检测头之间，用于聚合来自不同尺度特征图的信息，并传输到头部进行预测.
-C3K2块Yolo11通过用C3K2块在颈部替换颈部的C2F块来引入重大变化。C3k2块是 Cross Stage Partial （CSP） Bottleneck 的计算效率更高的实现。如\ref{fig:C3K2-cn}所示，它采用两个较小的卷积，而不是一个大卷积，如 YOLOv8\cite{81_noauthor_what_2024}中所示。C3k2 中的"k2"表示较小的内核大小，这有助于在保持性能的同时加快处理速度\cite{75_khanam2024yolov11overviewkeyarchitectural}。
+C3K2块Yolo11通过用C3K2块在颈部替换颈部的C2F块来引入重大变化。C3k2块是 Cross Stage Partial （CSP） Bottleneck 的计算效率更高的实现。如\textbf{Fig.}~\ref{fig:C3K2-cn}所示，它采用两个较小的卷积，而不是一个大卷积，如 YOLOv8\cite{81_noauthor_what_2024}中所示。C3k2 中的"k2"表示较小的内核大小，这有助于在保持性能的同时加快处理速度\cite{75_khanam2024yolov11overviewkeyarchitectural}。
 
 \begin{figure}[H]
     \centering
@@ -486,7 +538,7 @@ v(t)=c_v+f\dfrac{H}{x(t)},
     \label{fig:ComparisonofEfficient}
 \end{figure}
 
-如\ref{fig:ComparisonofEfficient}比较了多个先进的模型，我们充分考虑我们的使用场景和前人的研究，考虑参数量和准确率对我们任务的影响，平衡之下决定采用来自Zhu等人的研究\cite{218}提出的EfficientNet-B0作为骨干网络，如\ref{tab:EfficientnetB0Architecture}，是EfficientNet-B的网络结构图。我们考虑到效率和准确度，重新训练ReID模型来适合我们系统。基于表~\ref{tab:video_reid_comparison}的实验结果分析，本方法采用的EfficientNet架构在视频行人重识别任务中展现出显著的优势。在计算效率方面，EfficientNet-B模型相比ViT-B将计算复杂度降低了73.6\%（23.5 vs 88.9 GMACs），推理速度提升了3.5倍（78ms vs 272ms per video），同时仅带来0.6\%的mAP性能损失（86.1\% vs 86.7\%）。这种效率提升源于EfficientNet的复合缩放策略和深度可分离卷积设计，其在保持特征提取能力的同时显著减少了参数数量和计算量。更重要的是，该方法在多个基准数据集（MARS、LS-VID、iLiDS-VID、PRID-2011）上均保持了与ViT基准模型相当的识别精度，特别是在rank-1准确率指标上的差距均控制在0.5\%以内。这种计算效率与识别精度的优异平衡使得该方法特别适合于资源受限的实时应用场景，为边缘计算设备上的视频分析任务提供了可行的解决方案。
+如\textbf{Fig.}~\ref{fig:ComparisonofEfficient}比较了多个先进的模型，我们充分考虑我们的使用场景和前人的研究，考虑参数量和准确率对我们任务的影响，平衡之下决定采用来自Zhu等人的研究\cite{218}提出的EfficientNet-B0作为骨干网络，如\textbf{Tab.}~\ref{tab:EfficientnetB0Architecture}，是EfficientNet-B的网络结构图。我们考虑到效率和准确度，重新训练ReID模型来适合我们系统。基于\textbf{Tab.}~\ref{tab:video_reid_comparison}的实验结果分析，本方法采用的EfficientNet架构在视频行人重识别任务中展现出显著的优势。在计算效率方面，EfficientNet-B模型相比ViT-B将计算复杂度降低了73.6\%（23.5 vs 88.9 GMACs），推理速度提升了3.5倍（78ms vs 272ms per video），同时仅带来0.6\%的mAP性能损失（86.1\% vs 86.7\%）。这种效率提升源于EfficientNet的复合缩放策略和深度可分离卷积设计，其在保持特征提取能力的同时显著减少了参数数量和计算量。更重要的是，该方法在多个基准数据集（MARS、LS-VID、iLiDS-VID、PRID-2011）上均保持了与ViT基准模型相当的识别精度，特别是在rank-1准确率指标上的差距均控制在0.5\%以内。这种计算效率与识别精度的优异平衡使得该方法特别适合于资源受限的实时应用场景，为边缘计算设备上的视频分析任务提供了可行的解决方案。
 
 \begin{table}[H]
     \centering
@@ -530,12 +582,12 @@ v(t)=c_v+f\dfrac{H}{x(t)},
     \end{table}。
 
 
-如\ref{OverallFeatureExtraction}所示表示了系统中的特征提取和输出的网络架构.
+如\textbf{Fig.}~\ref{OverallFeatureExtraction}所示表示了系统中的特征提取和输出的网络架构.
 
 \begin{figure}
     \centering
     \includegraphics[width=0.8\linewidth]{pictures/OverallFeatureExtraction.png}
-    \caption{Train Platform Crowd Head's Dataset Sample}
+    \caption{Railway Platform Crowd Head's Dataset Sample}
     \label{fig:OverallFeatureExtraction}
 \end{figure}
 
@@ -547,7 +599,9 @@ v(t)=c_v+f\dfrac{H}{x(t)},
 
 ReID模型的损失函数与训练策略
 采用三元组损失作为训练目标函数：
-$$L_{triplet} = \max(0, d(a,p) - d(a,n) + \alpha)$$
+\begin{equation}
+L_{triplet} = \max(0, d(a,p) - d(a,n) + \alpha)
+\end{equation}
 其中，$d(a,p)$和$d(a,n)$分别为锚点与正样本、锚点与负样本的欧几里得距离，边界参数$\alpha=0.5$。
 训练策略包括：
 (1)使用AdamW优化器（学习率2×10⁻⁴，权重衰减1×10⁻⁴）
@@ -618,7 +672,7 @@ Re-ID 网络提供具有判别性的外观描述符，以支持鲁棒关联。
 目前，基于追踪的主流计数方法是"虚拟线/区穿越法" \cite{22_hsu_passenger_2020, 204, 68_zhao_detection_2022}。该方法在场景中预设一条虚拟的"计数线"，当目标的轨迹穿越该线时触发计数。这种方法逻辑简单，但在拥挤场景下存在明显局限性：当目标在计数线附近被短暂遮挡时，例如三个人并排通过，但中间一人被完全挡住，计数线可能只会记录到两个穿越事件，从而导致严重的漏计。如第五章的消融实验所示，单纯的计数线方法（即计数带宽度为0）的平均绝对百分比误差（MAPE）高达93.43\%，证明其在真实场景下并不可靠。
 
 \paragraph{本研究的计数方法：虚拟计数带}
-为解决上述问题，本研究设计了一种基于"虚拟计数带"（Virtual Counting Band）的计数方法。我们不再使用单薄的线，而是在画面两侧设置一定宽度的"计数区域"。如\ref{fig:VirtualCountingZone}所示，该区域由起始边界（Start）和终止边界（End）定义，其具体数值表示区域边界距离图像边缘的距离占总宽度的比例。
+为解决上述问题，本研究设计了一种基于"虚拟计数带"（Virtual Counting Band）的计数方法。我们不再使用单薄的线，而是在画面两侧设置一定宽度的"计数区域"。如\textbf{Fig.}~\ref{fig:VirtualCountingZone}所示，该区域由起始边界（Start）和终止边界（End）定义，其具体数值表示区域边界距离图像边缘的距离占总宽度的比例。
 
 该方法的核心逻辑是：一个目标只有在计数带内连续出现预设的帧数（持续性检测）才被确认为有效计数。这种设计带来了两大优势：
 \begin{itemize}
@@ -635,7 +689,7 @@ Re-ID 网络提供具有判别性的外观描述符，以支持鲁棒关联。
 \end{figure}
 
 \paragraph{具体实现}
-考虑到监控场景中相机与人群的相对运动，本研究采用双边界计数带设计。如\ref{fig:VirtualCountingZone}所示，在视频画面的左右两侧各设置一个计数区域。根据第五章的消融实验结果，我们确定了最优参数：将计数带设置在距离画面边界5\%至20\%宽度的区域内。这一配置既能保证跟踪的稳定性（避免图像边缘的畸变和ID切换问题），又能最大化计数精度。同时，计数带的位置通过相对坐标定义，以确保方法对不同分辨率视频的适应性。
+考虑到监控场景中相机与人群的相对运动，本研究采用双边界计数带设计。如\textbf{Fig.}~\ref{fig:VirtualCountingZone}所示，在视频画面的左右两侧各设置一个计数区域。根据第五章的消融实验结果，我们确定了最优参数：将计数带设置在距离画面边界5\%至20\%宽度的区域内。这一配置既能保证跟踪的稳定性（避免图像边缘的畸变和ID切换问题），又能最大化计数精度。同时，计数带的位置通过相对坐标定义，以确保方法对不同分辨率视频的适应性。
 
 持续帧计数策略：为了提高计数的鲁棒性，避免因跟踪抖动导致的误计数，本研究采用持续帧计数策略，即持续性检测目标，要求目标需要在计数带内连续出现预设的帧数（默认为2帧）才被确认为有效计数。
 因此我们对目标进行了状态管理，即为每个跟踪目标维护计数状态：统计其连续帧数和是否已计数的状态
@@ -694,7 +748,7 @@ In summary, the detection evaluation metrics provide a comprehensive assessment 
 
 4.7.2 跟踪评估指标
 %=======================  跟踪评估指标   =================
-\paragraph{跟踪评估指标} 在 MOT-TPCH 上采用 MOTChallenge 常用指标：\textbf{IDF1}、\textbf{MOTA}、\textbf{ID Switches (IDs)}、\textbf{MT/ML} 等。
+\paragraph{跟踪评估指标} 在 MOT-RPCH 上采用 MOTChallenge 常用指标：\textbf{IDF1}、\textbf{MOTA}、\textbf{ID Switches (IDs)}、\textbf{MT/ML} 等。
 For the quantitative evaluation of multi-object tracking (MOT) performance, we employ the widely adopted metrics implemented in the \texttt{py-motmetrics} library\footnote{\url{https://github.com/cheind/py-motmetrics}}, which is consistent with the CLEAR-MOT and ID-based evaluation protocols. Let $TP$ denote the number of true positives, $FP$ the false positives, $FN$ the false negatives (misses), $IDSW$ the number of identity switches, and $d_i$ the distance (e.g., bounding box overlap or object center distance) between matched ground truth and prediction. The metrics are defined as follows:
 
 \paragraph{CLEAR-MOT metrics}
@@ -719,13 +773,13 @@ where $IDTP$, $IDFP$, and $IDFN$ represent identity-based true positives, false 
     \item \textbf{False Positives ($FP$)}: the number of detections not corresponding to any ground truth object.
     \item \textbf{Misses ($FN$)}: the number of ground-truth objects not detected.
     \item \textbf{False Alarms per Frame (FAF)}: average number of false positives per frame,
-    \[
+    \begin{equation}
     \text{FAF} = \frac{\sum_t FP_t}{\text{Number of frames}}.
-    \]
+    \end{equation}
     \item \textbf{Precision} and \textbf{Recall}: standard definitions,
-    \[
+    \begin{equation}
     \text{Precision} = \frac{TP}{TP+FP}, \quad \text{Recall} = \frac{TP}{TP+FN}.
-    \]
+    \end{equation}
     \item \textbf{Track quality measures}: a trajectory is considered
     \begin{itemize}
         \item \textbf{Mostly Tracked (MT)} if it is tracked for at least 80\% of its lifespan,

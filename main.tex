@@ -7,7 +7,6 @@
 	% twoside,    % + BCOR darunter: für doppelseitigen Druck aktivieren, sonst beide deaktivieren
 	% BCOR=5mm,   % Dicke der Bindung berücksichtigen (Copyshop fragen, wie viel das ist)
 	english,
-	fleqn,
 	final,
 	]{scrartcl}
     
@@ -84,9 +83,9 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%_ABSTRACT_%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \pagenumbering{gobble}  % page numbers invisible for Abstract, TOC and filler pages
 \begin{abstract}
-	\textbf{Abstract.} This work addresses real-time crowd detection, multi-object tracking, and unique counting on railway platforms, a setting characterized by heavy occlusions, strong scale variation, and camera motion that often invalidates purely kinematic assumptions. We build a practical detect--track--count system by combining a two-stage transfer-learned YOLOv11m head detector with an EfficientNet-B0 appearance encoder in a DeepSORT pipeline, and introduce a physics-constrained five-dimensional Kalman model (Phys-5D) that embeds perspective geometry and physically plausible motion priors. In addition, we design a virtual counting band that converts stable trajectories into robust counts by tolerating brief occlusions and measurement jitter.
+	\textbf{Abstract.} This study addresses real-time crowd detection, multi-object tracking, and unique counting on railway platforms, a setting characterized by heavy occlusions, strong scale variation, and camera motion. We build a practical detect--track--count system by combining a two-stage transfer-learned YOLOv11m head detector with an EfficientNet-B0 appearance encoder in a DeepSORT pipeline, and introduce a physics-constrained five-dimensional Kalman model (Phys-5D) that embeds perspective geometry and physically plausible motion priors. In addition, we design a virtual counting zone that converts stable trajectories into robust counts by tolerating brief occlusions and measurement jitter.
 
-	Pretraining on CrowdHuman and domain fine-tuning with platform data (Open Sensor Data for Rail 2023, RailEye3D, and a new TrainPlatformCrowdHead set) lift detection performance from mAP50=79.4\%/mAP50--95=54.7\% to 98.0\%/81.6\%. On the MOT-TPCH benchmark, Phys-5D achieves a counting MAPE of 2.24\%, markedly lower than a standard 8D constant-velocity baseline (14.59\%) and a 12D constant-acceleration model (6.99\%), while maintaining comparable MOTA (67\%) and substantially fewer identity switches. The EfficientNet-B0 Re-ID encoder attains Rank-1=100\% at $128\times 128$ with real-time throughput, enabling recovery from long occlusions and stabilizing identity consistency.
+	Pretraining on CrowdHuman and domain fine-tuning with platform data (Open Sensor Data for Rail 2023, RailEye3D, and our RailwayPlatformCrowdHead set) lift detection performance from mAP50=79.4\%/mAP50--95=54.7\% to 98.0\%/81.6\%. On the MOT-RPCH benchmark,our proposed Phys-5D achieves a counting MAPE of 2.24\%, markedly lower than a standard 8D constant-velocity baseline (14.59\%) and our 12D constant-acceleration model (6.99\%), while maintaining comparable MOTA (67\%) and substantially fewer identity switches. The EfficientNet-B0 Re-ID encoder attains Rank-1=100\% at $128\times 128$ with real-time throughput, enabling recovery from long occlusions and stabilizing identity consistency.
 
 	Together, these components yield an accurate, stable, and efficient system ready for deployment in intelligent transportation scenarios, providing reliable passenger counts for safety management, operations optimization, and emergency response. Beyond an engineering solution, our results demonstrate that fusing first-principles geometry with learned representations is a decisive path to robust performance in physically constrained vision tasks.
 \end{abstract}
