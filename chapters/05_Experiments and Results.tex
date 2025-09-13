@@ -710,9 +710,10 @@ As in \textbf{Fig.}~\ref{fig:VirtualCountingZone}, start and end denote distance
         0.10  & 0.10  & 31.35  & 43.74  & 93.66  & -31.35   \\ \midrule
     \end{tabular}%
     }
-    \label{tab:Cba3}
     \caption{Results of Counting Zone and Line Ablation Experiment}
+    \label{tab:Cba3}
 \end{table}
+
 Best configuration: Start=0.05, End=0.20 achieves MAE=0.90, RMSE=1.38, MAPE=2.97\%, ME=$-$0.20, indicating near-unbiased counting with minimal variance. In contrast, degenerate line settings (Start=End) cause catastrophic degradation (e.g., MAE$\approx$31.3, MAPE$>$93\%, ME$\approx$$-$31.3), evidencing severe undercounting due to sensitivity to jitter and transient detection loss. Excessively wide bands inflate overcounting risk through longer dwell times and potential IDSW (e.g., Start=0.00, End=0.40 with MAE=7.00, RMSE=11.72, ME=$+$7.00).
 
 \textbf{Tab.}~\ref{tab:ComparisonofAverage} further contrasts average metrics for line vs band: the band dramatically outperforms the line across MAE, RMSE, MAPE, and ME, demonstrating superior robustness and accuracy.
