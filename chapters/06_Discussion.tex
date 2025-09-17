@@ -18,12 +18,12 @@ To uncover the origins of performance differences among motion models, we now co
 
 \subsubsection{Limitations of the Baseline (CV-8D)}
 
-As the standard baseline in MOT, the 8D constant-velocity (CV-8D) model is our starting point. It assumes linear, constant-speed motion in the image plane. In our scenario—platform pedestrians observed from a moving train—this assumption is fundamentally violated. As the train decelerates, perspective projection causes apparent nonlinear acceleration of pedestrians in the image plane and a nonlinear enlargement of their bounding boxes.
-The experimental evidence confirms this mismatch. As shown in \ref{tab:CV8DResults}, CV-8D exhibits many misses (avg 645) and a high counting error (MAPE 14.59\%). The root cause is that during occlusions, the constant-velocity Kalman filter cannot predict the object’s reappearance position and size accurately. Large deviations between prediction and observation (i.e., large Mahalanobis distance) lead to association failures: the tracker either terminates the original trajectory (misses) or allocates a new identity upon reappearance (ID switches). The performance bottleneck is thus the contradiction between the model’s kinematic assumptions and the physical reality of the scene.
+As the standard baseline in MOT, the CV-8D model is our starting point. It assumes linear, constant-speed motion in the image plane. In our scenario—platform pedestrians observed from a moving train—this assumption is fundamentally violated. As the train decelerates, perspective projection causes apparent nonlinear acceleration of pedestrians in the image plane and a nonlinear enlargement of their bounding boxes.
+The experimental evidence confirms this mismatch. As shown in \textbf{Tab.}~\ref{tab:CV8DResults}, CV-8D exhibits many misses (avg 645) and a high counting error (MAPE 14.59\%). The root cause is that during occlusions, the constant-velocity Kalman filter cannot predict the object’s reappearance position and size accurately. Large deviations between prediction and observation (i.e., large Mahalanobis distance) lead to association failures: the tracker either terminates the original trajectory (misses) or allocates a new identity upon reappearance (ID switches). The performance bottleneck is thus the contradiction between the model’s kinematic assumptions and the physical reality of the scene.
 
 \subsubsection{Gains and Losses of the Higher-Order Kinematic Model (CA-12D)}
 
-A straightforward improvement to CV-8D is to raise the kinematic order by adding accelerations. The 12D constant-acceleration (CA-12D) model embodies this idea and can, in principle, fit nonlinear motion trajectories.
+A straightforward improvement to CV-8D is to raise the kinematic order by adding accelerations. The CA-12D model embodies this idea and can, in principle, fit nonlinear motion trajectories.
 The data partially validate this: relative to CV-8D, CA-12D improves MOTA from 64.11\% to 67.54\% and reduces counting MAPE from 14.59\% to 6.99\%. This stems mainly from better prediction after short occlusions, which increases successful associations and substantially reduces false positives (avg from 480 to 278).
 However, CA-12D introduces an unintended drawback: identity switches rise from 24 to 39.15, even exceeding those of the simpler CV-8D. This reveals a typical challenge in high-dimensional state estimation: while higher dimensionality increases expressiveness, it also amplifies sensitivity to measurement noise. YOLOv11 detections inevitably contain small frame-to-frame jitters. CA-12D may interpret such tiny jitters as large instantaneous accelerations, destabilizing state estimates. Unstable predictions disrupt association, particularly in crowded, ambiguous settings, and increase identity mis-assignments. The lesson is clear: without strong constraints, simply adding degrees of freedom may improve trajectory fitting but harm robustness to noise and, consequently, identity consistency.
 
@@ -35,16 +35,19 @@ Empirically, Phys-5D achieves the best balance (\ref{tab:Phys5DResults}). Its MO
 To visualize the trade-offs and evolution across models, we summarize key metrics below.
 As in Table \ref{tab:3modelsCountingComparisonResults}, a comparison of the three motion models:
 
-\begin{table}[!ht]
+\begin{table}[H]
     \centering
+    \resizebox{0.6\textwidth}{!}{%
+    \small
     \begin{tabular}{ccccc}
     \hline
         \textbf{Model} & \textbf{MAE } & \textbf{RMSE} & \textbf{MAPE(\%)} & \textbf{ME } \\ \hline
         \textbf{CV-8D} & 3.4 & 6.1514 & 14.592 & 1.4  \\ 
         \textbf{CA-12D} & 2.4 & 4.5837 & 6.99 & 0.7  \\ 
         \textbf{Phys-5D} & 0.75 & 1.3229 & 2.236 & -0.25 \\ \hline
-    \end{tabular}
-    \caption{Three motion models: counting performance comparison}
+    \end{tabular}%
+    }
+    \caption{Counting Performance Comparison of the Three Models}
     \label{tab:3modelsCountingComparisonResults}
 \end{table}
 
@@ -107,19 +110,22 @@ Phys-5D模型的关键在于利用针孔相机模型，在目标的2D图像高�
 
 实验结果全面证实了Phys-5D模型的优越性。如\ref{tab:Phys5DResults}所示，该模型在各项指标上取得了最佳的平衡。其MOTA（67.21\%）与CA-12D相当，但ID切换次数（24.80次）成功地降回了与最简单的CV-8D模型持平的水平。这种在保持高精度的同时兼顾身份稳定性的能力，最终转化为应用层面的巨大成功：计数MAPE降至仅2.24\%。
 为了更直观地展示三者之间的权衡与演进，下表总结了关键的性能指标。
-如表 \ref{tab:3modelsCountingComparisonResults}所示，三种运动模型关键性能指标对比
+如表 \ref{tab:3modelsCountingComparisonResultsCN}所示，三种运动模型关键性能指标对比
 
 \begin{table}[!ht]
     \centering
+    \resizebox{0.4\textwidth}{!}{%
+    \small
     \begin{tabular}{ccccc}
     \hline
         \textbf{Model} & \textbf{MAE } & \textbf{RMSE} & \textbf{MAPE(\%)} & \textbf{ME } \\ \hline
         \textbf{CV-8D} & 3.4 & 6.1514 & 14.592 & 1.4  \\ 
         \textbf{CA-12D} & 2.4 & 4.5837 & 6.99 & 0.7  \\ 
         \textbf{Phys-5D} & 0.75 & 1.3229 & 2.236 & -0.25 \\ \hline
-    \end{tabular}
-    \caption{3modelsCountingComparisonResults}
-    \label{tab:3modelsCountingComparisonResults}
+    \end{tabular}%
+    }
+    \caption{三种运动模型计数性能对比}
+    \label{tab:3modelsCountingComparisonResultsCN}
 \end{table}
 
 该表格清晰地揭示了研究的演进逻辑：从CV-8D到CA-12D，我们以牺牲身份稳定性为代价换取了运动拟合能力的提升；而从CA-12D到Phys-5D，我们通过引入物理约束，不仅恢复并超越了原有的身份稳定性，还进一步将应用精度推向了新的高度。这强有力地证明，Phys-5D是本次研究任务的最优解决方案。

@@ -616,14 +616,17 @@ In summary, Phys-5D integrates camera geometry and motion priors to lift from 2D
 We evaluate three distinct tracking models, each optimized with its own best-performing configuration rather than conducting a controlled ablation study. Each model incorporates different motion dynamics, state representations, gating logics, and domain-specific optimizations to maximize its individual performance. \textbf{Tab.}~\ref{tab:3modelsCountingComparisonResults} compares their counting performance under these optimized settings.
 \begin{table}[H]
     \centering
+    \resizebox{0.6\textwidth}{!}{%
+    \small
     \begin{tabular}{ccccc}
-    \midrule
-        \textbf{Model} & \textbf{MAE } & \textbf{RMSE} & \textbf{MAPE(\%)} & \textbf{ME } \\ \midrule
-        \textbf{CV-8D} & 3.4 & 6.1514 & 14.592 & 1.4  \\
-        \textbf{CA-12D} & 2.4 & 4.5837 & 6.99 & 0.7  \\
-        \textbf{Phys-5D} & 0.75 & 1.3229 & 2.236 & -0.25 \\ \midrule
-    \end{tabular}
-    \caption{Comparison of Counting Performance Across Three Tracking Models}
+    \hline
+        \textbf{Model} & \textbf{MAE } & \textbf{RMSE} & \textbf{MAPE(\%)} & \textbf{ME } \\ \hline
+        \textbf{CV-8D} & 3.4 & 6.1514 & 14.592 & 1.4  \\ 
+        \textbf{CA-12D} & 2.4 & 4.5837 & 6.99 & 0.7  \\ 
+        \textbf{Phys-5D} & 0.75 & 1.3229 & 2.236 & -0.25 \\ \hline
+    \end{tabular}%
+    }
+    \caption{Counting Performance Comparison of the Three Models}
     \label{tab:3modelsCountingComparisonResults}
 \end{table}
 Key insights from this comparative analysis:

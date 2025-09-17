@@ -462,6 +462,9 @@ CBS 块是特征提取和检测过程中的基础组件，确保细化的特征�
     •对象性分数表明对象的存在。 
     •用于确定检测到的物体的类别的类别分数。
 
+
+
+    
 4.3 DeepSORT
 在介绍了检测器的方法之后，我们这一小节专注于介绍多目标跟踪器算法DeepSORT。
 在多目标跟踪 (MOT) 领域，目标是跨视频帧检测、定位并保持多个目标的唯一身份。DeepSORT（深度简单在线实时跟踪）算法由Alex Bewley等人于2017年提出，是经典SORT（Simple Online and Realtime Tracking）算法的进一步发展和改进。如\ref{fig:DeepSORT-cn}所示，DeepSORT的核心优势在于其创新性地结合了深度学习（Deep Learning）模型提取的外观特征（Appearance Features）与运动信息（Motion Information），显著提高了目标在复杂场景下，特别是长期遮挡情况下的追踪精度和ID一致性，有效解决了SORT算法中频繁出现ID切换的问题。本节概述了该算法的核心原理、组件和公式，并应用于我们针对火车站台上的人群跟踪任务的实现中。
