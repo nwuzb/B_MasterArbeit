@@ -10,7 +10,35 @@ This study proposes a deep learning-based framework for accurate crowd counting 
     \label{fig:OurMOTSystemArchitecture}
 \end{figure}
 
+\subsection{Proposed Method (Our Method)}
+
+We tackle platform crowd counting with a detect–track–count pipeline tailored to station-arrival videos with dense occlusions and strong perspective effects. The system (Fig.~\ref{fig:OurMOTSystemArchitecture}) comprises: (i) head detection using YOLOv11m to mitigate body-occlusion issues and stabilize small-object localization; (ii) appearance embeddings via EfficientNet-B0 to support identity recovery under long/partial occlusions; (iii) multi-object tracking under DeepSORT with three Kalman state-space (kinematic) model configurations for analysis (CV-8D, CA-12D, and the proposed physics-constrained Phys-5D); and (iv) a robust counting strategy using a nonzero-width virtual counting band with frame-persistence and ID de-duplication. Design choices are driven by platform-specific challenges: head cues are less occluded than full bodies, perspective causes systematic size–depth coupling that can be regularized by geometry, and thin line-crossing is brittle under jitter/occlusion, motivating a band-with-persistence.
+
+In summary, our method detects heads, tracks identities with geometry-aware kinematics, and counts via a persistence-based virtual band. Each component is selected or designed to address a specific failure mode in platform scenes, and Section~\ref{section::Experiments and Results} presents controlled comparisons under identical non-motion settings to validate these choices.
+
+\subsection{Scene and Imaging Model}
+We model a forward-facing camera rigidly mounted near the train head, with the optical axis aligned with the track tangent. Pedestrians on the platform stand at lateral distance $D$ from the track and have average head height $H$. Let $(u,v)$ be pixel coordinates with intrinsics $(f,c_u,c_v)$. Denote by $x(t)$ the along-track distance from camera to a target head. During arrival, motion is captured by
+\begin{equation}
+x(t)=x_0+v_0 t + \tfrac{1}{2} a t^{2}, \quad a<0.
+\end{equation}
+Under a pinhole model the projection obeys
+\begin{equation}
+u(t)=c_u+f\tfrac{D}{x(t)},\quad v(t)=c_v+f\tfrac{H}{x(t)},\quad h_{\mathrm{px}}=\tfrac{fH}{Z},\ Z=\tfrac{fH}{h_{\mathrm{px}}},
+\end{equation}
+which provides a stable mapping between apparent size and depth. This scene model underpins the Phys-5D tracker by explicitly coupling pixel height and $Z$, and guides counting-band placement near image borders where perspective magnification and occlusions are prominent. Camera intrinsics used in experiments are reported with the calibration results in Chapter~5.
+
+\subsection{Implementation Details}
+We summarize the minimal implementation configuration for reproducibility; detailed ablations remain in Chapter~5.
+\begin{itemize}
+    \item Detector: YOLOv11m trained via two-stage transfer learning (pre-train on CrowdHuman; fine-tune on railway/platform head images with backbone layers frozen, see Chapter~5). Inference thresholds follow the settings selected by detector ablation (conf/IoU/imgsz), while full grids of results remain in Chapter~5.
+    \item ReID: EfficientNet-B0 backbone; aspect-ratio preserving crop-and-pad to 128$\times$128; triplet loss with AdamW and OneCycleLR as described in Section~\ref{section::Methods}. The choice balances accuracy and efficiency for real-time deployment.
+    \item Tracking and association: DeepSORT with gated Mahalanobis/cosine distances and cascaded matching. Kalman state-space (kinematic) model configurations: CV-8D (baseline), CA-12D (constant-acceleration extension), and Phys-5D (geometry-constrained). The proposed method adopts Phys-5D as the default, with others used for comparison under identical non-motion components.
+    \item Counting: Virtual counting bands on left/right defined by relative width $[\text{Start},\text{End}]\cdot W$ and a persistence frame threshold; per-ID de-duplication and end-of-video compensation are applied; the final count uses one-side aggregation as defined in Section~\ref{section::Methods}.
+\end{itemize}
+
 \subsection{YOLOv11 Model}
+
+In our method, YOLOv11m is used specifically for head detection to reduce occlusion-induced misses on full bodies and to stabilize localization for small targets. We adopt transfer learning and fine-tuning to specialize for platform heads (details summarized below and results in Chapter~5), while retaining the architectural advantages of YOLOv11 for real-time deployment.
 
 In 2015, Redmon et al. introduced the YOLO algorithm, a landmark in object detection \cite{76_redmon2016lookonceunifiedrealtime}. As its name suggests, YOLO detects objects and their locations in a single pass over the image by formulating detection as a regression problem, in contrast to traditional two-stage pipelines. As illustrated in \textbf{Fig.}~\ref{fig:yolosystem-cn} and \textbf{Fig.}~\ref{fig:yoloarchitecture-cn}, a single convolutional neural network (CNN) jointly predicts bounding boxes and class probabilities across the entire image \cite{77_Du_article}, simplifying the detection process compared to more complex traditional methods.
 \begin{figure}[H]
@@ -106,7 +134,7 @@ Each detection branch ends with Conv2D layers that reduce features to the requir
     • Class probabilities.\\
 
 \subsection{DeepSORT}
-We next introduce the DeepSORT multi-object tracker. In MOT, the goal is to detect, localize, and maintain identities of multiple targets across video frames. DeepSORT\cite{211}, an extension of SORT\cite{220}, combines deep appearance embeddings with motion information, substantially improving tracking under complex conditions and long occlusions, and reducing IDSW. The pipeline (\textbf{Fig.}~\ref{fig:DeepSORT-cn}) comprises deep appearance feature extraction, a Kalman filter, and data association.
+We next introduce the DeepSORT multi-object tracker as used in our method. Our tracker fuses appearance (EfficientNet-B0 embeddings) and motion (Kalman state-space models) with cascaded association to preserve identities under occlusions. DeepSORT\cite{211}, an extension of SORT\cite{220}, combines deep appearance embeddings with motion information. The pipeline (\textbf{Fig.}~\ref{fig:DeepSORT-cn}) comprises deep appearance feature extraction, a Kalman filter, and data association.
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.95\textwidth]{pictures/DeepSORTAlgorithmStructure.png}
@@ -124,7 +152,7 @@ The workflow can be summarized as follows:\\
 \subsection{DeepSORT Core Modules}
 
 \subsubsection{Object Detector}
-Tracking performance depends critically on the detector's accuracy and speed. Typical detectors include:\\
+In our system, tracking performance depends critically on the head detector; we adopt YOLOv11m as detailed above. For completeness, typical detectors include:\\
 • YOLO family: widely adopted for its real-time performance and accuracy (e.g., YOLOv5/YOLOv7), and in our case YOLOv11.\\
 • Faster R-CNN: representative two-stage detector used in early variants.\\
 • SSD: one-stage detector also used in DeepSORT systems.\\
@@ -140,7 +168,10 @@ Kalman filtering estimates target motion states via iterative prediction and upd
         \mathbf{X}_k &\leftarrow \mathbf{X}_k + \mathbf{G}_k (\mathbf{Z}_k - \mathbf{H}\mathbf{X}_k)\\
         \mathbf{P}_k &\leftarrow (\mathbf{I} - \mathbf{G}_k\mathbf{H})\mathbf{P}_k
     \end{align*}
-While effective, a constant-velocity model can be inaccurate under strong acceleration or camera motion; extensions such as UKF and adaptive noise can better handle nonlinearities.
+While effective, a constant-velocity model can be inaccurate under strong acceleration or camera motion; extensions such as UKF and adaptive noise can better handle nonlinearities. In our experiments, we instantiate three Kalman state-space (kinematic) configurations under DeepSORT and compare them in Chapter~5.
+
+\paragraph{Our Kalman state-space configurations}
+We evaluate and deploy three configurations under identical detector/ReID/association settings: (i) CV-8D: classic constant-velocity baseline with state $[x,y,a,h,\dot x,\dot y,\dot a,\dot h]^\top$; (ii) CA-12D: constant-acceleration extension adding $[\ddot x,\ddot y,\ddot a,\ddot h]^\top$; (iii) Phys-5D (ours): geometry-constrained model with $[u,v,h_{px},Z,\dot Z]^\top$ and the pinhole relation $h_{px}=fH/Z$. Full matrices (F/H), process noise (Q), and gating thresholds are reported in Chapter~5.
 
 Physics-inspired perspective model for platform scenarios
 For trains decelerating into stations, we consider a perspective projection with camera mounted at the train head, optical axis aligned with the track tangent. Let platform pedestrians be at lateral distance $D$ and head height $H$. The image-plane projection obeys
@@ -154,7 +185,7 @@ where $x(t)=x_0+v_0 t + \tfrac{1}{2} a t^{2}$ with deceleration $a<0$. The head 
 Appearance descriptors are crucial for long-occlusion recovery and ID consistency. The original DeepSORT uses a compact residual CNN that outputs a 128-D descriptor with L2 normalization \cite{116}. Typical components include convolution and pooling layers, multiple residual blocks, and a final FC + L2 layer. The descriptors lie on the unit hypersphere for cosine similarity.Training commonly uses large-scale video person Re-ID datasets such as MARS \cite{214} or Market-1501 \cite{215} with identity labels and bounding boxes to ensure robustness to illumination, pose, and viewpoint changes. For our specific scenario, we utilize a custom-built dataset, with detailed statistics provided in \textbf{Tab.}~\ref{tab:ReIDDataDistribution} in Chapter 3.\\
 
 
-Considering our scenario and prior findings, we adopt EfficientNet-B0 as the backbone for ReID to balance accuracy and efficiency.
+Considering our scenario and prior findings, we adopt EfficientNet-B0 as the backbone for ReID to balance accuracy and efficiency in our method.
 In video-based person re-identification (ReID) tasks, selecting lightweight backbone networks is crucial for efficient deployment and real-time inference. According to the systematic experimental results by Tan et al. (2019) in the original EfficientNet paper \cite{219}, as shown in \textbf{Tab.}~\ref{tab:efficientnet_comparison}, EfficientNet-B0 serves as the baseline model of this series, achieving 77.1\% top-1 accuracy and 93.3\% top-5 accuracy on the ImageNet validation set while requiring only 0.39 GFLOPs and 5.3M parameters. Its computational cost is significantly lower than ResNet-50 (4.1× FLOPs, 25.6M parameters) in the same accuracy range. This "high accuracy-low power consumption" characteristic makes B0 an ideal feature extractor for ReID systems in edge computing or large-scale camera networks, as intuitively demonstrated in \textbf{Fig.}~\ref{fig:ComparisonofEfficient}. Furthermore, EfficientNet's compound scaling method provides balanced expansion in width and resolution dimensions, offering more stable gradient paths and reduced memory consumption for subsequent insertion of spatio-temporal modules (such as 3D convolutions or Transformers). Therefore, by adopting EfficientNet-B0 as the backbone network, we can significantly reduce the overall computational budget of the video ReID framework while maintaining discriminative power of pedestrian appearance features, leaving sufficient resource margin for subsequent online learning and incremental updates. As shown in \textbf{Tab.}~\ref{tab:EfficientnetB0Architecture}, EfficientNet-B0 provides strong feature extraction with fewer parameters and lower compute. \\
 
 \begin{table}[H]
@@ -279,7 +310,7 @@ Data association matches detections to tracks by combining motion and appearance
 Parameters of Kalman filtering (state model, Q, R), gating thresholds, cost weighting, cascade/IoU matching, track lifecycle (n\_init, max\_age), and ReID strength should be tuned to scene characteristics (e.g., irregular motion, noisy detections, frequent occlusion, similar appearances) to maintain robustness.
 
 \subsection{Counting Method}
-Given YOLOv11 detections and DeepSORT trajectories, we design a reliable counting algorithm that avoids double-counting. Pure detection summation over frames would overcount the same target repeatedly; counting must therefore operate on unique track IDs.
+In our method, given YOLOv11 detections and DeepSORT trajectories, we design a reliable counting algorithm that avoids double-counting. Pure detection summation over frames would overcount the same target repeatedly; counting must therefore operate on unique track IDs.
 
 \subsubsection{Traditional line-crossing and limitations}
 The mainstream approach is line/zone crossing \cite{22_hsu_passenger_2020, 204, 68_zhao_detection_2022}, which triggers a count when a trajectory crosses a virtual line. In crowded scenes, brief occlusions near the line can cause severe undercounting (e.g., three people cross abreast but the middle person is fully occluded). As shown in our ablations (Section 5), a zero-width line (bandwidth 0) can yield MAPE as high as 93.43%.
@@ -299,12 +330,23 @@ We propose a Virtual Counting Band with nonzero width near the left/right image 
 \end{figure}
 In practice, we set the band to 5\%–20\% of the width from the image borders (relative coordinates for resolution invariance). We maintain per-track state (consecutive in-band frames, counted flag). The target position is the box center; boxes partially outside the frame are clipped for display while preserving original coordinates for logic.
 
+Algorithm sketch:\\
+(1) For each confirmed track, compute box center $x$ and test membership in the band(s) $[\text{Start}\cdot W,\text{End}\cdot W]$.\\
+(2) If inside, increment its consecutive-in-band counter; otherwise reset.\\
+(3) When the counter $\geq N$ and the track is not yet counted, add its ID to the counted set and increment the corresponding side's tally.\\
+(4) Maintain a global set of counted IDs to deduplicate across frames.\\
+(5) At video end, apply compensation for tracks close to the threshold per the rule in this section.\\
+(6) Report left/right counts and the chosen final aggregation.\\
+
 Integrity mechanisms include: \\
 (1) end-of-video compensation to include targets that nearly meet the persistence threshold; 
 (2) deduplication by maintaining the set of counted IDs;\\
 (3) using the maximum of left/right counts as the final result (we count one side), which avoids bias from non-platform-side flows.
 
 
+
+\subsection{Assumptions and Limitations}
+Our formulation assumes: (i) a forward-looking camera with intrinsics $(f,c_u,c_v)$ estimated from representative frames; (ii) average head height $H$ suitable for platform pedestrians; (iii) along-track deceleration during arrivals consistent with the kinematic model. Performance may degrade under extreme lighting or ultra-dense scenes that increase appearance ambiguity or violate motion smoothness. These assumptions are reflected in the calibration and evaluation reported in Chapter~5.
 
 \subsection{Evaluation Metrics}
 

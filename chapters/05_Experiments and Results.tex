@@ -2,7 +2,7 @@
 \section{Experiments and Results}\label{section::Experiments and Results}
 
 
-This chapter systematically evaluates the proposed head detection, platform-scene multi-object tracking, and counting framework following the detect–track–count pipeline. We adopt YOLOv11m as the detector, an EfficientNet-B0 based ReID appearance descriptor, and three motion models within the DeepSORT framework: the standard 8-dimensional constant-velocity baseline (classic DeepSORT Kalman filter), a 12-dimensional constant-acceleration model, and a 5-dimensional physics-constrained model based on pinhole camera geometry. Evaluations are conducted on MOT-formatted data curated in the Data chapter; the detector's training and fine-tuning leverage complementary static images and multi-clip video sequences, covering both generic crowded scenes and platform scenarios with varying densities during train arrivals.
+This chapter systematically evaluates the proposed head detection, platform-scene multi-object tracking, and counting framework following the detect–track–count pipeline. We adopt YOLOv11m as the detector, an EfficientNet-B0 based ReID appearance descriptor, and three Kalman state-space (kinematic) model configurations within the DeepSORT framework: the standard 8-dimensional constant-velocity baseline (classic DeepSORT Kalman filter), a 12-dimensional constant-acceleration model, and a 5-dimensional physics-constrained model based on pinhole camera geometry. Evaluations are conducted on MOT-formatted data curated in the Data chapter; the detector's training and fine-tuning leverage complementary static images and multi-clip video sequences, covering both generic crowded scenes and platform scenarios with varying densities during train arrivals.
 
 
 \subsection{Training and Fine-tuning of the YOLOv11m Detector}
@@ -264,7 +264,7 @@ To assess the role of different tracking approaches in MOT, we conduct a compreh
 
 
 % --------------------------------------- CV-8D ------------------------------------------------------------
-\subsubsection{8D Constant-Velocity Baseline (CV-8D)}
+\subsubsection{8D Constant-Velocity Baseline (CV-8D) — Kalman state-space configuration}
 We first evaluate the widely used 8D constant-velocity model, the core of the standard DeepSORT framework, which assumes linear, constant-speed motion in the image plane. This model is configured with standard DeepSORT parameters optimized for general tracking scenarios.
 CV-8D model uses constant-velocity dynamics and linear observation.\\
  Specifically,
@@ -367,7 +367,7 @@ Avg & 64.11 & 19.52 & 76.66 & 77.66 & 76.14 & 24 & 2807 & 480 & 645 & 0.53 & 83.
 \end{figure}
 
 % --------------------------------------- CA-12D ------------------------------------------------------------
-\subsubsection{12D Constant-Acceleration Model (CA-12D)}
+\subsubsection{12D Constant-Acceleration Model (CA-12D) — Kalman state-space configuration}
 To model nonlinear motion, we extend the baseline with explicit accelerations $\ddot{x}, \ddot{y}, \ddot{a}, \ddot{h}$. This model employs adjusted noise parameters and gating thresholds to handle the increased state dimensionality and potential instability from acceleration terms.
 The state of CA-12D is \([x, y, a, h, v_x, v_y, v_a, v_h, a_x, a_y, a_a, a_h]^\top\), with measurements \([x, y, a, h]^\top\). This better captures deceleration during arrivals and short bursts under occlusions.
 
@@ -463,7 +463,7 @@ Avg & 67.54 & 17.42 & 75.29 & 81.41 & 70.4 & 39.15 & 2587 & 278 & 850 & 0.30 & 8
 \end{figure}
 
 % --------------------------------------- Phys-5D ------------------------------------------------------------
-\subsubsection{5D Physics-Constrained Model (Phys-5D)}
+\subsubsection{5D Physics-Constrained Model (Phys-5D) — Kalman state-space configuration}
 To overcome the limitations of image-plane kinematics, we introduce a 5D model that lifts estimation to 3D via pinhole geometry and scene priors. This model uses specialized camera calibration parameters, adaptive noise modeling, and physics-based gating criteria tailored to the 3D-to-2D projection constraints.
 For Phys-5D, We relate pixel height $h$ to depth $Z$ via $Z=fH/h$, with state \([u,v,h,Z,\dot{Z}]^\top\) and measurement \([u,v,h]^\top\). We explicitly update $Z$ and $h$ through projection and back-projection, and impose an adaptive deceleration prior on $\dot{Z}$ to reflect typical motion near the camera. Implementation references: \texttt{physical3dkf\_5d.py}, \texttt{deep\_sort/custom\_kf5d.py}.
 
@@ -612,7 +612,7 @@ Avg. & 67.21 & 17.41 & 76.29 & 82.23 & 71.51 & 24.80 & 2609 & 290 & 842 & 0.32 &
 In summary, Phys-5D integrates camera geometry and motion priors to lift from 2D to 3D reasoning, greatly stabilizing trajectories and identity consistency, and achieving the best counting accuracy.
 
 
-\subsubsection{Comparative Analysis of Three Tracking Models}
+\subsubsection{Comparative Analysis of Three Kalman State-Space (Kinematic) Model Configurations}
 We evaluate three distinct tracking models, each optimized with its own best-performing configuration rather than conducting a controlled ablation study. Each model incorporates different motion dynamics, state representations, gating logics, and domain-specific optimizations to maximize its individual performance. \textbf{Tab.}~\ref{tab:3modelsCountingComparisonResults} compares their counting performance under these optimized settings.
 \begin{table}[H]
     \centering
