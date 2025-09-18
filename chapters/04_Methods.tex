@@ -1,11 +1,11 @@
 \clearpage
 \section{Methods}\label{section::Methods}
 
-This study proposes a deep learning-based framework for accurate crowd counting on railway platforms by combining the YOLOv11 detector with the DeepSORT tracker and a robust counting strategy. As shown in \textbf{Fig.}~\ref{fig:OurMOTSystemArchitecture}, the overall multi-object tracking (MOT) system integrates YOLO-based detection, EfficientNet-B0-based ReID feature extraction, and a physics-inspired Kalman filter to enable robust pedestrian tracking. The system employs a five-dimensional Extended Kalman Filter, whose state vector is $[u, v, Z, dZ, H]$, representing pixel coordinates, depth, depth velocity, and head height, respectively. Multiple gating mechanisms are adopted, including Mahalanobis distance, directional motion corridors, and adaptive appearance thresholds, to ensure reliable data association.
+This chapter presents our complete method for accurate crowd counting on railway platforms. We propose a detect–track–count pipeline that combines YOLOv11m head detection, EfficientNet-B0-based ReID feature extraction, and three Kalman state-space configurations within DeepSORT for robust multi-object tracking. Our key innovation is the Phys-5D physics-constrained tracker that leverages camera geometry and scene priors to stabilize identity consistency and achieve superior counting accuracy. The complete system architecture, implementation details, and algorithmic specifications are provided in this chapter, with experimental validation and comparative analysis presented in Chapter~5.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.75\textwidth]{pictures/OurMulti-ObjectTrackingSystemArchitecture.png}
+    \includegraphics[width=0.95\textwidth]{pictures/OurMulti-ObjectTrackingSystemArchitecture.png}
     \caption{Overall multi-object tracking system architecture.}
     \label{fig:OurMOTSystemArchitecture}
 \end{figure}
@@ -27,14 +27,28 @@ u(t)=c_u+f\tfrac{D}{x(t)},\quad v(t)=c_v+f\tfrac{H}{x(t)},\quad h_{\mathrm{px}}=
 \end{equation}
 which provides a stable mapping between apparent size and depth. This scene model underpins the Phys-5D tracker by explicitly coupling pixel height and $Z$, and guides counting-band placement near image borders where perspective magnification and occlusions are prominent. Camera intrinsics used in experiments are reported with the calibration results in Chapter~5.
 
+Figure~\ref{fig:3TrackingTrackGraph} illustrates the 2D planar trajectory visualization of human head bounding box centers from three video sequences, generated from MOT-format ground truth annotations. This visualization demonstrates the typical movement patterns and spatial distribution of pedestrian trajectories in our railway platform scenarios.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{pictures/3 Tracking Track Graph.png}
+    \caption{2D planar trajectory visualization of human head bounding box centers from three video sequences, generated from MOT-format ground truth annotations.}
+    \label{fig:3TrackingTrackGraph}
+\end{figure}
+
+
 \subsection{Implementation Details}
-We summarize the minimal implementation configuration for reproducibility; detailed ablations remain in Chapter~5.
-\begin{itemize}
-    \item Detector: YOLOv11m trained via two-stage transfer learning (pre-train on CrowdHuman; fine-tune on railway/platform head images with backbone layers frozen, see Chapter~5). Inference thresholds follow the settings selected by detector ablation (conf/IoU/imgsz), while full grids of results remain in Chapter~5.
-    \item ReID: EfficientNet-B0 backbone; aspect-ratio preserving crop-and-pad to 128$\times$128; triplet loss with AdamW and OneCycleLR as described in Section~\ref{section::Methods}. The choice balances accuracy and efficiency for real-time deployment.
-    \item Tracking and association: DeepSORT with gated Mahalanobis/cosine distances and cascaded matching. Kalman state-space (kinematic) model configurations: CV-8D (baseline), CA-12D (constant-acceleration extension), and Phys-5D (geometry-constrained). The proposed method adopts Phys-5D as the default, with others used for comparison under identical non-motion components.
-    \item Counting: Virtual counting bands on left/right defined by relative width $[\text{Start},\text{End}]\cdot W$ and a persistence frame threshold; per-ID de-duplication and end-of-video compensation are applied; the final count uses one-side aggregation as defined in Section~\ref{section::Methods}.
-\end{itemize}
+We provide complete implementation specifications for reproducibility:
+
+\textbf{Detector Configuration:} YOLOv11m with two-stage transfer learning: (1) pre-train on CrowdHuman dataset; (2) fine-tune on railway/platform head images with the first 10 backbone layers frozen. Training uses SGD optimizer (lr=1e-2, weight decay=5e-4), cosine annealing scheduler, and mixed precision. Inference thresholds: confidence=0.5, IoU=0.7, input size=640×640.
+
+\textbf{ReID Configuration:} EfficientNet-B0 backbone with input preprocessing: direct resizing to target size (128x128), horizontal flip augmentation, and color jitter. Training uses triplet loss with margin α=0.5, Adam optimizer (lr=1e-4), StepLR scheduler (step\_size=10, gamma=0.5).
+
+\textbf{Tracking Configuration:} DeepSORT with three Kalman state-space configurations. Association uses linear combination of Mahalanobis distance (motion) and cosine distance (appearance) with weight λ=0.5. Cascaded matching prioritizes recently observed tracks. Gating thresholds: CV-8D uses standard DeepSORT thresholds; CA-12D uses stricter thresholds due to higher dimensionality; Phys-5D uses geometry-aware thresholds based on depth constraints.
+
+\textbf{Counting Configuration:} Virtual counting bands with Start=0.05, End=0.20 (relative to image width), persistence threshold N=2 frames. Per-ID de-duplication and end-of-video compensation are applied. Final count uses maximum of left/right counts to avoid non-platform bias.
+
+\textbf{System Integration:} All components run on GPU with real-time processing capability. The complete pipeline processes video frames sequentially: detection → ReID feature extraction → Kalman prediction → data association → track update → counting logic.
 
 \subsection{YOLOv11 Model}
 
@@ -170,8 +184,121 @@ Kalman filtering estimates target motion states via iterative prediction and upd
     \end{align*}
 While effective, a constant-velocity model can be inaccurate under strong acceleration or camera motion; extensions such as UKF and adaptive noise can better handle nonlinearities. In our experiments, we instantiate three Kalman state-space (kinematic) configurations under DeepSORT and compare them in Chapter~5.
 
-\paragraph{Our Kalman state-space configurations}
-We evaluate and deploy three configurations under identical detector/ReID/association settings: (i) CV-8D: classic constant-velocity baseline with state $[x,y,a,h,\dot x,\dot y,\dot a,\dot h]^\top$; (ii) CA-12D: constant-acceleration extension adding $[\ddot x,\ddot y,\ddot a,\ddot h]^\top$; (iii) Phys-5D (ours): geometry-constrained model with $[u,v,h_{px},Z,\dot Z]^\top$ and the pinhole relation $h_{px}=fH/Z$. Full matrices (F/H), process noise (Q), and gating thresholds are reported in Chapter~5.
+\subsection{Kalman State-Space Model Configurations}
+We evaluate and deploy three Kalman state-space configurations under identical detector/ReID/association settings. Each model represents a different approach to motion modeling, from pure kinematics to physics-constrained estimation.
+
+\subsubsection{CV-8D: Constant-Velocity Baseline Model}
+The CV-8D model serves as our baseline, implementing the standard DeepSORT constant-velocity assumption with 8D state vector $[x, y, a, h, \dot{x}, \dot{y}, \dot{a}, \dot{h}]^T$ and measurement $[x, y, a, h]^T$.
+
+\textbf{State vector:}
+\begin{equation}
+\mathbf{x}_k = [x, y, a, h, \dot{x}, \dot{y}, \dot{a}, \dot{h}]^T \in \mathbb{R}^{8}
+\end{equation}
+
+\textbf{State transition matrix:}
+\begin{equation}
+\mathbf{F} = \begin{bmatrix}
+1 & 0 & 0 & 0 & \Delta t & 0 & 0 & 0 \\
+0 & 1 & 0 & 0 & 0 & \Delta t & 0 & 0 \\
+0 & 0 & 1 & 0 & 0 & 0 & \Delta t & 0 \\
+0 & 0 & 0 & 1 & 0 & 0 & 0 & \Delta t \\
+0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 \\
+0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\
+0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 \\
+0 & 0 & 0 & 0 & 0 & 0 & 0 & 1
+\end{bmatrix}_{8 \times 8}
+\end{equation}
+
+\textbf{Process noise covariance:}
+\begin{equation}
+\mathbf{Q}_k = \text{diag}(\sigma_{pos}^2 h, \sigma_{pos}^2 h, 10^{-4}, \sigma_{pos}^2 h, \sigma_{vel}^2 h, \sigma_{vel}^2 h, 10^{-10}, \sigma_{vel}^2 h)
+\end{equation}
+with $\sigma_{pos} = 1/20$ and $\sigma_{vel} = 1/160$.
+
+\textbf{Observation matrix:}
+\begin{equation}
+\mathbf{H} = \begin{bmatrix}
+1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
+0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\
+0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 \\
+0 & 0 & 0 & 1 & 0 & 0 & 0 & 0
+\end{bmatrix}_{4 \times 8}
+\end{equation}
+
+\subsubsection{CA-12D: Constant-Acceleration Extension Model}
+The CA-12D model extends the baseline by incorporating explicit accelerations to capture nonlinear motion patterns, using 12D state vector $[x, y, a, h, v_x, v_y, v_a, v_h, a_x, a_y, a_a, a_h]^T$ and measurement $[x, y, a, h]^T$.
+
+\textbf{State vector:}
+\begin{equation}
+\mathbf{x}_k = [x, y, a, h, \dot{x}, \dot{y}, \dot{a}, \dot{h}, \ddot{x}, \ddot{y}, \ddot{a}, \ddot{h}]^T \in \mathbb{R}^{12}
+\end{equation}
+
+\textbf{State transition matrix:}
+\begin{equation}
+\mathbf{F} = \begin{bmatrix}
+\mathbf{I}_4 & \Delta t \cdot \mathbf{I}_4 & \tfrac{1}{2}\Delta t^2 \cdot \mathbf{I}_4 \\
+\mathbf{0}_{4 \times 4} & \mathbf{I}_4 & \Delta t \cdot \mathbf{I}_4 \\
+\mathbf{0}_{4 \times 4} & \mathbf{0}_{4 \times 4} & \mathbf{I}_4
+\end{bmatrix}_{12 \times 12}
+\end{equation}
+
+\textbf{Dynamics:}
+\begin{align}
+\mathbf{p}_{k+1} &= \mathbf{p}_k + \mathbf{v}_k \Delta t + \tfrac{1}{2}\mathbf{a}_k \Delta t^2 \\
+\mathbf{v}_{k+1} &= \alpha_v \mathbf{v}_{k+1}^{pred} + (1-\alpha_v) \mathbf{v}_k, \quad \alpha_v = 0.85 \\
+\mathbf{a}_{k+1} &= \alpha_a \mathbf{a}_{k+1}^{pred} + (1-\alpha_a) \mathbf{a}_k, \quad \alpha_a = 0.7
+\end{align}
+
+\textbf{Process noise covariance:}
+\begin{equation}
+\mathbf{Q}_k = \text{diag}(\sigma_{pos}^2 h, \sigma_{vel}^2 h, \sigma_{acc}^2 h) \otimes \mathbf{I}_4
+\end{equation}
+with $\sigma_{pos} = 1/20$, $\sigma_{vel} = 1/160$, $\sigma_{acc} = 1/10$.
+
+\textbf{Observation matrix:}
+\begin{equation}
+\mathbf{H} = [\mathbf{I}_4, \mathbf{0}_{4 \times 4}, \mathbf{0}_{4 \times 4}]_{4 \times 12}
+\end{equation}
+
+\subsubsection{Phys-5D: Physics-Constrained Model (Our Method)}
+The Phys-5D model represents our key innovation, lifting estimation from 2D image plane to 3D physical space using pinhole geometry constraints. This model uses 5D state vector $[u, v, h_{px}, Z, \dot{Z}]^T$ and measurement $[u, v, h_{px}]^T$.
+
+\textbf{State vector:}
+\begin{equation}
+\mathbf{x}_k = [u, v, h_{px}, Z, \dot{Z}]^T \in \mathbb{R}^{5}
+\end{equation}
+
+\textbf{Geometric constraints:}
+\begin{equation}
+h_{px} = \frac{f \cdot H}{Z}, \quad Z = \frac{f \cdot H}{h_{px}}
+\end{equation}
+with focal length $f$ (pixels) and head height $H=0.3$ m.
+
+\textbf{Depth dynamics:}
+\begin{align}
+Z_{k+1} &= Z_k + \dot{Z}_k \Delta t + \tfrac{1}{2}a_Z \Delta t^2 \\
+\dot{Z}_{k+1} &= \dot{Z}_k + a_Z \Delta t
+\end{align}
+
+\textbf{Adaptive deceleration prior:}
+\begin{equation}
+a_Z = -\text{sign}(\dot{Z}) \cdot \min\Big(a_{max}, \frac{\dot{Z}^2}{2Z}\Big), \quad a_{max} = 1.0\,\text{m/s}^2
+\end{equation}
+
+\textbf{Process noise covariance:}
+\begin{equation}
+\mathbf{Q}_k = \text{diag}(\sigma_{pos}^2 h_{px}, \sigma_{pos}^2 h_{px}, \sigma_{pos}^2 h_{px}, \sigma_{vel}^2 h_{px}, \sigma_{vel}^2 h_{px})
+\end{equation}
+with $\sigma_{pos} = 1/2$, $\sigma_{vel} = 1/15$.
+
+\textbf{Observation matrix:}
+\begin{equation}
+\mathbf{H} = \begin{bmatrix}
+1 & 0 & 0 & 0 & 0 \\
+0 & 1 & 0 & 0 & 0 \\
+0 & 0 & 1 & 0 & 0
+\end{bmatrix}_{3 \times 5}
+\end{equation}
 
 Physics-inspired perspective model for platform scenarios
 For trains decelerating into stations, we consider a perspective projection with camera mounted at the train head, optical axis aligned with the track tangent. Let platform pedestrians be at lateral distance $D$ and head height $H$. The image-plane projection obeys
@@ -302,7 +429,7 @@ Data association matches detections to tracks by combining motion and appearance
 (2) IoU matching as a fallback for remaining unmatched pairs.\\
 (3) Hungarian algorithm solves the final assignment on the combined cost matrix \cite{103}.
 \subsubsection{Track Management}
-• Initialization: new detections start as "unconfirmed." After three consecutive matches, a track becomes confirmed.\\  
+• Initialization: new detections start as "unconfirmed." After two consecutive matches, a track becomes confirmed.\\  
 • Termination: tracks unmatched for a prolonged period (e.g., beyond max\_age) are removed.\\
 • ID retention and re-identification: combined motion and appearance cues enable re-identification after temporary disappearance; prolonged absence may result in a new ID.
 
@@ -330,13 +457,15 @@ We propose a Virtual Counting Band with nonzero width near the left/right image 
 \end{figure}
 In practice, we set the band to 5\%–20\% of the width from the image borders (relative coordinates for resolution invariance). We maintain per-track state (consecutive in-band frames, counted flag). The target position is the box center; boxes partially outside the frame are clipped for display while preserving original coordinates for logic.
 
-Algorithm sketch:\\
-(1) For each confirmed track, compute box center $x$ and test membership in the band(s) $[\text{Start}\cdot W,\text{End}\cdot W]$.\\
-(2) If inside, increment its consecutive-in-band counter; otherwise reset.\\
-(3) When the counter $\geq N$ and the track is not yet counted, add its ID to the counted set and increment the corresponding side's tally.\\
-(4) Maintain a global set of counted IDs to deduplicate across frames.\\
-(5) At video end, apply compensation for tracks close to the threshold per the rule in this section.\\
-(6) Report left/right counts and the chosen final aggregation.\\
+\textbf{Algorithm Implementation:}
+\begin{enumerate}
+    \item \textbf{Track State Management:} For each confirmed track, maintain state variables: consecutive\_in\_band\_frames, counted\_flag, and side\_assignment (left/right).
+    \item \textbf{Band Membership Test:} Compute bounding box center $(u,v)$ and test if $u \in [\text{Start} \cdot W, \text{End} \cdot W]$ for left band or $u \in [W - \text{End} \cdot W, W - \text{Start} \cdot W]$ for right band.
+    \item \textbf{Persistence Logic:} If track is in band, increment consecutive\_in\_band\_frames; otherwise reset to 0. When consecutive\_in\_band\_frames $\geq N$ (default N=2) and counted\_flag=False, set counted\_flag=True and increment corresponding side counter.
+    \item \textbf{Deduplication:} Maintain global set of counted\_IDs to prevent double-counting across frames.
+    \item \textbf{End-of-Video Compensation:} For tracks with consecutive\_in\_band\_frames $> 0$ but $< N$ at video end, apply compensation rule: if consecutive\_in\_band\_frames $\geq N/2$, count the track.
+    \item \textbf{Final Aggregation:} Report left count, right count, and final count = max(left\_count, right\_count) to avoid non-platform bias.
+\end{enumerate}
 
 Integrity mechanisms include: \\
 (1) end-of-video compensation to include targets that nearly meet the persistence threshold; 
@@ -351,7 +480,7 @@ Our formulation assumes: (i) a forward-looking camera with intrinsics $(f,c_u,c_
 \subsection{Evaluation Metrics}
 
 \subsubsection{Detection Metrics}
-We report head detection performance on a static validation set using mAP@0.5 and Recall. Formally:\\
+We report head detection performance on a static validation set using mAP@0.5 and Recall \cite{74_yolo11_Jocher_Ultralytics_YOLO_2023}. Formally:\\
 \textbf{mAP50}: mean AP at IoU threshold 0.5,\\
 \begin{equation}
 \text{mAP50} = \frac{1}{N}\sum_{i=1}^{N}\text{AP}_i \quad \text{at IoU threshold of 0.5}
@@ -380,7 +509,7 @@ where $GT_t$ is the number of ground-truth objects at time $t$, and $d_{i,t}$ is
 \text{ID Recall (IDR)} &= \frac{IDTP}{IDTP + IDFN}, \\
 \text{IDF1} &= \frac{2 \cdot IDTP}{2 \cdot IDTP + IDFP + IDFN}.
 \end{align}
-Additional measures: $IDSW$, Matches, $FP$, $FN$, FAF $= \tfrac{\sum_t FP_t}{\text{\#frames}}$, and standard Precision/Recall. Track quality: Mostly Tracked (MT, ≥80\%), Partially Tracked (PT, 20\%–80\%), Mostly Lost (ML, <20\%).
+Additional measures: $IDSW$, Matches, $FP$, $FN$, FAF $= \frac{\sum_t FP_t}{\text{\#frames}}$, and standard Precision/Recall. Track quality: Mostly Tracked (MT, $\geq$80\%), Partially Tracked (PT, 20\%--80\%), Mostly Lost (ML, $<$20\%).
 
 \subsubsection{Counting Metrics}
 For $N$ test videos with predicted unique count $\hat{C}_i$ and ground truth $C_i$:
@@ -403,8 +532,8 @@ For $N$ test videos with predicted unique count $\hat{C}_i$ and ground truth $C_
 
 \iffalse
 % 以下是中文部分，含义表达以中文版为主    
-4. Method 
-本研究的核心在于提出一个基于You Only Look Once (YOLOv11) 的深度学习模型，并结合DeepSORT算法及其计数算法，实现对火车站台场景中人群数量的准确估计。如\textbf{Fig.}~\ref{fig:OurMOTSystemArchitecture}所示，是我们提出的系统的整体框架，该多目标追踪系统架构整合了基于 \textbf{YOLO} 的目标检测、\textbf{EfficientNet-B0} 的 \textbf{ReID} 特征提取以及一种新颖的物理卡尔曼滤波器，以实现稳健的行人追踪。该系统采用一个五维的扩展卡尔曼滤波器 (EKF)，其状态向量为 $[u, v, Z, dZ, H]$，分别代表像素坐标、深度、深度速度和头部高度。系统还采用多种门控机制，包括马氏距离、方向运动走廊和自适应外观阈值，以确保稳健的数据关联。
+4. 方法
+本章介绍我们针对火车站台人群计数的完整方法。我们提出一个检测-跟踪-计数的流水线，结合YOLOv11m头部检测、基于EfficientNet-B0的ReID特征提取，以及三种卡尔曼状态空间配置，实现稳健的多目标跟踪。我们的关键创新是Phys-5D物理约束跟踪器，它利用相机几何和场景先验来稳定身份一致性并实现卓越的计数精度。完整的系统架构、实现细节和算法规范在本章提供，实验验证和对比分析在第5章呈现。
 
 \begin{figure}[H]
     \centering
@@ -413,9 +542,9 @@ For $N$ test videos with predicted unique count $\hat{C}_i$ and ground truth $C_
     \label{fig:OurMOTSystemArchitecture}
 \end{figure}
 
-4.1 YOLOv11模型
+4.1 提出的方法（我们的方法）
 
-2015年，Redmon 等人提出了"YOLO"算法，这是物体检测领域的关键突破\cite{76_redmon2016lookonceunifiedrealtime}。顾名思义，这种创新方法只需一次处理整个图像即可检测物体及其位置。YOLO 的方法不同于传统的两阶段检测过程，它将物体检测定义为一个回归问题\cite{76_redmon2016lookonceunifiedrealtime}。如\textbf{Fig.}~\ref{fig:yolosystem-cn}和\textbf{Fig.}~\ref{fig:yoloarchitecture-cn}所示，它采用单个卷积神经网络同时预测整个图像中的边界框和类别概率\cite{77_Du_article}，与更复杂的传统方法相比，它简化了检测流程。
+我们采用检测-跟踪-计数的流水线来解决火车站台人群计数问题，该流水线针对具有密集遮挡和强透视效应的站台到达视频进行了定制。系统（图~\ref{fig:OurMOTSystemArchitecture}）包括：（i）使用YOLOv11m进行头部检测，以减轻身体遮挡问题并稳定小目标定位；（ii）通过EfficientNet-B0进行外观嵌入，以支持长期/部分遮挡下的身份恢复；（iii）在DeepSORT框架下进行多目标跟踪，使用三种卡尔曼状态空间（运动学）模型配置进行分析（CV-8D、CA-12D和提出的物理约束Phys-5D）；（iv）使用非零宽度虚拟计数带和帧持续性以及ID去重的稳健计数策略。设计选择由平台特定挑战驱动：头部线索比全身遮挡更少，透视导致系统性的尺寸-深度耦合，可以通过几何学进行正则化，细线穿越在抖动/遮挡下是脆弱的，促使采用带持续性的方法。
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.8\textwidth]{pictures/The YOLO Detection System.png}

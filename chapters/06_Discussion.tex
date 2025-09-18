@@ -2,13 +2,20 @@
 \section{Discussion}\label{section::Discussion}
 
 
-This chapter provides an in-depth and systematic analysis of the experimental results presented in Chapter 5. Rather than merely listing numbers, we investigate the fundamental reasons behind the performance differences among models, and elucidate why the proposed physics-constrained model (Phys-5D) is superior to traditional purely kinematic models. We further analyze how the system’s components (detector, re-identification model, and counting strategy) interact synergistically, and discuss the theoretical implications, practical value, and inherent limitations of this work, laying a solid foundation for the concluding remarks and future directions.
+This chapter provides comprehensive analysis and interpretation of the experimental results presented in Chapter 5. We investigate the fundamental reasons behind performance differences among the three Kalman state-space configurations, elucidate why the proposed physics-constrained model (Phys-5D) achieves superior performance, and analyze the synergistic interactions between system components. We further discuss theoretical implications, practical value, and limitations, providing insights for future research directions.
 
 \subsection{Comprehensive Interpretation of Results and Core Findings}
 
-As stated in Chapter 1, the overarching goal of this work is to build a high-accuracy, high-robustness, real-time crowd detection, tracking, and counting system tailored to the highly challenging dynamics on railway platforms. The experiments in Chapter 5 provide solid quantitative evidence of the effectiveness of our approach. Taken together, the results point to a core finding: for scenarios with strong physical priors, incorporating domain knowledge (e.g., camera geometry) into the motion model is far more effective and robust than merely increasing kinematic model complexity.
+The experimental results from Chapter 5 demonstrate the effectiveness of our detect–track–count framework. Our final system achieves state-of-the-art counting accuracy with MAPE=2.24\%, representing a significant improvement over baseline approaches. The key findings from our comprehensive evaluation are:
 
-Our final system—integrating a domain-adapted YOLOv11m detector, a custom-trained EfficientNet-B0 Re-ID model, and an innovative 5D physics-constrained Kalman filter (Phys-5D)—achieves excellent performance on application-level metrics. On our MOT-RPCH benchmark, the mean absolute percentage error (MAPE) of the final count is only 2.24\%. This starkly contrasts with the 14.59\% MAPE of the baseline 8D constant-velocity model (CV-8D) and the 6.99\% MAPE of the 12D constant-acceleration model (CA-12D), forming the basis for the deeper discussion that follows.
+\textbf{Performance Summary:} The three Kalman state-space configurations show distinct performance characteristics:
+\begin{itemize}
+    \item CV-8D (baseline): MAPE=14.59\%, MAE=3.4, ID switches=24
+    \item CA-12D (acceleration): MAPE=6.99\%, MAE=2.4, ID switches=39.15
+    \item Phys-5D (physics-constrained): MAPE=2.24\%, MAE=0.75, ID switches=24.8
+\end{itemize}
+
+\textbf{Core Finding:} The results demonstrate that incorporating domain knowledge (camera geometry and physical constraints) into the motion model is far more effective than merely increasing kinematic model complexity. Phys-5D achieves the best balance between tracking accuracy and identity consistency, translating to superior counting performance.
 
 An important observation is that application performance (counting accuracy) is not linearly correlated with traditional MOT metrics (e.g., MOTA). CA-12D and Phys-5D obtain nearly identical MOTA (67.54\% vs 67.21\%), suggesting similar per-frame detection–association accuracy. However, this obscures a critical difference: the number of IDSW is much higher for CA-12D (avg 39.15) than for Phys-5D (avg 24.80). Identity switches measure how well a tracker preserves identity consistency. For cumulative tasks like counting, which require long-term, stable, and unique identities, trajectory stability and persistent identity are more important than single-frame localization accuracy. Each identity switch can cause the same person to be mistaken for two different identities, inducing overcounts or undercounts. Hence, although CA-12D can fit instantaneous motion better, its weaker identity consistency directly leads to much higher counting errors than Phys-5D. This highlights that application-oriented evaluations must emphasize identity-consistency metrics such as IDF1 and IDSW. Phys-5D’s true advantage lies not only in accurate tracking but also in sustaining consistent identities.
 
@@ -19,7 +26,7 @@ To uncover the origins of performance differences among motion models, we now co
 \subsubsection{Limitations of the Baseline (CV-8D)}
 
 As the standard baseline in MOT, the CV-8D model is our starting point. It assumes linear, constant-speed motion in the image plane. In our scenario—platform pedestrians observed from a moving train—this assumption is fundamentally violated. As the train decelerates, perspective projection causes apparent nonlinear acceleration of pedestrians in the image plane and a nonlinear enlargement of their bounding boxes.
-The experimental evidence confirms this mismatch. As shown in \textbf{Tab.}~\ref{tab:CV8DResults}, CV-8D exhibits many misses (avg 645) and a high counting error (MAPE 14.59\%). The root cause is that during occlusions, the constant-velocity Kalman filter cannot predict the object’s reappearance position and size accurately. Large deviations between prediction and observation (i.e., large Mahalanobis distance) lead to association failures: the tracker either terminates the original trajectory (misses) or allocates a new identity upon reappearance (ID switches). The performance bottleneck is thus the contradiction between the model’s kinematic assumptions and the physical reality of the scene.
+The experimental evidence confirms this mismatch. As shown in \textbf{Tab.}~\ref{tab:CV8DResults}, CV-8D exhibits many misses (avg 645) and a high counting error (MAPE 14.59\%). The root cause is that during occlusions, the constant-velocity Kalman filter cannot predict the object’s reappearance position and size accurately. Large deviations between prediction and observation (i.e., large Mahalanobis distance) lead to association failures: the tracker either terminates the original trajectory (misses) or allocates a new identity upon reappearance (ID switches). The performance bottleneck is thus that constant velocity assumptions cannot effectively predict accurate positions in the next frame.
 
 \subsubsection{Gains and Losses of the Higher-Order Kinematic Model (CA-12D)}
 
@@ -63,7 +70,7 @@ In short, our success reflects both divide-and-conquer and co-optimization: by o
 
 \subsection{Theoretical Implications and Practical Value}
 
-Theoretical implications: Our core contribution is a compelling case for Physics-Informed Machine Learning (PIML) in computer vision. While recent trends often favor bigger, deeper, purely data-driven models, our results show that in scenes governed by clear physical laws, injecting first principles (e.g., perspective geometry) can yield larger gains and greater robustness than merely adding parameters (e.g., 8D→12D). This challenges brute-force data-driven thinking and advocates physics-aware modeling, inspiring similar tasks with physical constraints (e.g., Ackermann-geometry vehicle tracking, fluid-dynamics particle tracking).
+Theoretical implications: Our core contribution is a compelling case for Physics-Informed Machine Learning (PIML) in computer vision. While recent trends often favor bigger, deeper, purely data-driven models, our results show that in scenes governed by clear physical laws, injecting first principles (e.g., perspective geometry) can yield larger gains and greater robustness than merely adding parameters (e.g., 8D→12D). This challenges brute-force data-driven thinking and advocates physics-aware modeling.
 Practical value: Our results directly address the real-world need raised in Chapter 1. A 2.24\% counting error is deployment-ready. For railway operators, accurate counts enable: \\(1) Safety management: real-time density monitoring with automatic alerts near thresholds to prevent overcrowding and accidents; \\(2) Operations optimization: precise knowledge of temporal and per-train passenger patterns for schedule planning and dynamic frequency adjustment, improving efficiency and reducing waiting time; \\(3) Emergency response: reliable counts for evacuation planning during disruptions (e.g., delays). Thus, beyond academic value, our approach is a practical solution that can enhance safety, efficiency, and passenger experience in railway systems.
 
 \subsection{Limitations}
@@ -75,11 +82,20 @@ Simplified physics: For efficiency, we fix head physical height H at 0.3 m and c
 
 \iffalse
 
-本章旨在对第五章呈现的实验结果进行深入、系统的剖析与解读。讨论将超越简单的数值罗列，深入探究不同模型性能差异背后的根本原因，阐明本研究提出的物理约束模型（Phys-5D）相较于传统运动学模型的优越性。此外，本章还将分析系统中各个组件（检测器、重识别模型、计数策略）的协同效应，并探讨本研究的理论意义、实践价值及其固有的局限性，为最终的结论与未来展望奠定坚实的理论基础。
+本章对第5章呈现的实验结果提供全面的分析和解释。我们调查三种卡尔曼状态空间配置之间性能差异的根本原因，阐明提出的物理约束模型（Phys-5D）如何实现卓越性能，并分析系统组件之间的协同相互作用。我们进一步讨论理论意义、实践价值和局限性，为未来研究方向提供见解。
 
-6.1 实验结果的综合解读与核心发现
+6.1 结果的综合解读与核心发现
 
-本研究的核心目标，如第一章所述，是为铁路站台这一极具挑战性的动态场景，构建一个高精度、高鲁棒性的实时人群检测、跟踪与计数系统。第五章的实验结果为我们评估所提出方法的有效性提供了坚实的量化依据。综合来看，实验数据清晰地指向一个核心发现：在处理具有强物理先验的特定场景时，将领域知识（如相机几何）融入运动模型，是一种远比单纯增加模型运动学复杂度更为有效和稳健的技术路径。
+第5章的实验结果证明了我们检测-跟踪-计数框架的有效性。我们的最终系统实现了最先进的计数精度，MAPE=2.24%，相比基线方法有显著改进。关键发现来自我们全面评估：
+
+\textbf{性能总结：}三种卡尔曼状态空间配置显示出不同的性能特征：
+\begin{itemize}
+    \item CV-8D（基线）：MAPE=14.59\%，MAE=3.4，ID切换=24
+    \item CA-12D（加速度）：MAPE=6.99\%，MAE=2.4，ID切换=39.15
+    \item Phys-5D（物理约束）：MAPE=2.24\%，MAE=0.75，ID切换=24.8
+\end{itemize}
+
+\textbf{核心发现：}结果表明，将领域知识（相机几何和物理约束）融入运动模型比仅仅增加运动学模型复杂度更有效。Phys-5D在跟踪精度和身份一致性之间实现了最佳平衡，转化为卓越的计数性能。
 
 本次研究的最终成果：一个集成了经过领域自适应微调的YOLOv11m检测器、定制化训练的EfficientNet-B0重识别（Re-ID）模型以及创新的5维物理约束卡尔曼滤波器（Phys-5D）的跟踪计数系统在关键的应用层指标上取得了卓越的性能。在自建的MOT-RPCH测试集上，该系统的平均绝对百分比误差（MAPE）仅为2.24\%。这一高精度的计数结果，与作为基准的标准8维匀速模型（CV-8D）高达14.59\%的MAPE，以及引入加速度项的12维模型（CA-12D）的6.99\%的MAPE形成了鲜明对比。这一性能层级上的显著差异，构成了本章后续深入讨论的基石。
 

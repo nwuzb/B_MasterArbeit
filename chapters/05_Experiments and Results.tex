@@ -2,7 +2,7 @@
 \section{Experiments and Results}\label{section::Experiments and Results}
 
 
-This chapter systematically evaluates the proposed head detection, platform-scene multi-object tracking, and counting framework following the detect–track–count pipeline. We adopt YOLOv11m as the detector, an EfficientNet-B0 based ReID appearance descriptor, and three Kalman state-space (kinematic) model configurations within the DeepSORT framework: the standard 8-dimensional constant-velocity baseline (classic DeepSORT Kalman filter), a 12-dimensional constant-acceleration model, and a 5-dimensional physics-constrained model based on pinhole camera geometry. Evaluations are conducted on MOT-formatted data curated in the Data chapter; the detector's training and fine-tuning leverage complementary static images and multi-clip video sequences, covering both generic crowded scenes and platform scenarios with varying densities during train arrivals.
+This chapter systematically evaluates the proposed head detection, platform-scene multi-object tracking, and counting framework following the detect–track–count pipeline. We adopt YOLOv11m as the detector, an EfficientNet-B0 based ReID appearance descriptor, and three Kalman state-space (kinematic) model configurations within the DeepSORT framework: the standard 8-dimensional constant-velocity baseline (classic DeepSORT Kalman filter), a 12-dimensional constant-acceleration model, and a 5-dimensional physics-constrained model based on pinhole camera geometry. Evaluations are conducted on a representative subset of 20 video sequences from our comprehensive MOT-RailwayPlatformCrowdHead (MOT-RPCH) dataset (\textbf{Tab.}~\ref{tab:20MOTValVideos}), containing 18,548 frames, 73,799 bounding boxes, and 647 unique human head identities, alongside complementary static images and multi-clip video sequences, covering both generic crowded scenes and platform scenarios with varying densities during train arrivals.
 
 
 \subsection{Training and Fine-tuning of the YOLOv11m Detector}
@@ -59,7 +59,7 @@ all & 600 & 4779 & 0.965 & 0.946 & 0.980 & 0.816 \\
 \bottomrule
 \end{tabular}%
 }
-\caption{Fine-tuning Performance of YOLOv11freeze10 on the Labeled Head Dataset}
+\caption{Fine-tuning Performance of YOLOv11m freeze=10 on the Labeled Head Dataset}
 \label{tab:yolofreeze10_results}
 \end{table}
 In summary, the two-stage strategy transforms YOLOv11m from a generic head detector into a platform-optimized high-performance detector (YOLOv11m), providing strong inputs for subsequent tracking and counting.
@@ -264,53 +264,12 @@ To assess the role of different tracking approaches in MOT, we conduct a compreh
 
 
 % --------------------------------------- CV-8D ------------------------------------------------------------
-\subsubsection{8D Constant-Velocity Baseline (CV-8D) — Kalman state-space configuration}
+\subsubsection{8D Constant-Velocity Baseline (CV-8D)}
 We first evaluate the widely used 8D constant-velocity model, the core of the standard DeepSORT framework, which assumes linear, constant-speed motion in the image plane. This model is configured with standard DeepSORT parameters optimized for general tracking scenarios.
-CV-8D model uses constant-velocity dynamics and linear observation.\\
- Specifically,
-\textbf{State vector:}
-\begin{equation}
-\mathbf{x}_k = [x, y, a, h, \dot{x}, \dot{y}, \dot{a}, \dot{h}]^T \in \mathbb{R}^{8}
-\end{equation}
-
-\textbf{State transition matrix:}
-\begin{equation}
-\mathbf{F} = \begin{bmatrix}
-1 & 0 & 0 & 0 & \Delta t & 0 & 0 & 0 \\
-0 & 1 & 0 & 0 & 0 & \Delta t & 0 & 0 \\
-0 & 0 & 1 & 0 & 0 & 0 & \Delta t & 0 \\
-0 & 0 & 0 & 1 & 0 & 0 & 0 & \Delta t \\
-0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 \\
-0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\
-0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 \\
-0 & 0 & 0 & 0 & 0 & 0 & 0 & 1
-\end{bmatrix}_{8 \times 8}
-\end{equation}
-
-\textbf{Process noise covariance:}
-\begin{equation}
-\mathbf{Q}_k = \text{diag}(\sigma_{pos}^2 h, \sigma_{pos}^2 h, 10^{-4}, \sigma_{pos}^2 h, \sigma_{vel}^2 h, \sigma_{vel}^2 h, 10^{-10}, \sigma_{vel}^2 h)
-\end{equation}
-with $\sigma_{pos} = 1/20$ and $\sigma_{vel} = 1/160$.
-
-\textbf{Observation vector:}
-\begin{equation}
-\mathbf{z}_k = [x, y, a, h]^T \in \mathbb{R}^{4}
-\end{equation}
-
-\textbf{Observation matrix:}
-\begin{equation}
-\mathbf{H} = \begin{bmatrix}
-1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
-0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\
-0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 \\
-0 & 0 & 0 & 1 & 0 & 0 & 0 & 0
-\end{bmatrix}_{4 \times 8}
-\end{equation}
-To ensure fair comparison, we integrate this model as a pluggable motion component under a unified framework with identical detector inputs, tracker hyperparameters (e.g., cascade ages, IoU thresholds), gating, and geometry constraints. Thus, observed differences stem solely from motion modeling.
+CV-8D model uses constant-velocity dynamics and linear observation with 8D state vector $[x, y, a, h, \dot{x}, \dot{y}, \dot{a}, \dot{h}]^T$ and measurement $[x, y, a, h]^T$. The complete mathematical formulation is provided in Chapter~4. To ensure fair comparison, we integrate this model as a pluggable motion component under a unified framework with identical detector inputs, tracker hyperparameters (e.g., cascade ages, IoU thresholds), gating, and geometry constraints. Thus, observed differences stem solely from motion modeling.
 
 \textbf{Tab.}~\ref{tab:CV8DResults} reports average performance on MOT-RPCH: MOTA=64.11\%, IDF1=76.66\%. Deeper analysis reveals limitations: \\
-(1) poor identity preservation with on average 24 identity switches per video (up to 112 in complex sequences like Video 14);\\
+(1) identity preservation with on average 24 identity switches per video (up to 112 in complex sequences like Video 14);\\
 (2) reduced association robustness with high FP (avg 480) and Misses (avg 645), indicating linear prediction struggles to reconnect after occlusions;\\
 (3) downstream counting errors: mean relative error 14.59\% with large variance (e.g., 150\% in Video 1 vs 0\% in Video 2). These findings motivate stronger motion models.
 \begin{table}[H]
@@ -367,46 +326,9 @@ Avg & 64.11 & 19.52 & 76.66 & 77.66 & 76.14 & 24 & 2807 & 480 & 645 & 0.53 & 83.
 \end{figure}
 
 % --------------------------------------- CA-12D ------------------------------------------------------------
-\subsubsection{12D Constant-Acceleration Model (CA-12D) — Kalman state-space configuration}
+\subsubsection{12D Constant-Acceleration Model (CA-12D)}
 To model nonlinear motion, we extend the baseline with explicit accelerations $\ddot{x}, \ddot{y}, \ddot{a}, \ddot{h}$. This model employs adjusted noise parameters and gating thresholds to handle the increased state dimensionality and potential instability from acceleration terms.
-The state of CA-12D is \([x, y, a, h, v_x, v_y, v_a, v_h, a_x, a_y, a_a, a_h]^\top\), with measurements \([x, y, a, h]^\top\). This better captures deceleration during arrivals and short bursts under occlusions.
-
-\textbf{State vector:}
-\begin{equation}
-\mathbf{x}_k = [x, y, a, h, \dot{x}, \dot{y}, \dot{a}, \dot{h}, \ddot{x}, \ddot{y}, \ddot{a}, \ddot{h}]^T \in \mathbb{R}^{12}
-\end{equation}
-
-\textbf{State transition:}
-\begin{equation}
-\mathbf{F} = \begin{bmatrix}
-\mathbf{I}_4 & \Delta t \cdot \mathbf{I}_4 & \tfrac{1}{2}\Delta t^2 \cdot \mathbf{I}_4 \\
-\mathbf{0}_{4 \times 4} & \mathbf{I}_4 & \Delta t \cdot \mathbf{I}_4 \\
-\mathbf{0}_{4 \times 4} & \mathbf{0}_{4 \times 4} & \mathbf{I}_4
-\end{bmatrix}_{12 \times 12}
-\end{equation}
-
-\textbf{Dynamics:}
-\begin{align}
-\mathbf{p}_{k+1} &= \mathbf{p}_k + \mathbf{v}_k \Delta t + \tfrac{1}{2}\mathbf{a}_k \Delta t^2 \\
-\mathbf{v}_{k+1} &= \alpha_v \mathbf{v}_{k+1}^{pred} + (1-\alpha_v) \mathbf{v}_k, \quad \alpha_v = 0.85 \\
-\mathbf{a}_{k+1} &= \alpha_a \mathbf{a}_{k+1}^{pred} + (1-\alpha_a) \mathbf{a}_k, \quad \alpha_a = 0.7
-\end{align}
-
-\textbf{Process noise covariance:}
-\begin{equation}
-\mathbf{Q}_k = \text{diag}(\sigma_{pos}^2 h, \sigma_{vel}^2 h, \sigma_{acc}^2 h) \otimes \mathbf{I}_4
-\end{equation}
-with $\sigma_{pos} = 1/20$, $\sigma_{vel} = 1/160$, $\sigma_{acc} = 1/10$.
-
-\textbf{Observation:}
-\begin{equation}
-\mathbf{z}_k = [x, y, a, h]^T \in \mathbb{R}^{4}
-\end{equation}
-
-\textbf{Observation matrix:}
-\begin{equation}
-\mathbf{H} = [\mathbf{I}_4, \mathbf{0}_{4 \times 4}, \mathbf{0}_{4 \times 4}]_{4 \times 12}
-\end{equation}
+CA-12D extends the baseline with explicit accelerations, using 12D state vector $[x, y, a, h, v_x, v_y, v_a, v_h, a_x, a_y, a_a, a_h]^T$ and measurement $[x, y, a, h]^T$. This better captures deceleration during arrivals and short bursts under occlusions. The complete mathematical formulation is provided in Chapter~4.
 On MOT-RPCH, CA-12D attains average MOTA=67.54\%, MOTP=17.42\%, IDF1=75.29\%, IDP=81.41\%, IDR=70.4\%, ID Switches=39, FP=278, Precision=89.73\%, Recall=77.51\%, and counting MAPE=6.99\% (\textbf{Tab.}~\ref{tab:CA12DResults}). Compared to CV-8D, it reduces FP substantially and halves counting error, confirming stability gains for counting. However, identity switches increase (from 24 to 39) and IDF1 slightly drops, reflecting sensitivity to noise in a higher-dimensional state.
 \begin{table}[H]
 \centering
@@ -463,52 +385,9 @@ Avg & 67.54 & 17.42 & 75.29 & 81.41 & 70.4 & 39.15 & 2587 & 278 & 850 & 0.30 & 8
 \end{figure}
 
 % --------------------------------------- Phys-5D ------------------------------------------------------------
-\subsubsection{5D Physics-Constrained Model (Phys-5D) — Kalman state-space configuration}
+\subsubsection{5D Physics-Constrained Model (Phys-5D)}
 To overcome the limitations of image-plane kinematics, we introduce a 5D model that lifts estimation to 3D via pinhole geometry and scene priors. This model uses specialized camera calibration parameters, adaptive noise modeling, and physics-based gating criteria tailored to the 3D-to-2D projection constraints.
-For Phys-5D, We relate pixel height $h$ to depth $Z$ via $Z=fH/h$, with state \([u,v,h,Z,\dot{Z}]^\top\) and measurement \([u,v,h]^\top\). We explicitly update $Z$ and $h$ through projection and back-projection, and impose an adaptive deceleration prior on $\dot{Z}$ to reflect typical motion near the camera. Implementation references: \texttt{physical3dkf\_5d.py}, \texttt{deep\_sort/custom\_kf5d.py}.
-
-\textbf{State:}
-\begin{equation}
-\mathbf{x}_k = [u, v, h_{px}, Z, \dot{Z}]^T \in \mathbb{R}^{5}
-\end{equation}
-
-\textbf{Geometric constraints:}
-\begin{equation}
-h_{px} = \frac{f \cdot H}{Z}, \quad Z = \frac{f \cdot H}{h_{px}}
-\end{equation}
-with focal length $f$ (pixels) and head height $H=0.3$ m.
-
-\textbf{Depth dynamics:}
-\begin{align}
-Z_{k+1} &= Z_k + \dot{Z}_k \Delta t + \tfrac{1}{2}a_Z \Delta t^2 \\
-\dot{Z}_{k+1} &= \dot{Z}_k + a_Z \Delta t
-\end{align}
-
-\textbf{Adaptive deceleration prior:}
-\begin{equation}
-a_Z = -\text{sign}(\dot{Z}) \cdot \min\Big(a_{max}, \frac{\dot{Z}^2}{2Z}\Big), \quad a_{max} = 1.0\,\text{m/s}^2
-\end{equation}
-
-\textbf{Process noise covariance:}
-\begin{equation}
-\mathbf{Q}_k = \text{diag}(\sigma_{pos}^2 h_{px}, \sigma_{pos}^2 h_{px}, \sigma_{pos}^2 h_{px}, \sigma_{vel}^2 h_{px}, \sigma_{vel}^2 h_{px})
-\end{equation}
-with $\sigma_{pos} = 1/2$, $\sigma_{vel} = 1/15$.
-
-\textbf{Observation:}
-\begin{equation}
-\mathbf{z}_k = [u, v, h_{px}]^T \in \mathbb{R}^{3}
-\end{equation}
-
-\textbf{Observation matrix:}
-\begin{equation}
-\mathbf{H} = \begin{bmatrix}
-1 & 0 & 0 & 0 & 0 \\
-0 & 1 & 0 & 0 & 0 \\
-0 & 0 & 1 & 0 & 0
-\end{bmatrix}_{3 \times 5}
-\end{equation}
-We note that despite physics constraints, the model remains image-based and is influenced by image quality and calibration uncertainties. We use fSpy to perform camera calibration on the captured videos, with results shown in \textbf{Tab.}~\ref{tab:Cameracalibration}.
+Phys-5D lifts estimation from 2D to 3D via pinhole geometry, relating pixel height $h$ to depth $Z$ via $Z=fH/h$, with state $[u,v,h,Z,\dot Z]^T$ and measurement $[u,v,h]^T$. The model incorporates adaptive deceleration priors and geometric constraints. The complete mathematical formulation is provided in Chapter~4. We use fSpy to perform camera calibration on the captured videos, with results shown in \textbf{Tab.}~\ref{tab:Cameracalibration}.
 
 \begin{table}[H]
     \centering
@@ -614,6 +493,8 @@ In summary, Phys-5D integrates camera geometry and motion priors to lift from 2D
 
 \subsubsection{Comparative Analysis of Three Kalman State-Space (Kinematic) Model Configurations}
 We evaluate three distinct tracking models, each optimized with its own best-performing configuration rather than conducting a controlled ablation study. Each model incorporates different motion dynamics, state representations, gating logics, and domain-specific optimizations to maximize its individual performance. \textbf{Tab.}~\ref{tab:3modelsCountingComparisonResults} compares their counting performance under these optimized settings.
+
+\textbf{Results Summary:} The three models show distinct performance characteristics. CV-8D achieves baseline performance with MAPE=14.59\%, CA-12D reduces counting error to MAPE=6.99\%, and Phys-5D achieves the best performance with MAPE=2.24\%. Detailed analysis of these results and their implications are presented in Chapter~6.
 \begin{table}[H]
     \centering
     \resizebox{0.6\textwidth}{!}{%
@@ -733,18 +614,25 @@ Best configuration: Start=0.05, End=0.20 achieves MAE=0.90, RMSE=1.38, MAPE=2.97
 \end{table}
 
 \subsection{Summary}
-We validate the detect–track–count framework comprehensively:
+This chapter presents comprehensive experimental validation of our detect–track–count framework:
+
+\textbf{Detector Performance:} Two-stage transfer learning achieves mAP50 from 79.4\%→98.0\% and mAP50–95 from 54.7\%→81.6\% on target data.
+
+\textbf{Tracking Model Results:} Three Kalman state-space configurations were evaluated:
 \begin{itemize}
-    \item High-accuracy detector: two-stage training yields mAP50 from 79.4\%→98.0\% and mAP50–95 from 54.7\%→81.6\% on target data.
-    \item Tracking model comparison: We evaluate three distinct tracking approaches under their optimal configurations. CV-8D (baseline) provides stable identity tracking but limited counting accuracy (MAPE=14.59\%). CA-12D reduces counting error significantly (MAPE=6.99\%) through acceleration modeling but suffers from increased identity switches. Phys-5D achieves the best overall performance (MAPE=2.24\%, MAE=0.75) by integrating physics constraints while maintaining identity consistency.
-    \item Counting method ablation: the proposed virtual band (Start=0.05, End=0.20) far outperforms line-crossing (e.g., MAE=0.90 vs 31.28; MAPE=2.97\% vs 93.43\%), confirming the necessity of width and persistence.
+    \item CV-8D (baseline): MAPE=14.59\%, MAE=3.4, ID switches=24
+    \item CA-12D (acceleration): MAPE=6.99\%, MAE=2.4, ID switches=39.15  
+    \item Phys-5D (physics-constrained): MAPE=2.24\%, MAE=0.75, ID switches=24.8
 \end{itemize}
-Overall, the combination of YOLOv11m (detector) + Phys-5D (tracker) + optimized virtual counting band constitutes an effective solution for platform crowd counting, delivering robust identity preservation and state-of-the-art counting accuracy. All system components utilize the configurations and weights determined through the ablation studies presented in this chapter, ensuring optimal performance without requiring additional training.
+
+\textbf{Counting Method Results:} Virtual counting band (Start=0.05, End=0.20) significantly outperforms line-crossing (MAE=0.90 vs 31.28; MAPE=2.97\% vs 93.43\%).
+
+\textbf{System Integration:} The combination of YOLOv11m detector + Phys-5D tracker + virtual counting band achieves state-of-the-art counting accuracy with MAPE=2.24\%. Detailed analysis and interpretation of these results are provided in Chapter~6.
 
 \iffalse
 
 % -------------------------以下是中文版本---------------------------------------%
-本章围绕"检测—跟踪—计数"的整体流程，系统评估了所提出的人群头部检测与站台场景多目标跟踪计数方法。我们以YOLO11m作为检测器，结合基于EfficientNet-B0 的ReID外观描述模型，并在DeepSORT框架内分别接入三类运动模型以开展实验，包括：8维度匀速基准模型（标准DeepSORT卡尔曼滤波器）；12维度加速度模型以及结合针孔相机集合约束的5维度物理模型。在Data章节所提供的具有MOT标注格式的数据上进行评估，其中检测器训练与微调所用的静态图像数据集与多段视频序列互相补充，既涵盖了通用的拥挤场景，也覆盖了列车进站期间不同密度的平台场景。
+本章系统性地评估了我们提出的检测-跟踪-计数框架。我们采用YOLOv11m作为检测器，基于EfficientNet-B0的ReID外观描述符，以及DeepSORT框架内的三种卡尔曼状态空间（运动学）模型配置，实现稳健的多目标跟踪。我们评估：（i）标准8维匀速基线（经典DeepSORT卡尔曼滤波器），（ii）具有调整噪声建模的12维恒定加速度模型，以及（iii）基于针孔相机几何的5维物理约束模型。评估在数据章节提供的MOT格式数据上进行；检测器的训练和微调利用互补的静态图像和多片段视频序列，涵盖通用拥挤场景和列车到达期间不同密度的平台场景。
 
 
 1.检测器YOLO11m的训练与微调
