@@ -1,20 +1,20 @@
 \clearpage
 \section{Methods}\label{section::Methods}
 
-This chapter presents our complete method for accurate crowd counting on railway platforms. We propose a detect–track–count pipeline that combines YOLOv11m head detection, EfficientNet-B0-based ReID feature extraction, and three Kalman state-space configurations within DeepSORT for robust multi-object tracking. Our key innovation is the Phys-5D physics-constrained tracker that leverages camera geometry and scene priors to stabilize identity consistency and achieve superior counting accuracy. The complete system architecture, implementation details, and algorithmic specifications are provided in this chapter, with experimental validation and comparative analysis presented in Chapter~5.
+This chapter presents our complete method for accurate crowd counting on railway platforms. We propose a detect–track–count pipeline that combines YOLOv11m head detection, EfficientNet-B0-based ReID feature extraction, and three Kalman state-space configurations within DeepSORT for robust multi-object tracking. Our key innovation is the Phys-5D physics-constrained tracker that leverages camera geometry and scene priors to stabilize identity consistency and achieve superior counting accuracy. The complete system architecture, implementation details, and algorithmic specifications are provided in this chapter, with experimental validation and comparative analysis presented in \textbf{Chapter~5}.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.95\textwidth]{pictures/OurMulti-ObjectTrackingSystemArchitecture.png}
-    \caption{Overall multi-object tracking system architecture.}
+    \includegraphics[width=0.8\textwidth]{pictures/OurMulti-ObjectTrackingSystemArchitecture.png}
+    \caption{Overall Multi-object Tracking System Architecture.}
     \label{fig:OurMOTSystemArchitecture}
 \end{figure}
 
 \subsection{Proposed Method (Our Method)}
 
-We tackle platform crowd counting with a detect–track–count pipeline tailored to station-arrival videos with dense occlusions and strong perspective effects. The system (Fig.~\ref{fig:OurMOTSystemArchitecture}) comprises: (i) head detection using YOLOv11m to mitigate body-occlusion issues and stabilize small-object localization; (ii) appearance embeddings via EfficientNet-B0 to support identity recovery under long/partial occlusions; (iii) multi-object tracking under DeepSORT with three Kalman state-space (kinematic) model configurations for analysis (CV-8D, CA-12D, and the proposed physics-constrained Phys-5D); and (iv) a robust counting strategy using a nonzero-width virtual counting band with frame-persistence and ID de-duplication. Design choices are driven by platform-specific challenges: head cues are less occluded than full bodies, perspective causes systematic size–depth coupling that can be regularized by geometry, and thin line-crossing is brittle under jitter/occlusion, motivating a band-with-persistence.
+We tackle platform crowd counting with a detect–track–count pipeline tailored to station-arrival videos with dense occlusions and strong perspective effects. The system (\textbf{Fig.}~\ref{fig:OurMOTSystemArchitecture}) comprises: (i) head detection using YOLOv11m to mitigate body-occlusion issues and stabilize small-object localization; (ii) appearance embeddings via EfficientNet-B0 to support identity recovery under long/partial occlusions; (iii) multi-object tracking under DeepSORT with three Kalman state-space (kinematic) model configurations for analysis (CV-8D, CA-12D, and the proposed physics-constrained Phys-5D); and (iv) a robust counting strategy using a nonzero-width virtual counting band with frame-persistence and ID de-duplication. Design choices are driven by platform-specific challenges: head cues are less occluded than full bodies, perspective causes systematic size–depth coupling that can be regularized by geometry, and thin line-crossing is brittle under jitter/occlusion, motivating a band-with-persistence.
 
-In summary, our method detects heads, tracks identities with geometry-aware kinematics, and counts via a persistence-based virtual band. Each component is selected or designed to address a specific failure mode in platform scenes, and Section~\ref{section::Experiments and Results} presents controlled comparisons under identical non-motion settings to validate these choices.
+In summary, our method detects heads, tracks identities with geometry-aware kinematics, and counts via a persistence-based virtual band. Each component is selected or designed to address a specific failure mode in platform scenes, and \textbf{Chapter}~\ref{section::Experiments and Results} presents controlled comparisons under identical non-motion settings to validate these choices.
 
 \subsection{Scene and Imaging Model}
 We model a forward-facing camera rigidly mounted near the train head, with the optical axis aligned with the track tangent. Pedestrians on the platform stand at lateral distance $D$ from the track and have average head height $H$. Let $(u,v)$ be pixel coordinates with intrinsics $(f,c_u,c_v)$. Denote by $x(t)$ the along-track distance from camera to a target head. During arrival, motion is captured by
@@ -27,11 +27,11 @@ u(t)=c_u+f\tfrac{D}{x(t)},\quad v(t)=c_v+f\tfrac{H}{x(t)},\quad h_{\mathrm{px}}=
 \end{equation}
 which provides a stable mapping between apparent size and depth. This scene model underpins the Phys-5D tracker by explicitly coupling pixel height and $Z$, and guides counting-band placement near image borders where perspective magnification and occlusions are prominent. Camera intrinsics used in experiments are reported with the calibration results in Chapter~5.
 
-Figure~\ref{fig:3TrackingTrackGraph} illustrates the 2D planar trajectory visualization of human head bounding box centers from three video sequences, generated from MOT-format ground truth annotations. This visualization demonstrates the typical movement patterns and spatial distribution of pedestrian trajectories in our railway platform scenarios.
+\textbf{Figure}~\ref{fig:3TrackingTrackGraph} illustrates the 2D planar trajectory visualization of human head bounding box centers from three video sequences, generated from MOT-format ground truth annotations. This visualization demonstrates the typical movement patterns and spatial distribution of pedestrian trajectories in our railway platform scenarios.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.8\textwidth]{pictures/3 Tracking Track Graph.png}
+    \includegraphics[width=0.95\textwidth]{pictures/3 Tracking Track Graph.png}
     \caption{2D planar trajectory visualization of human head bounding box centers from three video sequences, generated from MOT-format ground truth annotations.}
     \label{fig:3TrackingTrackGraph}
 \end{figure}
@@ -151,7 +151,7 @@ Each detection branch ends with Conv2D layers that reduce features to the requir
 We next introduce the DeepSORT multi-object tracker as used in our method. Our tracker fuses appearance (EfficientNet-B0 embeddings) and motion (Kalman state-space models) with cascaded association to preserve identities under occlusions. DeepSORT\cite{211}, an extension of SORT\cite{220}, combines deep appearance embeddings with motion information. The pipeline (\textbf{Fig.}~\ref{fig:DeepSORT-cn}) comprises deep appearance feature extraction, a Kalman filter, and data association.
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.95\textwidth]{pictures/DeepSORTAlgorithmStructure.png}
+    \includegraphics[width=0.99\textwidth]{pictures/DeepSORTAlgorithmStructure.png}
     \caption{DeepSORT architecture\cite{212}}
     \label{fig:DeepSORT-cn}
 \end{figure}
@@ -306,7 +306,7 @@ For trains decelerating into stations, we consider a perspective projection with
 u(t)=c_u+f\frac{D}{x(t)},\quad
 v(t)=c_v+f\frac{H}{x(t)},
 \end{equation}
-where $x(t)=x_0+v_0 t + \tfrac{1}{2} a t^{2}$ with deceleration $a<0$. The head bounding-box area scales as $A(t) \propto x^{-2}(t)$, exhibiting rapid magnification until the train passes. We construct and evaluate extended state models (adding acceleration) as well as a 5D perspective state vector grounded in this geometry; experimental settings and results are detailed in Section 5.
+where $x(t)=x_0+v_0 t + \tfrac{1}{2} a t^{2}$ with deceleration $a<0$. The head bounding-box area scales as $A(t) \propto x^{-2}(t)$, exhibiting rapid magnification until the train passes. We construct and evaluate extended state models (adding acceleration) as well as a 5D perspective state vector grounded in this geometry; experimental settings and results are detailed in \textbf{Chapter} 5.
 
 \subsubsection{Appearance Feature Extraction (Re-ID)}
 Appearance descriptors are crucial for long-occlusion recovery and ID consistency. The original DeepSORT uses a compact residual CNN that outputs a 128-D descriptor with L2 normalization \cite{116}. Typical components include convolution and pooling layers, multiple residual blocks, and a final FC + L2 layer. The descriptors lie on the unit hypersphere for cosine similarity.Training commonly uses large-scale video person Re-ID datasets such as MARS \cite{214} or Market-1501 \cite{215} with identity labels and bounding boxes to ensure robustness to illumination, pose, and viewpoint changes. For our specific scenario, we utilize a custom-built dataset, with detailed statistics provided in \textbf{Tab.}~\ref{tab:ReIDDataDistribution} in Chapter 3.\\
@@ -397,7 +397,7 @@ In video-based person re-identification (ReID) tasks, selecting lightweight back
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.7\linewidth]{pictures/ComparisonofEfficient.png}
-    \caption{Comparison of EfficientNet with different networks on ImageNet\cite{219}}
+    \caption{Comparison of EfficientNet with Different Networks on ImageNet\cite{219}}
     \label{fig:ComparisonofEfficient}
 \end{figure}
 
@@ -440,7 +440,7 @@ Parameters of Kalman filtering (state model, Q, R), gating thresholds, cost weig
 In our method, given YOLOv11 detections and DeepSORT trajectories, we design a reliable counting algorithm that avoids double-counting. Pure detection summation over frames would overcount the same target repeatedly; counting must therefore operate on unique track IDs.
 
 \subsubsection{Traditional line-crossing and limitations}
-The mainstream approach is line/zone crossing \cite{22_hsu_passenger_2020, 204, 68_zhao_detection_2022}, which triggers a count when a trajectory crosses a virtual line. In crowded scenes, brief occlusions near the line can cause severe undercounting (e.g., three people cross abreast but the middle person is fully occluded). As shown in our ablations (Section 5), a zero-width line (bandwidth 0) can yield MAPE as high as 93.43%.
+The mainstream approach is line/zone crossing \cite{22_hsu_passenger_2020, 204, 68_zhao_detection_2022}, which triggers a count when a trajectory crosses a virtual line. In crowded scenes, brief occlusions near the line can cause severe undercounting (e.g., three people cross abreast but the middle person is fully occluded). As shown in our ablations (\textbf{Chapter} 5), a zero-width line (bandwidth 0) can yield MAPE as high as 93.43%.
 
 \subsubsection{Virtual counting band (ours)}
 We propose a Virtual Counting Band with nonzero width near the left/right image borders (\textbf{Fig.}~\ref{fig:VirtualCountingZone}), defined by start/end boundaries as proportions of image width. A target is counted only if it is continuously observed within the band for a preset number of frames. This design:

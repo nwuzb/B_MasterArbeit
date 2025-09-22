@@ -87,7 +87,7 @@ This yields 64 combinations. Results are summarized in \textbf{Tab.}~\ref{tab:T2
 
 \begin{table}[H]
     \centering
-    \resizebox{0.62\textwidth}{!}{%
+    \resizebox{0.6\textwidth}{!}{%
     \scriptsize
     \renewcommand{\arraystretch}{1.3}
     \begin{tabular}{ccccccccc}
@@ -321,7 +321,7 @@ Avg & 64.11 & 19.52 & 76.66 & 77.66 & 76.14 & 24 & 2807 & 480 & 645 & 0.53 & 83.
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.6\textwidth]{pictures/P21CV8DResultsvideoFrame.png}
-    \caption{Intermediate tracking frame with the 8D state-vector model}
+    \caption{Intermediate Tracking Frame with the 8D State-vector Model}
     \label{fig:P21CV8DResultsvideoFrame}
 \end{figure}
 
@@ -380,7 +380,7 @@ Avg & 67.54 & 17.42 & 75.29 & 81.41 & 70.4 & 39.15 & 2587 & 278 & 850 & 0.30 & 8
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.8\textwidth]{pictures/CA12framedeomo.png}
-    \caption{Intermediate tracking frame with the 12D state-vector model}
+    \caption{Intermediate Tracking Frame with the 12D State-vector Model}
     \label{fig:CA12framedeomo}
 \end{figure}
 
@@ -395,7 +395,7 @@ Phys-5D lifts estimation from 2D to 3D via pinhole geometry, relating pixel heig
     \renewcommand{\arraystretch}{1.3}
     \begin{tabular}{cccccc}
     \midrule
-        \textbf{No.} & \textbf{F\_PIXELS} & \textbf{CX} & \textbf{CY} & \textbf{Counting} \\ \midrule
+        \textbf{ Video No.} & \textbf{F\_PIXELS} & \textbf{CX} & \textbf{CY} & \textbf{Counting} \\ \midrule
         1 & 1173.03 & 944.25 & 484.58 & 4  \\ 
         \rowcolor{gray!10}
         2 & 1173.03 & 944.25 & 484.58 & 8  \\ 
@@ -434,7 +434,7 @@ Phys-5D lifts estimation from 2D to 3D via pinhole geometry, relating pixel heig
 
 The calibration results reveal distinct camera configurations across the dataset: videos 1-3 use a different camera setup (f=1173.03), while videos 4-7, 13-14, 18-20 employ 4K cameras (f=1600.3), and videos 8-12, 15-17 utilize 2K cameras (f=795.0). These intrinsic parameters are crucial for the Phys-5D model's 3D-to-2D projection constraints and depth estimation accuracy.
 
-On MOT-RPCH (20 videos), Phys-5D achieves average MOTA=67.21\%, MOTP=17.41\%, IDF1=76.29\%, IDP=82.23\%, IDR=71.51\%, ID Switches=24.8, FP=290, Precision=89.06\%, Recall=77.45\%, and counting MAPE=2.24\% (Table~\ref{tab:Phys5DResults}). Notably, identity switches regress to baseline levels (24.8 vs 24), far below CA-12D (39), while counting error reaches the best level. This demonstrates that physics priors regularize state evolution, avoiding identity confusion from 2D size fluctuations, and translating into superior counting.
+On MOT-RPCH (20 videos), Phys-5D achieves average MOTA=67.21\%, MOTP=17.41\%, IDF1=76.29\%, IDP=82.23\%, IDR=71.51\%, ID Switches=24.8, FP=290, Precision=89.06\%, Recall=77.45\%, and counting MAPE=2.24\% (\textbf{Table}~\ref{tab:Phys5DResults}). Notably, identity switches regress to baseline levels (24.8 vs 24), far below CA-12D (39), while counting error reaches the best level. This demonstrates that physics priors regularize state evolution, avoiding identity confusion from 2D size fluctuations, and translating into superior counting.
 \begin{table}[H]
 \centering
 \resizebox{\textwidth}{!}{%
@@ -485,7 +485,7 @@ Avg. & 67.21 & 17.41 & 76.29 & 82.23 & 71.51 & 24.80 & 2609 & 290 & 842 & 0.32 &
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.8\textwidth]{pictures/Phys5Dframedeomo.png}
-    \caption{Intermediate tracking frame with the 5D state-vector model}
+    \caption{Intermediate Tracking Frame with the 5D State-vector Model}
     \label{fig:Phys5Dframedeomo}
 \end{figure}
 In summary, Phys-5D integrates camera geometry and motion priors to lift from 2D to 3D reasoning, greatly stabilizing trajectories and identity consistency, and achieving the best counting accuracy.
