@@ -3983,3 +3983,52 @@ doi = {10.3390/app13179895}
   annotation = {TLDR: Despite only using a rudimentary combination of familiar techniques such as the Kalman Filter and Hungarian algorithm for the tracking components, this approach achieves an accuracy comparable to state-of-the-art online trackers.},
   file = {/Users/binzeng/Zotero/storage/3LL5RSYW/Bewley 等 - 2016 - Simple Online and Realtime Tracking.pdf;/Users/binzeng/Zotero/storage/IWRTBBFS/1602.html}
 }
+
+@article{depth_estimation_2013,
+title = {High-resolution depth for binocular image-based modeling},
+journal = {Computers & Graphics},
+volume = {39},
+pages = {89-100},
+year = {2014},
+issn = {0097-8493},
+doi = {https://doi.org/10.1016/j.cag.2013.12.001},
+url = {https://www.sciencedirect.com/science/article/pii/S0097849313002045},
+author = {David C. Blumenthal-Barby and Peter Eisert},
+keywords = {3D reconstruction, Image-based modeling, Optimization, Interaction in 3D reconstruction},
+abstract = {We propose a binocular stereo method which is optimized for reconstructing surface detail and exploits the high image resolutions of current digital cameras. Our method occupies a middle ground between stereo algorithms focused on depth layering of cluttered scenes and multi-view "object reconstruction" approaches which require a higher view count. It is based on global non-linear optimization of continuous scene depth rather than discrete pixel disparities. We propose a mesh-based data-term for large images, and a smoothness term using robust error norms to allow detailed surface geometry. We show that the continuous optimization approach enables interesting extensions beyond the core algorithm: Firstly, with small changes to the data-term camera parameters instead of depth can be optimized in the same framework. Secondly, we argue that our approach is well suited for a semi-interactive reconstruction work-flow, for which we propose several tools.}
+}
+
+@Article{s23136138,
+AUTHOR = {Kovalenko, Mykyta and Przewozny, David and Eisert, Peter and Bosse, Sebastian and Chojecki, Paul},
+TITLE = {Data Fusion for Cross-Domain Real-Time Object Detection on the Edge},
+JOURNAL = {Sensors},
+VOLUME = {23},
+YEAR = {2023},
+NUMBER = {13},
+ARTICLE-NUMBER = {6138},
+URL = {https://www.mdpi.com/1424-8220/23/13/6138},
+PubMedID = {37447986},
+ISSN = {1424-8220},
+ABSTRACT = {We investigate an edge-computing scenario for robot control, where two similar neural networks are running on one computational node. We test the feasibility of using a single object-detection model (YOLOv5) with the benefit of reduced computational resources against the potentially more accurate independent and specialized models. Our results show that using one single convolutional neural network (for object detection and hand-gesture classification) instead of two separate ones can reduce resource usage by almost 50%. For many classes, we observed an increase in accuracy when using the model trained with more labels. For small datasets (a few hundred instances per label), we found that it is advisable to add labels with many instances from another dataset to increase detection accuracy.},
+DOI = {10.3390/s23136138}
+}
+
+@article{pose_estimation_2022,
+title = {Combining Local and Global Pose Estimation for Precise Tracking of Similar Objects},
+author = {Niklas Gard and Anna Hilsmann and Peter Eisert},
+journal = {arXiv preprint},
+year = {2022},
+eprint = {2201.13278},
+url = {https://arxiv.org/abs/2201.13278},
+abstract = {In this paper, we present a multi-object 6D detection and tracking pipeline for potentially similar and non-textured objects. The combination of a convolutional neural network for object classification and rough pose estimation with a local pose refinement and an automatic mismatch detection enables direct application in real-time AR scenarios. A new network architecture, trained solely with synthetic images, allows simultaneous pose estimation of multiple objects with reduced GPU memory consumption and enhanced performance. In addition, the pose estimates are further improved by a local edge-based refinement step that explicitly exploits known object geometry information. For continuous movements, the sole use of local refinement reduces pose mismatches due to geometric ambiguities or occlusions. We showcase the entire tracking pipeline and demonstrate the benefits of the combined approach. Experiments on a challenging set of non-textured similar objects demonstrate the enhanced quality compared to the baseline method. Finally, we illustrate how the system can be used in a real AR assistance application within the field of construction.}
+}
+
+@article{structured_light_2023,
+title = {System for 3D Acquisition and 3D Reconstruction using Structured Light for Sewer Line Inspection},
+author = {Johannes Künzel and Darko Vehar and Rico Nestler and Karl-Heinz Franke and Anna Hilsmann and Peter Eisert},
+journal = {arXiv preprint},
+year = {2023},
+eprint = {2303.02978},
+url = {https://arxiv.org/abs/2303.02978},
+abstract = {The assessment of sewer pipe systems is a highly important, but at the same time cumbersome and error-prone task. We introduce an innovative system based on single-shot structured light modules that facilitates the detection and classification of spatial defects like jutting intrusions, spallings, or misaligned joints. This system creates highly accurate 3D measurements with sub-millimeter resolution of pipe surfaces and fuses them into a holistic 3D model. The benefit of such a holistic 3D model is twofold: on the one hand, it facilitates the accurate manual sewer pipe assessment, on the other, it simplifies the detection of defects in downstream automatic systems as it endows the input with highly accurate depth information. In this work, we provide an extensive overview of the system and give valuable insights into our design choices.}
+}

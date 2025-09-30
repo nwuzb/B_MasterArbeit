@@ -17,15 +17,15 @@ We tackle platform crowd counting with a detect–track–count pipeline tailore
 In summary, our method detects heads, tracks identities with geometry-aware kinematics, and counts via a persistence-based virtual band. Each component is selected or designed to address a specific failure mode in platform scenes, and \textbf{Chapter}~\ref{section::Experiments and Results} presents controlled comparisons under identical non-motion settings to validate these choices.
 
 \subsection{Scene and Imaging Model}
-We model a forward-facing camera rigidly mounted near the train head, with the optical axis aligned with the track tangent. Pedestrians on the platform stand at lateral distance $D$ from the track and have average head height $H$. Let $(u,v)$ be pixel coordinates with intrinsics $(f,c_u,c_v)$, \textcolor{red}{where $f$ is the focal length, $c_u$ is the principal point x-coordinate, and $c_v$ is the principal point y-coordinate}. Denote by \textcolor{red}{$z(t)$} the along-track distance from camera to a target head. During arrival, motion is captured by
+We model a forward-facing camera rigidly mounted near the train head, with the optical axis aligned with the track tangent. Pedestrians on the platform stand at lateral distance $D$ from the track and have average head height $H$. Let $(u,v)$ be pixel coordinates with intrinsics $(f,c_u,c_v)$, where $f$ is the focal length, $c_u$ is the principal point x-coordinate, and $c_v$ is the principal point y-coordinate. Denote by $z(t)$ the along-track distance from camera to a target head. During arrival, motion is captured by
 \begin{equation}
-\textcolor{red}{z(t)=z_0+v_0 t + \tfrac{1}{2} a t^{2}, \quad a<0.}
+z(t)=z_0+v_0 t + \tfrac{1}{2} a t^{2}, \quad a<0.
 \end{equation}
 Under a pinhole model the projection obeys
 \begin{equation}
-\textcolor{red}{u(t)=c_u+f\tfrac{D}{z(t)},\quad v(t)=c_v+f\tfrac{H_{\mathrm{head}}}{z(t)},\quad h_{\mathrm{px}}=\tfrac{fH_{\mathrm{head}}}{Z},\ Z=\tfrac{fH_{\mathrm{head}}}{h_{\mathrm{px}}},}
+u(t)=c_u+f\tfrac{D}{z(t)},\quad v(t)=c_v+f\tfrac{H_{\mathrm{head}}}{z(t)},\quad h_{\mathrm{px}}=\tfrac{fH_{\mathrm{head}}}{Z},\ Z=\tfrac{fH_{\mathrm{head}}}{h_{\mathrm{px}}},
 \end{equation}
-\textcolor{red}{where $H_{\mathrm{head}}$ represents the height of the human head above the platform surface, and $Z$ is the depth coordinate in the camera coordinate system.} This provides a stable mapping between apparent size and depth. This scene model underpins the Phys-5D tracker by explicitly coupling pixel height and $Z$, and guides counting-band placement near image borders where perspective magnification and occlusions are prominent. Camera intrinsics used in experiments are reported with the calibration results in Chapter~5.
+where $H_{\mathrm{head}}$ represents the height of the human head above the platform surface, and $Z$ is the depth coordinate in the camera coordinate system. This provides a stable mapping between apparent size and depth. This scene model underpins the Phys-5D tracker by explicitly coupling pixel height and $Z$, and guides counting-band placement near image borders where perspective magnification and occlusions are prominent. Camera intrinsics used in experiments are reported with the calibration results in Chapter~5.
 
 \textbf{Figure}~\ref{fig:3TrackingTrackGraph} illustrates the 2D planar trajectory visualization of human head bounding box centers from three video sequences, generated from MOT-format ground truth annotations. This visualization demonstrates the typical movement patterns and spatial distribution of pedestrian trajectories in our railway platform scenarios.
 
@@ -54,7 +54,7 @@ We provide complete implementation specifications for reproducibility:
 
 In our method, YOLOv11m is used specifically for head detection to reduce occlusion-induced misses on full bodies and to stabilize localization for small targets. We adopt transfer learning and fine-tuning to specialize for platform heads (details summarized below and results in Chapter~5), while retaining the architectural advantages of YOLOv11 for real-time deployment.
 
-In 2015, Redmon et al. introduced the YOLO algorithm, a landmark in object detection \cite{76_redmon2016lookonceunifiedrealtime}. As its name suggests, YOLO detects objects and their locations in a single pass over the image by formulating detection as a regression problem, in contrast to traditional two-stage pipelines. As illustrated in \textbf{Fig.}~\ref{fig:yolosystem-cn} and \textbf{Fig.}~\ref{fig:yoloarchitecture-cn}, a single convolutional neural network (CNN) jointly predicts bounding boxes and class probabilities across the entire image \cite{77_Du_article}, simplifying the detection process compared to more complex traditional methods.
+In 2015, Redmon et al. introduced the YOLO algorithm, a landmark in object detection \cite{76_redmon2016lookonceunifiedrealtime}. As its name suggests, YOLO detects objects and their locations in a single pass over the image by formulating detection as a regression problem, in contrast to traditional two-stage pipelines. As illustrated in \textbf{Fig.}~\ref{fig:yolosystem-cn} and \textbf{Fig.}~\ref{fig:yoloarchitecture-cn}, a single convolutional neural network (CNN) jointly predicts bounding boxes and class probabilities across the entire image \cite{77_Du_article}, simplifying the detection process compared to more complex traditional methods. Recent studies have demonstrated the computational efficiency advantages of YOLO-based approaches in edge computing scenarios, where single-stage detection models can reduce resource usage by nearly 50\% compared to multiple specialized networks \cite{s23136138}.
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.8\textwidth]{pictures/The YOLO Detection System.png}
@@ -148,7 +148,7 @@ Each detection branch ends with Conv2D layers that reduce features to the requir
     • Class probabilities.\\
 
 \subsection{DeepSORT}
-We next introduce the DeepSORT multi-object tracker as used in our method. \textcolor{red}{Our implementation extends the standard DeepSORT framework with several key modifications: (1) we replace the original CNN-based appearance extractor with EfficientNet-B0 for improved feature quality; (2) we introduce three different Kalman state-space configurations (CV-8D, CA-12D, and Phys-5D) instead of the standard constant-velocity model; and (3) we adapt the association thresholds and parameters for railway platform scenarios.} \\Our tracker fuses appearance (EfficientNet-B0 embeddings) and motion (Kalman state-space models) with cascaded association to preserve identities under occlusions. DeepSORT\cite{211}, an extension of SORT\cite{220}, combines deep appearance embeddings with motion information. The pipeline (\textbf{Fig.}~\ref{fig:DeepSORT-cn}) comprises deep appearance feature extraction, a Kalman filter, and data association.
+We next introduce the DeepSORT multi-object tracker as used in our method. Our implementation extends the standard DeepSORT framework with several key modifications: (1) we replace the original CNN-based appearance extractor with EfficientNet-B0 for improved feature quality; (2) we introduce three different Kalman state-space configurations (CV-8D, CA-12D, and Phys-5D) instead of the standard constant-velocity model; and (3) we adapt the association thresholds and parameters for railway platform scenarios. Our tracker fuses appearance (EfficientNet-B0 embeddings) and motion (Kalman state-space models) with cascaded association to preserve identities under occlusions. Recent advances in multi-object tracking have demonstrated the effectiveness of combining local and global pose estimation for precise tracking of similar objects, particularly in scenarios with geometric ambiguities and occlusions \cite{pose_estimation_2022}. DeepSORT\cite{211}, an extension of SORT\cite{220}, combines deep appearance embeddings with motion information. The pipeline (\textbf{Fig.}~\ref{fig:DeepSORT-cn}) comprises deep appearance feature extraction, a Kalman filter, and data association.
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.99\textwidth]{pictures/DeepSORTAlgorithmStructure.png}
@@ -261,7 +261,7 @@ with $\sigma_{pos} = 1/20$, $\sigma_{vel} = 1/160$, $\sigma_{acc} = 1/10$.
 \end{equation}
 
 \subsubsection{Phys-5D: Physics-Constrained Model (Our Method)}
-The Phys-5D model represents our key innovation, lifting estimation from 2D image plane to 3D physical space using pinhole geometry constraints. This model uses 5D state vector $[u, v, h_{px}, Z, \dot{Z}]^T$ and measurement $[u, v, h_{px}]^T$.
+The Phys-5D model represents our key innovation, elevating estimation from 2D image plane to 3D physical space through pinhole geometry constraints. This model employs a 5D state vector $[u, v, h_{px}, Z, \dot{Z}]^T$ with measurements $[u, v, h_{px}]^T$. Our approach builds upon established depth estimation principles in computer vision \cite{depth_estimation_2013},their approach is based on global non-linear optimization of continuous scene depth rather than discrete pixel disparities, highlighting the critical importance of depth information, which inspired and supports our depth-based modeling approach. Additionally, recent advances in 3D reconstruction have underscored the critical importance of accurate depth information for robust object tracking and geometric understanding \cite{structured_light_2023}, thereby supporting our methodology of incorporating physical constraints into the tracking framework.
 
 \textbf{State vector:}
 \begin{equation}
@@ -270,9 +270,9 @@ The Phys-5D model represents our key innovation, lifting estimation from 2D imag
 
 \textbf{Geometric constraints:}
 \begin{equation}
-\textcolor{red}{h_{px} = \frac{f \cdot H_{\mathrm{head}}}{Z}, \quad Z = \frac{f \cdot H_{\mathrm{head}}}{h_{px}}}
+h_{px} = \frac{f \cdot H_{\mathrm{head}}}{Z}, \quad Z = \frac{f \cdot H_{\mathrm{head}}}{h_{px}}
 \end{equation}
-\textcolor{red}{with focal length $f$ (pixels) and head height $H_{\mathrm{head}}=0.3$ m above the platform surface.}
+with focal length $f$ (pixels) and head height $H_{\mathrm{head}}=0.3$ m above the platform surface.
 
 \textbf{Depth dynamics:}
 \begin{align}
@@ -301,12 +301,12 @@ with $\sigma_{pos} = 1/2$, $\sigma_{vel} = 1/15$.
 \end{equation}
 
 Physics-inspired perspective model for platform scenarios
-For trains decelerating into stations, we consider a perspective projection with camera mounted at the train head, optical axis aligned with the track tangent. Let platform pedestrians be at lateral distance $D$ and \textcolor{red}{head height $H_{\mathrm{head}}$ above the platform surface}. The image-plane projection obeys
+For trains decelerating into stations, we consider a perspective projection with camera mounted at the train head, optical axis aligned with the track tangent. Let platform pedestrians be at lateral distance $D$ and head height $H_{\mathrm{head}}$ above the platform surface. The image-plane projection obeys
 \begin{equation}
-\textcolor{red}{u(t)=c_u+f\frac{D}{z(t)},\quad
-v(t)=c_v+f\frac{H_{\mathrm{head}}}{z(t)},}
+u(t)=c_u+f\frac{D}{z(t)},\quad
+v(t)=c_v+f\frac{H_{\mathrm{head}}}{z(t)},
 \end{equation}
-\textcolor{red}{where $z(t)=z_0+v_0 t + \tfrac{1}{2} a t^{2}$ with deceleration $a<0$. The head bounding-box area scales as $A(t) \propto z^{-2}(t)$, exhibiting rapid magnification until the train passes.} We construct and evaluate extended state models (adding acceleration) as well as a 5D perspective state vector grounded in this geometry; experimental settings and results are detailed in \textbf{Chapter} 5.
+where $z(t)=z_0+v_0 t + \tfrac{1}{2} a t^{2}$ with deceleration $a<0$. The head bounding-box area scales as $A(t) \propto z^{-2}(t)$, exhibiting rapid magnification until the train passes. We construct and evaluate extended state models (adding acceleration) as well as a 5D perspective state vector grounded in this geometry; experimental settings and results are detailed in \textbf{Chapter} 5.
 
 \subsubsection{Appearance Feature Extraction (Re-ID)}
 Appearance descriptors are crucial for long-occlusion recovery and ID consistency. The original DeepSORT uses a compact residual CNN that outputs a 128-D descriptor with L2 normalization \cite{116}. Typical components include convolution and pooling layers, multiple residual blocks, and a final FC + L2 layer. The descriptors lie on the unit hypersphere for cosine similarity.Training commonly uses large-scale video person Re-ID datasets such as MARS \cite{214} or Market-1501 \cite{215} with identity labels and bounding boxes to ensure robustness to illumination, pose, and viewpoint changes. For our specific scenario, we utilize a custom-built dataset, with detailed statistics provided in \textbf{Tab.}~\ref{tab:ReIDDataDistribution} in Chapter 3.\\
