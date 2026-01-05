@@ -11,23 +11,20 @@ We tackle platform crowd counting with a detect–track–count pipeline tailore
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.8\textwidth]{pictures/OurMulti-ObjectTrackingSystemArchitecture.png}
-    \caption{Overall Multi-object Tracking System Architecture. The system integrates YOLOv11-based object detection, EfficientNet-B0 ReID feature extraction, and a 3D physical Kalman filter for robust pedestrian tracking. The pipeline consists of five modules: (1) Input, which includes video streams and ground-truth annotations in MOT format; (2) Detection, where YOLOv11 detects pedestrian bounding boxes (TLWH format); (3) ReID, which extracts 128-dimensional L2-normalized feature vectors using an EfficientNet-B0 encoder; (4) Tracking and Gating, which performs data association via a Hungarian algorithm combining appearance and IoU metrics, managed by a 3D Kalman filter with state variables \mathbf[X,\ Y,\ Z,\ \dot{Z},\ \ddot{Z},\ H] and multiple gating strategies including Mahalanobis distance, directional motion corridors, and adaptive thresholds; and (5) Output, which provides bilateral-zone counting, annotated visualization, and MOTChallenge performance evaluation (MOTA, IDF1, etc.). This modular architecture ensures accurate, stable, and interpretable tracking across video sequences.}
+\caption{Overall Multi-object Tracking System Architecture. The system integrates YOLOv11-based object detection, EfficientNet-B0 ReID feature extraction, and a 3D physical Kalman filter for robust pedestrian tracking. The pipeline consists of five modules: (1) Input, which includes video streams and ground-truth annotations in MOT format; (2) Detection, where YOLOv11 detects pedestrian bounding boxes (TLWH format); (3) ReID, which extracts 128-dimensional L2-normalized feature vectors using an EfficientNet-B0 encoder; (4) Tracking and Gating, which performs data association via a Hungarian algorithm combining appearance and IoU metrics, managed by a 3D Kalman filter with state variables ${[X,\ Y,\ Z,\ \dot{Z},\ \ddot{Z},\ H]}$ and multiple gating strategies including Mahalanobis distance, directional motion corridors, and adaptive thresholds; and (5) Output, which provides bilateral-zone counting, annotated visualization, and MOTChallenge performance evaluation (MOTA, IDF1, etc.). This modular architecture ensures accurate, stable, and interpretable tracking across video sequences.}
     \label{fig:OurMOTSystemArchitecture}
 \end{figure}
-% The system (\textbf{Fig.}~\ref{fig:OurMOTSystemArchitecture}) comprises: (i) head detection using YOLOv11m to mitigate body-occlusion issues and stabilize small-object localization; (ii) appearance embeddings via EfficientNet-B0 to support identity recovery under long/partial occlusions; (iii) multi-object tracking under DeepSORT with three Kalman state-space (kinematic) model configurations for analysis (CV-8D, CA-12D, and the proposed physics-constrained Phys-6D); and (iv) a robust counting strategy using a nonzero-width virtual counting band with frame-persistence and ID de-duplication. Design choices are driven by platform-specific challenges: head cues are less occluded than full bodies, perspective causes systematic size–depth coupling that can be regularized by geometry, and thin line-crossing is brittle under jitter/occlusion, motivating a band-with-persistence.
-
-% In summary, our method detects heads, tracks identities with geometry-aware kinematics, and counts via a persistence-based virtual band. Each component is selected or designed to address a specific failure mode in platform scenes, and \textbf{Chapter}~\ref{section::Experiments and Results} presents controlled comparisons under identical non-motion settings to validate these choices.
 
 \subsection{Scene and Imaging Model}
-We model a forward-facing camera rigidly mounted near the train head, with the optical axis aligned with the track tangent. Pedestrians on the platform stand at lateral distance $D$ from the track and have average head height $H$. Let $(u,v)$ be pixel coordinates with intrinsics $(f,c_u,c_v)$, where $f$ is the focal length, $c_u$ is the principal point x-coordinate, and $c_v$ is the principal point y-coordinate. Denote by $z(t)$ the along-track distance from camera to a target head. During arrival, motion is captured by
+We model a forward-facing camera rigidly mounted near the train head, with the optical axis aligned with the track tangent. Pedestrians on the platform stand at lateral distance $X$ from the track centerline and have 3D vertical coordinate $Y$ (both approximately constant over time in the camera frame). Let $(u,v)$ be pixel coordinates with intrinsics $(f,c_x,c_y)$, where $f$ is the focal length (in pixels), $c_x$ is the principal point x-coordinate, and $c_y$ is the principal point y-coordinate. Denote by $Z(t)$ the depth coordinate along the track direction from camera to a target head. During arrival, motion is captured by
 \begin{equation}
-z(t)=z_0+v_0 t + \tfrac{1}{2} a t^{2}, \quad a<0.
+Z(t)=Z_0+\dot{Z}_0 t + \tfrac{1}{2}\ddot{Z}\,t^{2}, \quad \ddot{Z}<0.
 \end{equation}
 Under a pinhole model the projection obeys
 \begin{equation}
-u(t)=c_u+f\tfrac{D}{z(t)},\quad v(t)=c_v+f\tfrac{H_{\mathrm{head}}}{z(t)},\quad h_{\mathrm{px}}=\tfrac{fH_{\mathrm{head}}}{Z},\ Z=\tfrac{fH_{\mathrm{head}}}{h_{\mathrm{px}}},
+u(t)=c_x+f\tfrac{X}{Z(t)},\quad v(t)=c_y+f\tfrac{Y}{Z(t)},\quad h_{\text{px}}(t)=f\tfrac{H(t)}{Z(t)},
 \end{equation}
-where $H_{\mathrm{head}}$ represents the height of the human head above the platform surface, and $Z$ is the depth coordinate in the camera coordinate system. This provides a stable mapping between apparent size and depth. This scene model underpins the Phys-6D tracker by explicitly coupling pixel height and $Z$, and guides counting-band placement near image borders where perspective magnification and occlusions are prominent. Camera intrinsics used in experiments are reported with the calibration results in Chapter~5.
+where $H(t)$ represents the physical head height above the platform surface, and $Z(t)$ is the depth coordinate in the camera coordinate system (with $Z_t$ pointing along the track towards the platform). This provides a stable mapping between apparent size and depth. This scene model underpins the Phys-6D tracker by explicitly coupling pixel height $h_{\text{px},t}$ and depth $Z_t$, and guides counting-band placement near image borders where perspective magnification and occlusions are prominent. Camera intrinsics used in experiments are reported with the calibration results in Chapter~5.
 
 \textbf{Figure}~\ref{fig:3TrackingTrackGraph} illustrates the 2D planar trajectory visualization of human head bounding box centers from three video sequences, generated from MOT-format ground truth annotations. This visualization demonstrates the typical movement patterns and spatial distribution of pedestrian trajectories in our railway platform scenarios.
 
@@ -104,7 +101,7 @@ YOLOv11 introduces significant architectural and training enhancements that push
 \subsubsection{Backbone Network}
 The backbone extracts features at multiple scales by stacking convolutional layers and specialized blocks to produce feature maps at varying resolutions. Initial convolutional layers downsample the input, progressively reducing spatial dimensions while increasing channel depth.
 
-SPPF and C2PSA
+\paragraph{SPPF and C2PSA}
 YOLOv11 retains the Spatial Pyramid Pooling - Fast (SPPF) block and introduces the Cross Stage Partial with Spatial Attention (C2PSA) block \cite{80_ghosh_yolo11_2024}. As shown in \textbf{Fig.}~\ref{fig:C2PSA-cn}, C2PSA enhances spatial attention, enabling the model to focus more effectively on salient regions. By pooling spatial features, C2PSA strengthens localization of objects at different sizes and positions.
 \begin{figure}[H]
     \centering
@@ -116,7 +113,7 @@ YOLOv11 retains the Spatial Pyramid Pooling - Fast (SPPF) block and introduces t
 \subsubsection{Neck Network}
 The neck bridges backbone and head, aggregating features from multiple scales for downstream prediction.
 
-C3K2 block
+\paragraph{C3K2 block}
 YOLOv11 replaces the neck's C2f blocks with C3k2 blocks, a more computationally efficient variant of the CSP (Cross Stage Partial) bottleneck. As shown in \textbf{Fig.}~\ref{fig:C3K2-cn}, it uses two smaller convolutions instead of a single large convolution (as in YOLOv8 \cite{81_noauthor_what_2024}). The "k2" indicates smaller kernel sizes, improving speed while maintaining performance \cite{75_khanam2024yolov11overviewkeyarchitectural}.
 \begin{figure}[H]
     \centering
@@ -176,63 +173,81 @@ In our system, tracking performance depends critically on the head detector; we 
 Detector improvements (e.g., lightweight backbones, dilated convolutions, SPP) are often tailored to the application.
 
 \subsubsection{Motion Model and Kalman Filter}
-Kalman filtering estimates target motion states via iterative prediction and update. The classic DeepSORT state vector is an 8-dimensional vector $\mathbf{x} = [u, v, r, h, u', v', r', h']^T$ with $(u,v)$ the center, $r$ the aspect ratio, $h$ the height, and primes denoting velocities. Prediction and update follow standard linear dynamical systems formulas:\\
-    \begin{align*}
-        \mathbf{X}_k &= \mathbf{A}\mathbf{X}_{k-1} + \mathbf{B}\mathbf{u}_k\\
-        \mathbf{P}_k &= \mathbf{A}\mathbf{P}_{k-1}\mathbf{A}^T + \mathbf{Q}\\
-        \mathbf{G}_k &= \mathbf{P}_k\mathbf{H}^T (\mathbf{H}\mathbf{P}_k\mathbf{H}^T + \mathbf{R})^{-1}\\
-        \mathbf{X}_k &\leftarrow \mathbf{X}_k + \mathbf{G}_k (\mathbf{Z}_k - \mathbf{H}\mathbf{X}_k)\\
-        \mathbf{P}_k &\leftarrow (\mathbf{I} - \mathbf{G}_k\mathbf{H})\mathbf{P}_k
-    \end{align*}
-While effective, a constant-velocity model can be inaccurate under strong acceleration or camera motion; extensions such as UKF and adaptive noise can better handle nonlinearities. In our experiments, we instantiate three Kalman state-space (kinematic) configurations under DeepSORT and compare them in Chapter~5.
+Kalman filtering estimates target motion states via iterative prediction and update. The classic DeepSORT state vector is an 8-dimensional vector $\mathbf{x} = [x, y, a, h, \dot{x}, \dot{y}, \dot{a}, \dot{h}]^T$ with $(x,y)$ the center, $a$ the aspect ratio, $h$ the height, and dots denoting velocities. Prediction and update follow standard linear dynamical systems formulas:
+\begin{align*}
+    \mathbf{x}_t &= \mathbf{F}\mathbf{x}_{t-1} + \mathbf{w}_t\\
+    \mathbf{P}_t &= \mathbf{F}\mathbf{P}_{t-1}\mathbf{F}^T + \mathbf{Q}_t\\
+    \mathbf{K}_t &= \mathbf{P}_t\mathbf{H}^T (\mathbf{H}\mathbf{P}_t\mathbf{H}^T + \mathbf{R})^{-1}\\
+    \mathbf{x}_t &\leftarrow \mathbf{x}_t + \mathbf{K}_t (\mathbf{z}_t - \mathbf{H}\mathbf{x}_t)\\
+    \mathbf{P}_t &\leftarrow (\mathbf{I} - \mathbf{K}_t\mathbf{H})\mathbf{P}_t
+\end{align*}
+where $\mathbf{F}$ is the state transition matrix, $\mathbf{H}$ is the observation matrix, $\mathbf{Q}_t$ is the process noise covariance, $\mathbf{R}$ is the measurement noise covariance, and $\mathbf{K}_t$ is the Kalman gain. While effective, a constant-velocity model can be inaccurate under strong acceleration or camera motion; extensions such as constant-acceleration models and adaptive noise can better handle nonlinearities. In our experiments, we instantiate three Kalman state-space (kinematic) configurations under DeepSORT and compare them in Chapter~5.
 
 \subsection{Kalman State-Space Model Configurations}
 We evaluate and deploy three Kalman state-space configurations under identical detector/ReID/association settings. Each model represents a different approach to motion modeling, from pure kinematics to physics-constrained estimation.
 
 \subsubsection{CV-8D: Constant-Velocity Baseline Model}
-The CV-8D model serves as our baseline, implementing the standard DeepSORT constant-velocity assumption with 8D state vector $[x, y, a, h, \dot{x}, \dot{y}, \dot{a}, \dot{h}]^T$ and measurement $[x, y, a, h]^T$.
+The CV-8D model serves as our baseline, implementing the standard DeepSORT constant-velocity assumption with 8D state vector $[x, y, a, h, \dot{x}, \dot{y}, \dot{a}, \dot{h}]^T$ and measurement $[x, y, a, h]^T$, where $(x,y)$ denotes the bounding box center in image coordinates, $a$ is the aspect ratio, $h$ is the height, and dots denote velocities.
 
 \textbf{State vector:}
 \begin{equation}
-\mathbf{x}_k = [x, y, a, h, \dot{x}, \dot{y}, \dot{a}, \dot{h}]^T \in \mathbb{R}^{8}
+\mathbf{x}_t = [x_t, y_t, a_t, h_t, \dot{x}_t, \dot{y}_t, \dot{a}_t, \dot{h}_t]^T \in \mathbb{R}^{8}
 \end{equation}
 
 \textbf{State transition matrix:}
 \begin{equation}
 \mathbf{F} = \begin{bmatrix}
-1 & 0 & 0 & 0 & \Delta t & 0 & 0 & 0 \\
-0 & 1 & 0 & 0 & 0 & \Delta t & 0 & 0 \\
-0 & 0 & 1 & 0 & 0 & 0 & \Delta t & 0 \\
-0 & 0 & 0 & 1 & 0 & 0 & 0 & \Delta t \\
-0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 \\
-0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\
-0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 \\
-0 & 0 & 0 & 0 & 0 & 0 & 0 & 1
+\mathbf{I}_4 & \Delta t \cdot \mathbf{I}_4 \\
+\mathbf{0}_{4 \times 4} & \mathbf{I}_4
 \end{bmatrix}_{8 \times 8}
+\end{equation}
+where $\Delta t = 1$ frame (normalized time step), leading to:
+\begin{equation}
+\begin{bmatrix}
+x_{t+1} \\ y_{t+1} \\ a_{t+1} \\ h_{t+1} \\ \dot{x}_{t+1} \\ \dot{y}_{t+1} \\ \dot{a}_{t+1} \\ \dot{h}_{t+1}
+\end{bmatrix}
+=
+\begin{bmatrix}
+x_t + \dot{x}_t \Delta t \\
+y_t + \dot{y}_t \Delta t \\
+a_t + \dot{a}_t \Delta t \\
+h_t + \dot{h}_t \Delta t \\
+\dot{x}_t \\
+\dot{y}_t \\
+\dot{a}_t \\
+\dot{h}_t
+\end{bmatrix}
 \end{equation}
 
 \textbf{Process noise covariance:}
 \begin{equation}
-\mathbf{Q}_k = \text{diag}(\sigma_{pos}^2 h, \sigma_{pos}^2 h, 10^{-4}, \sigma_{pos}^2 h, \sigma_{vel}^2 h, \sigma_{vel}^2 h, 10^{-10}, \sigma_{vel}^2 h)
+\mathbf{Q}_t = \operatorname{diag}\big(
+   \sigma_{\text{pos}}^2 h_t,\ 
+   \sigma_{\text{pos}}^2 h_t,\ 
+   10^{-4},\ 
+   \sigma_{\text{pos}}^2 h_t,\ 
+   \sigma_{\text{vel}}^2 h_t,\ 
+   \sigma_{\text{vel}}^2 h_t,\ 
+   10^{-10},\ 
+   \sigma_{\text{vel}}^2 h_t
+\big)
 \end{equation}
-with $\sigma_{pos} = 1/20$ and $\sigma_{vel} = 1/160$.
+with $\sigma_{\text{pos}} = 1/20$ and $\sigma_{\text{vel}} = 1/160$. The noise scales with the bounding box height $h_t$ to reflect that larger objects have proportionally larger uncertainty.
 
 \textbf{Observation matrix:}
 \begin{equation}
 \mathbf{H} = \begin{bmatrix}
-1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
-0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\
-0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 \\
-0 & 0 & 0 & 1 & 0 & 0 & 0 & 0
+\mathbf{I}_4 & \mathbf{0}_{4 \times 4}
 \end{bmatrix}_{4 \times 8}
 \end{equation}
+which directly observes the position and size components $[x_t, y_t, a_t, h_t]^T$.
 
 \subsubsection{CA-12D: Constant-Acceleration Extension Model}
-The CA-12D model extends the baseline by incorporating explicit accelerations to capture nonlinear motion patterns, using 12D state vector $[x, y, a, h, v_x, v_y, v_a, v_h, a_x, a_y, a_a, a_h]^T$ and measurement $[x, y, a, h]^T$.
+The CA-12D model extends the baseline by incorporating explicit accelerations to capture nonlinear motion patterns, using 12D state vector $[x, y, a, h, \dot{x}, \dot{y}, \dot{a}, \dot{h}, \ddot{x}, \ddot{y}, \ddot{a}, \ddot{h}]^T$ and measurement $[x, y, a, h]^T$.
 
 \textbf{State vector:}
 \begin{equation}
-\mathbf{x}_k = [x, y, a, h, \dot{x}, \dot{y}, \dot{a}, \dot{h}, \ddot{x}, \ddot{y}, \ddot{a}, \ddot{h}]^T \in \mathbb{R}^{12}
+\mathbf{x}_t = [x_t, y_t, a_t, h_t, \dot{x}_t, \dot{y}_t, \dot{a}_t, \dot{h}_t, \ddot{x}_t, \ddot{y}_t, \ddot{a}_t, \ddot{h}_t]^T \in \mathbb{R}^{12}
 \end{equation}
 
 \textbf{State transition matrix:}
@@ -243,72 +258,150 @@ The CA-12D model extends the baseline by incorporating explicit accelerations to
 \mathbf{0}_{4 \times 4} & \mathbf{0}_{4 \times 4} & \mathbf{I}_4
 \end{bmatrix}_{12 \times 12}
 \end{equation}
-
-\textbf{Dynamics:}
+with $\Delta t = 1$ frame, leading to:
 \begin{align}
-\mathbf{p}_{k+1} &= \mathbf{p}_k + \mathbf{v}_k \Delta t + \tfrac{1}{2}\mathbf{a}_k \Delta t^2 \\
-\mathbf{v}_{k+1} &= \alpha_v \mathbf{v}_{k+1}^{pred} + (1-\alpha_v) \mathbf{v}_k, \quad \alpha_v = 0.85 \\
-\mathbf{a}_{k+1} &= \alpha_a \mathbf{a}_{k+1}^{pred} + (1-\alpha_a) \mathbf{a}_k, \quad \alpha_a = 0.7
+\mathbf{p}_{t+1} &= \mathbf{p}_t + \dot{\mathbf{p}}_t \Delta t + \tfrac{1}{2}\ddot{\mathbf{p}}_t \Delta t^2 \\
+\dot{\mathbf{p}}_{t+1} &= \dot{\mathbf{p}}_t + \ddot{\mathbf{p}}_t \Delta t \\
+\ddot{\mathbf{p}}_{t+1} &= \ddot{\mathbf{p}}_t
 \end{align}
+where $\mathbf{p}_t = [x_t, y_t, a_t, h_t]^T$ denotes the position vector.
+
+\textbf{Velocity and acceleration smoothing:}
+To reduce prediction noise, we apply exponential moving average (EMA) smoothing:
+\begin{align}
+\dot{\mathbf{p}}_{t+1} &\leftarrow \alpha_v \dot{\mathbf{p}}_{t+1}^{\text{pred}} + (1-\alpha_v) \dot{\mathbf{p}}_t, \quad \alpha_v = 0.85 \\
+\ddot{\mathbf{p}}_{t+1} &\leftarrow \alpha_a \ddot{\mathbf{p}}_{t+1}^{\text{pred}} + (1-\alpha_a) \ddot{\mathbf{p}}_t, \quad \alpha_a = 0.7
+\end{align}
+where $\dot{\mathbf{p}}_{t+1}^{\text{pred}}$ and $\ddot{\mathbf{p}}_{t+1}^{\text{pred}}$ are the raw predictions from the motion model.
 
 \textbf{Process noise covariance:}
 \begin{equation}
-\mathbf{Q}_k = \text{diag}(\sigma_{pos}^2 h, \sigma_{vel}^2 h, \sigma_{acc}^2 h) \otimes \mathbf{I}_4
+\mathbf{Q}_t = \operatorname{diag}\big(
+   \sigma_{\text{pos}}^2 h_t,\ 
+   \sigma_{\text{pos}}^2 h_t,\ 
+   10^{-4},\ 
+   \sigma_{\text{pos}}^2 h_t,\ 
+   \sigma_{\text{vel}}^2 h_t,\ 
+   \sigma_{\text{vel}}^2 h_t,\ 
+   10^{-10},\ 
+   \sigma_{\text{vel}}^2 h_t,\ 
+   \sigma_{\text{acc}}^2 h_t,\ 
+   \sigma_{\text{acc}}^2 h_t,\ 
+   10^{-10},\ 
+   \sigma_{\text{acc}}^2 h_t
+\big)
 \end{equation}
-with $\sigma_{pos} = 1/20$, $\sigma_{vel} = 1/160$, $\sigma_{acc} = 1/10$.
-
-\textbf{Observation matrix:}
-\begin{equation}
-\mathbf{H} = [\mathbf{I}_4, \mathbf{0}_{4 \times 4}, \mathbf{0}_{4 \times 4}]_{4 \times 12}
-\end{equation}
-
-\subsubsection{Phys-6D: Physics-Constrained Model (Our Method)}
-The Phys-6D model represents our key innovation, elevating estimation from 2D image plane to 3D physical space through pinhole geometry constraints. This model employs a 6D state vector $[X,\ Y,\ Z,\ \dot{Z},\ \ddot{Z},\ H]^T$ with measurements $[u, v, h_{px}]^T$. Our approach builds upon established depth estimation principles in computer vision \cite{depth_estimation_2013},their approach is based on global non-linear optimization of continuous scene depth rather than discrete pixel disparities, highlighting the critical importance of depth information, which inspired and supports our depth-based modeling approach. Additionally, recent advances in 3D reconstruction have underscored the critical importance of accurate depth information for robust object tracking and geometric understanding \cite{structured_light_2023}, thereby supporting our methodology of incorporating physical constraints into the tracking framework.
-
-\textbf{State vector:}
-\begin{equation}
-\mathbf{x}_k = [X, Y, Z, \dot{Z}, \ddot{Z}, H]^T \in \mathbb{R}^{6}
-\end{equation}
-
-\textbf{Geometric constraints:}
-\begin{equation}
-h_{px} = \frac{f \cdot H_{\mathrm{head}}}{Z}, \quad Z = \frac{f \cdot H_{\mathrm{head}}}{h_{px}}
-\end{equation}
-with focal length $f$ (pixels) and head height $H_{\mathrm{head}}=0.3$ m above the platform surface.
-
-\textbf{Depth dynamics:}
-\begin{align}
-Z_{k+1} &= Z_k + \dot{Z}_k \Delta t + \tfrac{1}{2}a_Z \Delta t^2 \\
-\dot{Z}_{k+1} &= \dot{Z}_k + a_Z \Delta t
-\end{align}
-
-\textbf{Adaptive deceleration prior:}
-\begin{equation}
-a_Z = -\text{sign}(\dot{Z}) \cdot \min\Big(a_{max}, \frac{\dot{Z}^2}{2Z}\Big), \quad a_{max} = 1.0\,\text{m/s}^2
-\end{equation}
-
-\textbf{Process noise covariance:}
-\begin{equation}
-\mathbf{Q}_k = \text{diag}(\sigma_{pos}^2 h_{px}, \sigma_{pos}^2 h_{px}, \sigma_{pos}^2 h_{px}, \sigma_{vel}^2 h_{px}, \sigma_{vel}^2 h_{px})
-\end{equation}
-with $\sigma_{pos} = 1/2$, $\sigma_{vel} = 1/15$.
+with $\sigma_{\text{pos}} = 1/20$, $\sigma_{\text{vel}} = 1/160$, and $\sigma_{\text{acc}} = 1/10$.
 
 \textbf{Observation matrix:}
 \begin{equation}
 \mathbf{H} = \begin{bmatrix}
-1 & 0 & 0 & 0 & 0 \\
-0 & 1 & 0 & 0 & 0 \\
-0 & 0 & 1 & 0 & 0
-\end{bmatrix}_{3 \times 5}
+\mathbf{I}_4 & \mathbf{0}_{4 \times 4} & \mathbf{0}_{4 \times 4}
+\end{bmatrix}_{4 \times 12}
+\end{equation}
+which directly observes only the position components $[x_t, y_t, a_t, h_t]^T$.
+
+\subsubsection{Phys-6D: Physics-Constrained 3D Head-Tracking Model (Our Method)}
+Building on the limitations of purely image-plane Kalman filters, our Phys-6D (XYZ6D) model lifts the DeepSORT state from 2D bounding-box coordinates into a physically meaningful 3D head state constrained by the pinhole camera geometry. Concretely, we represent each pedestrian by a 6D state vector in camera coordinates
+\begin{equation}
+\mathbf{x}_t = [X_t, Y_t, Z_t, \dot{Z}_t, \ddot{Z}_t, H_t]^T \in \mathbb{R}^{6},
+\end{equation}
+where $(X_t, Y_t, Z_t)$ denote the 3D head position relative to the camera (with $Z_t$ pointing along the track towards the platform), $\dot{Z}_t$ and $\ddot{Z}_t$ are depth velocity and acceleration along the track direction, and $H_t$ is the physical head height. The measurements are the image-plane head center $(u_t, v_t)$ and pixel height $h_{\text{px},t}$ returned by the detector,
+\begin{equation}
+\mathbf{z}_t = [u_t, v_t, h_{\text{px},t}]^T.
+\end{equation}
+This design explicitly decouples 3D head motion from its 2D projection, in contrast to 2D-only motion models. Our formulation is inspired by depth-aware tracking and reconstruction methods \cite{depth_estimation_2013,structured_light_2023}, which show that robust trajectory estimation critically depends on consistent geometric depth modeling.
+
+\paragraph{Pinhole geometry and measurement function.}
+We adopt a standard pinhole camera with focal length $f$ (in pixels) and principal point $(c_x, c_y)$. The 3D head state $(X_t, Y_t, Z_t, H_t)$ is projected to image measurements $(u_t, v_t, h_{\text{px},t})$ via
+\begin{equation}
+\label{eq:xyz6d_pinhole}
+\begin{aligned}
+u_t &= c_x + f\,\frac{X_t}{Z_t}, \\
+v_t &= c_y + f\,\frac{Y_t}{Z_t}, \\
+h_{\text{px},t} &= f\,\frac{H_t}{Z_t}.
+\end{aligned}
+\end{equation}
+Equivalently, given an estimated depth $Z_t$ and head state $(X_t, Y_t, H_t)$, the nonlinear measurement function is
+\begin{equation}
+\mathbf{h}(\mathbf{x}_t)
+=
+\begin{bmatrix}
+  c_x + f X_t/Z_t \\
+  c_y + f Y_t/Z_t \\
+  f H_t/Z_t
+\end{bmatrix}.
+\end{equation}
+In the Extended Kalman Filter (EKF), we linearize $\mathbf{h}(\cdot)$ at the current state estimate. The Jacobian $\mathbf{H}_t = \partial \mathbf{h}/\partial \mathbf{x}$ (size $3\times 6$) is
+\begin{equation}
+\label{eq:xyz6d_jacobian}
+\mathbf{H}_t =
+\begin{bmatrix}
+  \dfrac{f}{Z_t} & 0 & -\dfrac{f X_t}{Z_t^2} & 0 & 0 & 0 \\
+  0 & \dfrac{f}{Z_t} & -\dfrac{f Y_t}{Z_t^2} & 0 & 0 & 0 \\
+  0 & 0 & -\dfrac{f H_t}{Z_t^2} & 0 & 0 & \dfrac{f}{Z_t}
+\end{bmatrix}_{3\times 6}.
 \end{equation}
 
-Physics-inspired perspective model for platform scenarios
-For trains decelerating into stations, we consider a perspective projection with camera mounted at the train head, optical axis aligned with the track tangent. Let platform pedestrians be at lateral distance $D$ and head height $H_{\mathrm{head}}$ above the platform surface. The image-plane projection obeys
+\paragraph{Depth dynamics with constant deceleration.}
+Consistent with the railway platform scenario, we assume that the dominant apparent motion along the camera viewing direction arises from the train's own (approximately constant) deceleration, while pedestrians remain roughly at fixed lateral $(X)$ and vertical $(Y)$ positions in 3D. Along the depth axis we use a constant-acceleration model
+\begin{align}
+Z_{t+1} &= Z_t + \dot{Z}_t \Delta t + \tfrac{1}{2}\ddot{Z}_t \Delta t^2, \\
+\dot{Z}_{t+1} &= \dot{Z}_t + \ddot{Z}_t \Delta t, \\
+\ddot{Z}_{t+1} &= \ddot{Z}_t,
+\end{align}
+with $\ddot{Z}_t < 0$ corresponding to a decelerating train approaching the platform. In practice we clamp the dynamics such that the depth does not increase (i.e.\ pedestrians do not appear to move away from the camera) and the velocity $\dot{Z}_t$ remains within a plausible range.
+
+\paragraph{3D lateral position dynamics.}
+Rather than directly modeling 2D pixel motion, we treat $(X_t, Y_t)$ as 3D head coordinates and update them implicitly through the image-plane velocity estimated from successive measurements. At prediction time, we first obtain the current image-plane center $(u_t, v_t)$ via \eqref{eq:xyz6d_pinhole}, extrapolate it with an exponential moving average (EMA) of image-plane velocities, and then invert the pinhole model to recover the predicted $(X_{t+1}, Y_{t+1})$:
 \begin{equation}
-u(t)=c_u+f\frac{D}{z(t)},\quad
-v(t)=c_v+f\frac{H_{\mathrm{head}}}{z(t)},
+\label{eq:xyz6d_backproj}
+\begin{aligned}
+u_{t+1} &\approx u_t + v_u \Delta t, \qquad
+v_{t+1} \approx v_t + v_v \Delta t,\\
+X_{t+1} &= \frac{(u_{t+1} - c_x)\,Z_{t+1}}{f},\quad
+Y_{t+1} = \frac{(v_{t+1} - c_y)\,Z_{t+1}}{f},
+\end{aligned}
 \end{equation}
-where $z(t)=z_0+v_0 t + \tfrac{1}{2} a t^{2}$ with deceleration $a<0$. The head bounding-box area scales as $A(t) \propto z^{-2}(t)$, exhibiting rapid magnification until the train passes. We construct and evaluate extended state models (adding acceleration) as well as a 5D perspective state vector grounded in this geometry; experimental settings and results are detailed in \textbf{Chapter} 5.
+where $(v_u, v_v)$ are EMA-smoothed image-plane velocities with smoothing factor $\alpha = 0.7$. This design ties the 3D lateral motion to the observed image-plane drift, while keeping the state itself in 3D.
+
+\paragraph{Head-height dynamics and process noise.}
+Head height $H_t$ is initialized with a prior $H_0 = 0.3$\,m but is allowed to adapt slowly to each pedestrian via the EKF update rule
+\begin{equation}
+H_{t+1} \approx \frac{h_{\text{px},t+1}\,Z_{t+1}}{f},
+\end{equation}
+reflecting the nonlinear constraint $h_{\text{px}} = f H / Z$. The process noise covariance is chosen diagonal in the 3D state space,
+\begin{equation}
+\mathbf{Q}_t = \operatorname{diag}\big(
+   \sigma_X^2,\ \sigma_Y^2,\ \sigma_Z^2,\ 
+   \sigma_{\dot{Z}}^2,\ \sigma_{\ddot{Z}}^2,\ \sigma_H^2
+\big),
+\end{equation}
+with base values (in our implementation) $\sigma_X = \sigma_Y = 0.5$\,m, $\sigma_Z = 5.0$\,m, $\sigma_{\dot{Z}} = 5.0$\,m\,s$^{-1}$, $\sigma_{\ddot{Z}} = 0.5$\,m\,s$^{-2}$, and $\sigma_H = 0.05$\,m. To reflect the fact that back-projection uncertainty grows with depth, we scale the lateral process noise with $Z_t$, i.e.\ $\sigma_X, \sigma_Y \propto Z_t$, so that distant pedestrians have slightly larger uncertainty in $(X_t, Y_t)$ than nearby ones.
+
+\textbf{Measurement noise covariance:}
+\begin{equation}
+\mathbf{R} = \operatorname{diag}\big(
+   r_{uv}^2,\ r_{uv}^2,\ r_h^2
+\big)
+\end{equation}
+with $r_{uv} = 2.0$ pixels and $r_h = 3.0$ pixels, reflecting the detector's pixel-level uncertainty.
+
+\paragraph{Physics-inspired perspective model for platform scenarios.}
+For trains decelerating into stations, we assume a forward-facing camera rigidly mounted on the train head, with the optical axis approximately aligned with the track tangent. Let platform pedestrians stand at lateral distance $X$ from the track centerline and 3D vertical coordinate $Y$ (both approximately constant over time in the camera frame). The head projection in the image plane then obeys the perspective relations
+\begin{equation}
+\label{eq:xyz6d_perspective}
+u(t) = c_x + f\,\frac{X}{Z(t)},\quad
+v(t) = c_y + f\,\frac{Y}{Z(t)},\quad
+h_{\text{px}}(t) = f\,\frac{H(t)}{Z(t)},
+\end{equation}
+with depth trajectory
+\begin{equation}
+Z(t) = Z_0 + \dot{Z}_0 t + \tfrac{1}{2}\ddot{Z}\,t^{2},\qquad \ddot{Z}<0.
+\end{equation}
+As the train approaches the platform, the apparent head size grows roughly like $h_{\text{px}}(t)\propto 1/Z(t)$, and the bounding-box area scales as $A(t)\propto Z^{-2}(t)$, leading to rapid magnification as the train passes. By defining the Kalman state directly in 3D and constraining it through \eqref{eq:xyz6d_pinhole}--\eqref{eq:xyz6d_perspective}, the Phys-6D (XYZ6D) model achieves physically plausible, depth-consistent trajectories that remain stable under strong perspective distortion and train ego-motion, while still being compatible with the standard DeepSORT tracking-by-detection framework.
+
+
 
 \subsubsection{Appearance Feature Extraction (Re-ID)}
 Appearance descriptors are crucial for long-occlusion recovery and ID consistency. The original DeepSORT uses a compact residual CNN that outputs a 128-D descriptor with L2 normalization \cite{116}. Typical components include convolution and pooling layers, multiple residual blocks, and a final FC + L2 layer. The descriptors lie on the unit hypersphere for cosine similarity.Training commonly uses large-scale video person Re-ID datasets such as MARS \cite{214} or Market-1501 \cite{215} with identity labels and bounding boxes to ensure robustness to illumination, pose, and viewpoint changes. For our specific scenario, we utilize a custom-built dataset, with detailed statistics provided in \textbf{Tab.}~\ref{tab:ReIDDataDistribution} in Chapter 3.\\
@@ -477,7 +570,7 @@ Integrity mechanisms include: \\
 
 
 \subsection{Assumptions and Limitations}
-Our formulation assumes: (i) a forward-looking camera with intrinsics $(f,c_u,c_v)$ estimated from representative frames; (ii) average head height $H$ suitable for platform pedestrians; (iii) along-track deceleration during arrivals consistent with the kinematic model. Performance may degrade under extreme lighting or ultra-dense scenes that increase appearance ambiguity or violate motion smoothness. These assumptions are reflected in the calibration and evaluation reported in Chapter~5.
+Our formulation assumes: (i) a forward-looking camera with intrinsics $(f,c_x,c_y)$ estimated from representative frames; (ii) average head height $H$ suitable for platform pedestrians; (iii) along-track deceleration during arrivals consistent with the kinematic model. Performance may degrade under extreme lighting or ultra-dense scenes that increase appearance ambiguity or violate motion smoothness. These assumptions are reflected in the calibration and evaluation reported in Chapter~5.
 
 \subsection{Evaluation Metrics}
 
