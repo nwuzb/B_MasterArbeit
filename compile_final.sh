@@ -57,7 +57,7 @@ if [ -f "main.pdf" ]; then
             echo "✅ 检测到 $chinese_fonts 个中文字体"
         else
             echo "⚠️ 未检测到中文字体，但这可能是正常的"
-        fi
+        fih
     else
         echo "⚠️ 无法检查字体信息，但编译成功"
     fi

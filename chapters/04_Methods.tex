@@ -1,20 +1,22 @@
 \clearpage
 \section{Methods}\label{section::Methods}
 
-This chapter presents our complete method for accurate crowd counting on railway platforms. We propose a detect–track–count pipeline that combines YOLOv11m head detection, EfficientNet-B0-based ReID feature extraction, and three Kalman state-space configurations within DeepSORT for robust multi-object tracking. Our key innovation is the Phys-5D physics-constrained tracker that leverages camera geometry and scene priors to stabilize identity consistency and achieve superior counting accuracy. The complete system architecture, implementation details, and algorithmic specifications are provided in this chapter, with experimental validation and comparative analysis presented in \textbf{Chapter~5}.
+This chapter presents our complete method for accurate crowd counting on railway platforms. We propose a detect–track–count pipeline that combines YOLOv11m head detection, EfficientNet-B0-based ReID feature extraction, and three Kalman state-space configurations within DeepSORT for robust multi-object tracking. Our key innovation is the Phys-6D physics-constrained tracker that leverages camera geometry and scene priors to stabilize identity consistency and achieve superior counting accuracy. The complete system architecture, implementation details, and algorithmic specifications are provided in this chapter, with experimental validation and comparative analysis presented in \textbf{Chapter~5}.
 
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.8\textwidth]{pictures/OurMulti-ObjectTrackingSystemArchitecture.png}
-    \caption{Overall Multi-object Tracking System Architecture.}
-    \label{fig:OurMOTSystemArchitecture}
-\end{figure}
+
 
 \subsection{Proposed Method (Our Method)}
 
-We tackle platform crowd counting with a detect–track–count pipeline tailored to station-arrival videos with dense occlusions and strong perspective effects. The system (\textbf{Fig.}~\ref{fig:OurMOTSystemArchitecture}) comprises: (i) head detection using YOLOv11m to mitigate body-occlusion issues and stabilize small-object localization; (ii) appearance embeddings via EfficientNet-B0 to support identity recovery under long/partial occlusions; (iii) multi-object tracking under DeepSORT with three Kalman state-space (kinematic) model configurations for analysis (CV-8D, CA-12D, and the proposed physics-constrained Phys-5D); and (iv) a robust counting strategy using a nonzero-width virtual counting band with frame-persistence and ID de-duplication. Design choices are driven by platform-specific challenges: head cues are less occluded than full bodies, perspective causes systematic size–depth coupling that can be regularized by geometry, and thin line-crossing is brittle under jitter/occlusion, motivating a band-with-persistence.
+We tackle platform crowd counting with a detect–track–count pipeline tailored to station-arrival videos with dense occlusions and strong perspective effects. (\textbf{Fig.}~\ref{fig:OurMOTSystemArchitecture}) shows the overall multi-object tracking system architecture.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{pictures/OurMulti-ObjectTrackingSystemArchitecture.png}
+    \caption{Overall Multi-object Tracking System Architecture. The system integrates YOLOv11-based object detection, EfficientNet-B0 ReID feature extraction, and a 3D physical Kalman filter for robust pedestrian tracking. The pipeline consists of five modules: (1) Input, which includes video streams and ground-truth annotations in MOT format; (2) Detection, where YOLOv11 detects pedestrian bounding boxes (TLWH format); (3) ReID, which extracts 128-dimensional L2-normalized feature vectors using an EfficientNet-B0 encoder; (4) Tracking and Gating, which performs data association via a Hungarian algorithm combining appearance and IoU metrics, managed by a 3D Kalman filter with state variables \mathbf[X,\ Y,\ Z,\ \dot{Z},\ \ddot{Z},\ H] and multiple gating strategies including Mahalanobis distance, directional motion corridors, and adaptive thresholds; and (5) Output, which provides bilateral-zone counting, annotated visualization, and MOTChallenge performance evaluation (MOTA, IDF1, etc.). This modular architecture ensures accurate, stable, and interpretable tracking across video sequences.}
+    \label{fig:OurMOTSystemArchitecture}
+\end{figure}
+% The system (\textbf{Fig.}~\ref{fig:OurMOTSystemArchitecture}) comprises: (i) head detection using YOLOv11m to mitigate body-occlusion issues and stabilize small-object localization; (ii) appearance embeddings via EfficientNet-B0 to support identity recovery under long/partial occlusions; (iii) multi-object tracking under DeepSORT with three Kalman state-space (kinematic) model configurations for analysis (CV-8D, CA-12D, and the proposed physics-constrained Phys-6D); and (iv) a robust counting strategy using a nonzero-width virtual counting band with frame-persistence and ID de-duplication. Design choices are driven by platform-specific challenges: head cues are less occluded than full bodies, perspective causes systematic size–depth coupling that can be regularized by geometry, and thin line-crossing is brittle under jitter/occlusion, motivating a band-with-persistence.
 
-In summary, our method detects heads, tracks identities with geometry-aware kinematics, and counts via a persistence-based virtual band. Each component is selected or designed to address a specific failure mode in platform scenes, and \textbf{Chapter}~\ref{section::Experiments and Results} presents controlled comparisons under identical non-motion settings to validate these choices.
+% In summary, our method detects heads, tracks identities with geometry-aware kinematics, and counts via a persistence-based virtual band. Each component is selected or designed to address a specific failure mode in platform scenes, and \textbf{Chapter}~\ref{section::Experiments and Results} presents controlled comparisons under identical non-motion settings to validate these choices.
 
 \subsection{Scene and Imaging Model}
 We model a forward-facing camera rigidly mounted near the train head, with the optical axis aligned with the track tangent. Pedestrians on the platform stand at lateral distance $D$ from the track and have average head height $H$. Let $(u,v)$ be pixel coordinates with intrinsics $(f,c_u,c_v)$, where $f$ is the focal length, $c_u$ is the principal point x-coordinate, and $c_v$ is the principal point y-coordinate. Denote by $z(t)$ the along-track distance from camera to a target head. During arrival, motion is captured by
@@ -25,7 +27,7 @@ Under a pinhole model the projection obeys
 \begin{equation}
 u(t)=c_u+f\tfrac{D}{z(t)},\quad v(t)=c_v+f\tfrac{H_{\mathrm{head}}}{z(t)},\quad h_{\mathrm{px}}=\tfrac{fH_{\mathrm{head}}}{Z},\ Z=\tfrac{fH_{\mathrm{head}}}{h_{\mathrm{px}}},
 \end{equation}
-where $H_{\mathrm{head}}$ represents the height of the human head above the platform surface, and $Z$ is the depth coordinate in the camera coordinate system. This provides a stable mapping between apparent size and depth. This scene model underpins the Phys-5D tracker by explicitly coupling pixel height and $Z$, and guides counting-band placement near image borders where perspective magnification and occlusions are prominent. Camera intrinsics used in experiments are reported with the calibration results in Chapter~5.
+where $H_{\mathrm{head}}$ represents the height of the human head above the platform surface, and $Z$ is the depth coordinate in the camera coordinate system. This provides a stable mapping between apparent size and depth. This scene model underpins the Phys-6D tracker by explicitly coupling pixel height and $Z$, and guides counting-band placement near image borders where perspective magnification and occlusions are prominent. Camera intrinsics used in experiments are reported with the calibration results in Chapter~5.
 
 \textbf{Figure}~\ref{fig:3TrackingTrackGraph} illustrates the 2D planar trajectory visualization of human head bounding box centers from three video sequences, generated from MOT-format ground truth annotations. This visualization demonstrates the typical movement patterns and spatial distribution of pedestrian trajectories in our railway platform scenarios.
 
@@ -44,7 +46,7 @@ We provide complete implementation specifications for reproducibility:
 
 \textbf{ReID Configuration:} EfficientNet-B0 backbone with input preprocessing: direct resizing to target size (128x128), horizontal flip augmentation, and color jitter. Training uses triplet loss with margin α=0.5, Adam optimizer (lr=1e-4), StepLR scheduler (step\_size=10, gamma=0.5).
 
-\textbf{Tracking Configuration:} DeepSORT with three Kalman state-space configurations. Association uses linear combination of Mahalanobis distance (motion) and cosine distance (appearance) with weight λ=0.5. Cascaded matching prioritizes recently observed tracks. Gating thresholds: CV-8D uses standard DeepSORT thresholds; CA-12D uses stricter thresholds due to higher dimensionality; Phys-5D uses geometry-aware thresholds based on depth constraints.
+\textbf{Tracking Configuration:} DeepSORT with three Kalman state-space configurations. Association uses linear combination of Mahalanobis distance (motion) and cosine distance (appearance) with weight λ=0.5. Cascaded matching prioritizes recently observed tracks. Gating thresholds: CV-8D uses standard DeepSORT thresholds; CA-12D uses stricter thresholds due to higher dimensionality;Phys-6D uses geometry-aware thresholds based on depth constraints.
 
 \textbf{Counting Configuration:} Virtual counting bands with Start=0.05, End=0.20 (relative to image width), persistence threshold N=2 frames. Per-ID de-duplication and end-of-video compensation are applied. Final count uses maximum of left/right counts to avoid non-platform bias.
 
@@ -148,20 +150,20 @@ Each detection branch ends with Conv2D layers that reduce features to the requir
     • Class probabilities.\\
 
 \subsection{DeepSORT}
-We next introduce the DeepSORT multi-object tracker as used in our method. Our implementation extends the standard DeepSORT framework with several key modifications: (1) we replace the original CNN-based appearance extractor with EfficientNet-B0 for improved feature quality; (2) we introduce three different Kalman state-space configurations (CV-8D, CA-12D, and Phys-5D) instead of the standard constant-velocity model; and (3) we adapt the association thresholds and parameters for railway platform scenarios. Our tracker fuses appearance (EfficientNet-B0 embeddings) and motion (Kalman state-space models) with cascaded association to preserve identities under occlusions. Recent advances in multi-object tracking have demonstrated the effectiveness of combining local and global pose estimation for precise tracking of similar objects, particularly in scenarios with geometric ambiguities and occlusions \cite{pose_estimation_2022}. DeepSORT\cite{211}, an extension of SORT\cite{220}, combines deep appearance embeddings with motion information. The pipeline (\textbf{Fig.}~\ref{fig:DeepSORT-cn}) comprises deep appearance feature extraction, a Kalman filter, and data association.
+We next introduce the DeepSORT multi-object tracker as used in our method. Our implementation extends the standard DeepSORT framework with several key modifications: (1) we replace the original CNN-based appearance extractor with EfficientNet-B0 for improved feature quality; (2) we introduce three different Kalman state-space configurations (CV-8D, CA-12D, and Phys-6D) instead of the standard constant-velocity model; and (3) we adapt the association thresholds and parameters for railway platform scenarios. Our tracker fuses appearance (EfficientNet-B0 embeddings) and motion (Kalman state-space models) with cascaded association to preserve identities under occlusions. Recent advances in multi-object tracking have demonstrated the effectiveness of combining local and global pose estimation for precise tracking of similar objects, particularly in scenarios with geometric ambiguities and occlusions \cite{pose_estimation_2022}. DeepSORT\cite{211}, an extension of SORT\cite{220}, combines deep appearance embeddings with motion information. The pipeline (\textbf{Fig.}~\ref{fig:DeepSORT-cn}) comprises deep appearance feature extraction, a Kalman filter, and data association.
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.99\textwidth]{pictures/DeepSORTAlgorithmStructure.png}
-    \caption{DeepSORT architecture\cite{212}}
+    \caption{DeepSORT architecture\cite{212}. The workflow can be summarized as follows:
+    (1) Object detection: a high-performance detector identifies targets in each frame and outputs bounding boxes with confidences \cite{174}.
+    (2) Motion prediction: a Kalman filter predicts current positions and motion states for existing tracks \cite{174}.
+    (3) Feature extraction: deep appearance embeddings are computed for detections via a ReID model \cite{179}.
+    (4) Data association: detections are matched to predicted tracks using a cost that combines motion (Mahalanobis distance) and appearance (cosine distance), solved with the Hungarian algorithm; a cascaded strategy further improves matching \cite{104}.
+    (5) Track update and management: matched tracks are updated; unmatched detections initialize new tracks; long-unmatched tracks are terminated.}
     \label{fig:DeepSORT-cn}
 \end{figure}
 
-The workflow can be summarized as follows:\\
-(1) Object detection: a high-performance detector identifies targets in each frame and outputs bounding boxes with confidences \cite{174}.\\
-(2) Motion prediction: a Kalman filter predicts current positions and motion states for existing tracks \cite{174}.\\
-(3) Feature extraction: deep appearance embeddings are computed for detections via a ReID model \cite{179}.\\
-(4) Data association: detections are matched to predicted tracks using a cost that combines motion (Mahalanobis distance) and appearance (cosine distance), solved with the Hungarian algorithm; a cascaded strategy further improves matching \cite{104}.\\
-(5) Track update and management: matched tracks are updated; unmatched detections initialize new tracks; long-unmatched tracks are terminated.
+
 
 \subsection{DeepSORT Core Modules}
 
@@ -260,12 +262,12 @@ with $\sigma_{pos} = 1/20$, $\sigma_{vel} = 1/160$, $\sigma_{acc} = 1/10$.
 \mathbf{H} = [\mathbf{I}_4, \mathbf{0}_{4 \times 4}, \mathbf{0}_{4 \times 4}]_{4 \times 12}
 \end{equation}
 
-\subsubsection{Phys-5D: Physics-Constrained Model (Our Method)}
-The Phys-5D model represents our key innovation, elevating estimation from 2D image plane to 3D physical space through pinhole geometry constraints. This model employs a 5D state vector $[u, v, h_{px}, Z, \dot{Z}]^T$ with measurements $[u, v, h_{px}]^T$. Our approach builds upon established depth estimation principles in computer vision \cite{depth_estimation_2013},their approach is based on global non-linear optimization of continuous scene depth rather than discrete pixel disparities, highlighting the critical importance of depth information, which inspired and supports our depth-based modeling approach. Additionally, recent advances in 3D reconstruction have underscored the critical importance of accurate depth information for robust object tracking and geometric understanding \cite{structured_light_2023}, thereby supporting our methodology of incorporating physical constraints into the tracking framework.
+\subsubsection{Phys-6D: Physics-Constrained Model (Our Method)}
+The Phys-6D model represents our key innovation, elevating estimation from 2D image plane to 3D physical space through pinhole geometry constraints. This model employs a 6D state vector $[X,\ Y,\ Z,\ \dot{Z},\ \ddot{Z},\ H]^T$ with measurements $[u, v, h_{px}]^T$. Our approach builds upon established depth estimation principles in computer vision \cite{depth_estimation_2013},their approach is based on global non-linear optimization of continuous scene depth rather than discrete pixel disparities, highlighting the critical importance of depth information, which inspired and supports our depth-based modeling approach. Additionally, recent advances in 3D reconstruction have underscored the critical importance of accurate depth information for robust object tracking and geometric understanding \cite{structured_light_2023}, thereby supporting our methodology of incorporating physical constraints into the tracking framework.
 
 \textbf{State vector:}
 \begin{equation}
-\mathbf{x}_k = [u, v, h_{px}, Z, \dot{Z}]^T \in \mathbb{R}^{5}
+\mathbf{x}_k = [X, Y, Z, \dot{Z}, \ddot{Z}, H]^T \in \mathbb{R}^{6}
 \end{equation}
 
 \textbf{Geometric constraints:}
@@ -519,7 +521,7 @@ For $N$ test videos with predicted unique count $\hat{C}_i$ and ground truth $C_
 \text{MAPE} &= \frac{100\%}{N} \sum_{i=1}^{N} \frac{|\hat{C}_i - C_i|}{C_i}, \\
 \text{ME} &= \frac{1}{N} \sum_{i=1}^{N} (\hat{C}_i - C_i).
 \end{align}
-% MAE reflects average absolute deviation and is robust to outliers; RMSE emphasizes larger errors; MAPE is scale-free but unstable when $C_i$ is near zero; ME (Bias) reveals systematic over/under-counting.
+
 
 
 \paragraph{Mean Absolute Error (MAE)} MAE quantifies the average magnitude of the discrepancy between predicted counts and their ground-truth counterparts. Computed as the arithmetic mean of absolute deviations across all samples, MAE offers two key advantages: (i) interpretability—its value directly reflects the mean absolute deviation of estimates from true counts; and (ii) robustness—by imposing a linear penalty on each residual, MAE remains insensitive to outliers and thus delivers a stable summary of overall model performance.
@@ -530,475 +532,3 @@ For $N$ test videos with predicted unique count $\hat{C}_i$ and ground truth $C_
 
 \paragraph{Mean Error (ME), interchangeably termed Bias} ME, interchangeably termed Bias, captures systematic deviation of predictions. It is defined as the average signed difference between estimated and true counts. A positive ME indicates a persistent over-counting tendency, whereas a negative ME signals chronic under-counting. Unlike MAE and RMSE, which quantify error magnitudes, ME diagnoses directional drift and is indispensable for calibrating models to eliminate systematic offsets in safety-critical or metrologically sensitive applications.
 
-\iffalse
-% 以下是中文部分，含义表达以中文版为主    
-4. 方法
-本章介绍我们针对火车站台人群计数的完整方法。我们提出一个检测-跟踪-计数的流水线，结合YOLOv11m头部检测、基于EfficientNet-B0的ReID特征提取，以及三种卡尔曼状态空间配置，实现稳健的多目标跟踪。我们的关键创新是Phys-5D物理约束跟踪器，它利用相机几何和场景先验来稳定身份一致性并实现卓越的计数精度。完整的系统架构、实现细节和算法规范在本章提供，实验验证和对比分析在第5章呈现。
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.99\textwidth]{pictures/OurMulti-ObjectTrackingSystemArchitecture.png}
-    \caption{YOLOv1 Architecture}
-    \label{fig:OurMOTSystemArchitecture}
-\end{figure}
-
-4.1 提出的方法（我们的方法）
-
-我们采用检测-跟踪-计数的流水线来解决火车站台人群计数问题，该流水线针对具有密集遮挡和强透视效应的站台到达视频进行了定制。系统（图~\ref{fig:OurMOTSystemArchitecture}）包括：（i）使用YOLOv11m进行头部检测，以减轻身体遮挡问题并稳定小目标定位；（ii）通过EfficientNet-B0进行外观嵌入，以支持长期/部分遮挡下的身份恢复；（iii）在DeepSORT框架下进行多目标跟踪，使用三种卡尔曼状态空间（运动学）模型配置进行分析（CV-8D、CA-12D和提出的物理约束Phys-5D）；（iv）使用非零宽度虚拟计数带和帧持续性以及ID去重的稳健计数策略。设计选择由平台特定挑战驱动：头部线索比全身遮挡更少，透视导致系统性的尺寸-深度耦合，可以通过几何学进行正则化，细线穿越在抖动/遮挡下是脆弱的，促使采用带持续性的方法。
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.8\textwidth]{pictures/The YOLO Detection System.png}
-    \caption{YOLOv1 Detection System}
-    \label{fig:yolosystem-cn}
-\end{figure}
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.8\textwidth]{pictures/The YOLO Architecture.png}
-    \caption{YOLOv1 Architecture}
-    \label{fig:yoloarchitecture-cn}
-\end{figure}
-YOLOv11是YOLO系列发展过程中的一个重要版本继承了其高效的检测框架，YOLOv11在YOLOVision2024 (YV24) 大会上亮相，代表了实时物体检测技术的重大飞跃，它在网络结构和训练策略上进行了进一步的优化，旨在提升目标检测的精度和速度\cite{74_yolo11_Jocher_Ultralytics_YOLO_2023}。前文Related work部分的最后提到，在拥挤场景下，利用人体完整信息进行检测的效果受限严重，而头部特征作为更易识别且遮挡程度较轻的特征点，尚未被充分深入地探索和利用。因此，考虑到高密度场景下人体之间存在频繁而严重的遮挡，导致个体的整体轮廓难以完整识别，而人体头部通常位于人体上部，受到遮挡的影响较小且外形特征明显，所以更容易准确识别。并且，头部区域尺寸变化相对稳定，不受姿势变化的显著影响，有助于减少模型误检和漏检的概率，从而能够提高模型在高密度人群场景下的检测和计数精度。因此，我们使用YOLOv11来识别认人的头部作为计数依据。
-
-如\ref{fig:yolo11architecture-cn}所示，该版本在架构和训练方法方面都有了显著的增强，突破了准确性、速度和效率的界限\cite{75_khanam2024yolov11overviewkeyarchitectural}。
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.8\textwidth]{pictures/Yolo11architecture.png}
-    \caption{YOLO11 Architecture\cite{80_ghosh_yolo11_2024}}
-    \label{fig:yolo11architecture-cn}
-\end{figure}
-
-
-4.2 YOLOv11的网络关键结构
-YOLOV11架构的核心由三个基本组件组成。如\ref{fig:yolo11architecture-cn}所示，首先，骨干组件充当主要特征提取器，利用卷积神经网络将原始图像数据转换为多尺度特征图。其次，颈部组件充当中间处理阶段，采用专门的层来聚合和增强不同尺度的特征表示。第三，头部组件充当预测机制，根据细化的特征图生成用于对象定位和分类的最终输出\cite{75_khanam2024yolov11overviewkeyarchitectural}。
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.5\linewidth]{pictures/key architectural modules in YOLO11.png}
-    \caption{YOLO11 Key Modules}
-    \label{fig:Keyarchite-cn}
-\end{figure}
-
-
-4.2.1 Backbone Network
-主干是 YOLO 架构的重要组成部分，负责从输入图像中提取多种尺度的特征。此过程涉及堆叠卷积层和专用块以生成条种分辦率的特征图。骨干网络通过一系列的卷积层、池化层以及激活函数对输入图像进行处理，逐步提取从低级到高级的视觉特征。
-
-卷积层 
-YOLOv11 保持了与前代产品类似的结构，利用初始卷积层对图像进行下采样。这些层构成了特征提取过程的基础，逐渐减少空间维度，同时增加通道数量。
-SPPF和C2PSA 
-YOLOv11 保留了以前版本的 Spatial Pyramid Pooling - Fast （SPPF）块，但在其后引入了新的 Cross Stage Partial with Spatial Attention （C2PSA）块\cite{80_ghosh_yolo11_2024}。如\textbf{Fig.}~\ref{fig:C2PSA-cn}所示，C2PSA 块是一个值得注意的新增功能，它增强了特征图中的空间注意力机制。这种空间注意力机制使模型能够更有效地关注图像中的重要区域。通过空间池化特征， C2PSA 块使 YOLOv11 能够专注于特定的兴趣区域，从而有可能提高不同大小和位置的物体的检测精度。
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.25\linewidth]{pictures/C2PSA.png}
-    \caption{C2PSA Module}
-    \label{fig:C2PSA-cn}
-\end{figure}
-
-
-4.2.2 Neck Network
-Neck Network位于骨干网络和检测头之间，用于聚合来自不同尺度特征图的信息，并传输到头部进行预测.
-C3K2块Yolo11通过用C3K2块在颈部替换颈部的C2F块来引入重大变化。C3k2块是 Cross Stage Partial （CSP） Bottleneck 的计算效率更高的实现。如\textbf{Fig.}~\ref{fig:C3K2-cn}所示，它采用两个较小的卷积，而不是一个大卷积，如 YOLOv8\cite{81_noauthor_what_2024}中所示。C3k2 中的"k2"表示较小的内核大小，这有助于在保持性能的同时加快处理速度\cite{75_khanam2024yolov11overviewkeyarchitectural}。
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.9\linewidth]{pictures/C3K2.png}
-    \caption{C3K2 Module\cite{83_noauthor_ultralytics_nodate}}
-    \label{fig:C3K2-cn}
-\end{figure}
-
-注意力机制 
-YOLOv11 的一个显著新增功能是它通过C2PSA 模块增加了对空间注意力的关注。这种注意力机制使模型能够专注于图像中的关键区域，从而可能实现更准确的检测，尤其是对于较小或部分遮挡的物体。加入C2PSA使YOLOv11有别于其前身YOLOv8，后者缺乏这种特定的注意力机制\cite{80_ghosh_yolo11_2024}\cite{75_khanam2024yolov11overviewkeyarchitectural}。
-
-
-4.2.3 Detection Head： 负责在不同尺度的特征图上进行预测，输出目标的边界框参数（中心坐标、宽度、高度）、类别概率以及置信度得分。YOLO通常将输入图像划分为若干个网格单元（Grid Cells），每个网格单元负责预测中心落在该单元内的目标。
-
-C3K2块
-在头部部分，YOLOv11利用多个C3k2块来高效处理和细化特征图。C3k2块位于头部的多个路径中，用于处理不同深度的多尺度特征。C3k2块根据 c3k 参数的值表现出灵活性： 
-    •当 c3k = False 时，C3k2 模块的行为与 C2f块类似，采用标准瓶颈结构。 
-    •当 c3k = True时，瓶颈结构被C3模块取代，从而可以进行更深层、更复杂的特征提取。 
-C3k2 区块的主要特征： 
-•处理速度更快：与单个大卷积相比，使用两个较小的卷积可减少计算开销，从而更快地提取特征。 
-•参数效率：C3k2 是 CSP 瓶颈的更紧凑版本，使得架构在可训练参数数量方面更高效。
-另一个值得注意的新增功能是C3k模块，它允许自定义内核大小，从而增强了灵活性。C3k的适应性对于从图像中提取更详细的特征特别有用，有助于提高检测准确性。
-
-CBS区块 YOLOv11 的头部在 C3k2 块之后包含几个 CBS（Convolution-BatchNorm-Silu）\cite{81_noauthor_what_2024}层。这些层通过以下方式进一步细化特征图： 
-    •提取相关特征以进行准确的物体检测。 
-    •通过批量标准化来稳定和规范数据流。
-    •利用 Sigmoid 线性单元（SiLU）激活函数实现非线性，从而提高模型性能。
-CBS 块是特征提取和检测过程中的基础组件，确保细化的特征图传递到后续层进行边界框和分类预测。 
-
-最终的卷积层和检测层 每个检测分支以一组 Conv2D 层结束，这些层将特征減少到边界框坐标和类预测所需的输出数量。最后的检测层整合了这些预测，其中包括： 
-    •用于定位图像中对象的边界框坐标。 
-    •对象性分数表明对象的存在。 
-    •用于确定检测到的物体的类别的类别分数。
-
-
-
-    
-4.3 DeepSORT
-在介绍了检测器的方法之后，我们这一小节专注于介绍多目标跟踪器算法DeepSORT。
-在多目标跟踪 (MOT) 领域，目标是跨视频帧检测、定位并保持多个目标的唯一身份。DeepSORT（深度简单在线实时跟踪）算法由Alex Bewley等人于2017年提出，是经典SORT（Simple Online and Realtime Tracking）算法的进一步发展和改进。如\ref{fig:DeepSORT-cn}所示，DeepSORT的核心优势在于其创新性地结合了深度学习（Deep Learning）模型提取的外观特征（Appearance Features）与运动信息（Motion Information），显著提高了目标在复杂场景下，特别是长期遮挡情况下的追踪精度和ID一致性，有效解决了SORT算法中频繁出现ID切换的问题。本节概述了该算法的核心原理、组件和公式，并应用于我们针对火车站台上的人群跟踪任务的实现中。
-DeepSORT算法采用"先检测后追踪"（Tracking-by-Detection, TBD）的框架，其整体流程如\ref{fig:DeepSORT-cn},该算法由三个主要组件构成，分别为深度外观描述符提取模块、卡尔曼滤波器和数据关联模块.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.8\textwidth]{pictures/DeepSORTAlgorithmStructure.png}
-    \caption{DeepSORT Architecture\cite{212}}
-    \label{fig:DeepSORT-cn}
-\end{figure}
-
-其工作流程可概括为：
-1. 目标检测 (Object Detection)：在每一帧图像中，使用高性能的目标检测器识别出所有目标，并生成对应的边界框及其置信度。\cite{174}
-2. 运动状态预测 (Motion State Prediction)：对于现有轨迹，利用卡尔曼滤波器预测其在当前帧中的可能位置和运动状态。\cite{174}
-3. 特征提取 (Feature Extraction)：对当前帧中所有检测到的目标，使用ReID模型提取其深度外观特征向量。\cite{179}
-4. 数据关联 (Data Association)：通过综合考虑运动信息（马氏距离）和外观信息（余弦距离），使用匈牙利算法将当前帧的检测与预测轨迹进行最佳匹配。此外，还引入了级联匹配策略来优化匹配过程。\cite{104}
-5. 轨迹更新与管理 (Track Update and Management)：根据匹配结果，更新现有轨迹的运动状态和外观特征。对于未匹配的检测，初始化为新轨迹；对于连续多帧未匹配的轨迹，则将其删除
-
-4.4 DeepSORT核心模块详解
-
-4.4.1. 目标检测器（Object Detector）
-DeepSORT算法的性能高度依赖于前端目标检测器的准确性和实时性。检测器负责在每一帧中识别出目标，并提供其精确的边界框（bounding box）和类别置信度。这些检测结果是追踪算法的初始输入。
-• 常用检测器：
-    ◦ YOLO系列（You Only Look Once）：YOLO系列模型因其卓越的实时性能和检测精度而广受欢迎，常与DeepSORT结合使用。例如，YOLOv5 和YOLOv7 已被广泛用于DeepSORT的改进版本。
-    ◦ Faster R-CNN：作为两阶段检测器的代表，Faster R-CNN在DeepSORT早期版本中被用于检测器。
-    ◦ SSD（Single Shot MultiBox Detector）：SSD是一种单阶段检测器，也曾被应用于DeepSORT中。
-    ◦ CenterNet：一种无锚框（anchor-free）检测器，能够同时输出边界框和身份嵌入信息。
-• 检测器改进：针对特定应用场景，检测器常会进行轻量化或结构改进，例如在YOLOv5s模型中引入MnasNet_P结构、膨胀卷积（Dilated Convolution）和空间金字塔池化（SPP）作为骨干网络，以提高检测精度,我们这里采取上面介绍过的YOLOv11。
-
-4.4.2. 运动模型与卡尔曼滤波器（Motion Model and Kalman Filter）
-卡尔曼滤波器是DeepSORT中预测目标运动状态的核心组件。它通过迭代的预测和更新过程来估计目标的运动轨迹。
-•状态向量：经典的DeepSORT使用一个8维状态向量 $\mathbf{x} = [u, v, r, h, u', v', r', h']^T$ 来描述每个目标的状态。其中：
-    ◦ $(u, v)$：边界框中心的坐标。
-    ◦ $r$：边界框的宽高比。
-    ◦ $h$：边界框的高度。
-    ◦ $(u', v', r', h')$：对应于上述四个参数在图像坐标系中的相对速度。
-•预测与更新：卡尔曼滤波器根据目标在上一时刻的位置和速度信息来预测其在当前时刻的运动轨迹。这是一个迭代的、循环执行的过程。
-（1）预测 (Prediction)：对于当前帧中的每个已检测目标或现有轨迹，卡尔曼滤波器会根据其前一时刻的运动信息，预测其在当前时刻的运动状态（例如，边界框的中心坐标、宽高比、高度及其对应的速度）。这一步骤旨在预估目标在当前帧中的潜在位置。预测公式如下：
-        ▪ $\mathbf{X}k = \mathbf{A}\mathbf{X}{k-1} + \mathbf{B}\mathbf{u}_k$
-        ▪ $\mathbf{P}k = \mathbf{A}\mathbf{P}{k-1}\mathbf{A}^T + \mathbf{Q}$ 其中，$\mathbf{X}k$ 为当前时刻的状态估计，$ \mathbf{X}{k-1}$ 为上一时刻的状态估计，$\mathbf{A}$ 为状态转移矩阵，$\mathbf{B}$ 为控制输入矩阵，$\mathbf{u}_k$ 为控制向量，$\mathbf{P}_k$ 为协方差矩阵，$\mathbf{Q}$ 为过程噪声协方差。
-（2）更新 (Update)：在获得目标检测器的结果后，DeepSORT会将卡尔曼滤波器的预测结果与实际检测结果进行关联。若匹配成功，卡尔曼滤波器将更新轨迹状态，以校正预测值并获得更精确的当前时刻目标状态估计。这一更新过程有助于提高跟踪精度，尤其是在目标被部分遮挡或仅部分检测到的情况下。  
-  更新公式：
-        ▪ $\mathbf{G}_k = \mathbf{P}_k\mathbf{H}^T (\mathbf{H}\mathbf{P}_k\mathbf{H}^T + \mathbf{R})^{-1}$
-        ▪ $\mathbf{X}_k = \mathbf{X}_k + \mathbf{G}_k (\mathbf{Z}_k - \mathbf{H}\mathbf{X}_k)$
-        ▪ $\mathbf{P}_k = (\mathbf{I} - \mathbf{G}_k\mathbf{H})\mathbf{P}_k$ 其中，$\mathbf{G}_k$ 为卡尔曼增益，$\mathbf{Z}_k$ 为当前时刻的测量值，$\mathbf{H}$ 为测量矩阵，$\mathbf{R}$ 为测量噪声协方差，$\mathbf{I}$ 为单位矩阵。
-• 局限性：DeepSORT中使用的线性速度模型在处理剧烈变速运动或摄像机移动的场景时可能不够准确。为解决此问题，有研究引入了无迹卡尔曼滤波器（Unscented Kalman Filter, UKF）来处理非线性误差，并引入自适应因子调整观测噪声。
-
-针对我们的场景，列车进站减速过程中站台密集人群的人头检测与跟踪问题，设列车以恒定减速度 $a<0$ 沿轨道中心线前进，摄像机固连于车头、光轴与轨道切线重合。站台行人位于侧向距离 $D$ 处，其头部在像平面的投影服从透视模型
-\begin{equation}
-u(t)=c_u+f\dfrac{D}{x(t)},\quad
-v(t)=c_v+f\dfrac{H}{x(t)},
-\end{equation}
-其中 $x(t)=x_0+v_0t+\frac{1}{2}at^{2}$，$H$ 为站台面至头顶高度。  
-由此导出人头边界框面积 $A(t)\propto x^{-2}(t)$，呈指数级放大直至列车越过后消失。  
-本节据此建立扩展状态向量，考虑其加速度分量，将基础8维度匀速状态向量增加为12维加速度状态向量，并构建相应过程模型。然后，我们基于上述的透视原则，新增基于物理世界的透视运动模型，将基础8维度匀速状态向量改为为5维透视状态向量，并构建相应过程模型。并对其结果进行评估，具体的实验设置和结果见第五章。
-
-4.4.3. 外观特征提取网络（Appearance Feature Extraction Network / Re-ID Model）
-外观特征是DeepSORT解决长期遮挡和ID切换问题的关键。DeepSORT通过一个深度卷积神经网络（CNN）提取每个检测目标的外观描述符。
-• 网络结构：原始DeepSORT的特征提取网络是一个定制的残差CNN，输出一个128维的特征向量。它被描述为一个简单的CNN或小型CNN，并且是预训练的。一些研究中也将其称为鉴别网络（discriminative network）或重识别（Re-ID）模型。该网络结构通常包含卷积层、最大池化层和多个残差块，最后通过全连接层和L2归一化层得到最终特征\cite{116}。具体的，每个结构层的作用如下：
-    ◦ 网络通常包含卷积层（convolutional layers）。用于初步提取低层次特征，部分实现中采用两个卷积层，并在降采样时可通过步长为2的卷积替代传统最大池化层
-    ◦ 包含最大池化层（max pooling layer）。降低空间分辨率，减少计算量。
-    ◦ 包含多个残差块（residual blocks）。例如，有描述提及它由两层卷积层和六个残差块组成。每个残差块本身可能由三个卷积层组成。在通道数逐步增加的同时缓解梯度消失问题。
-    ◦ 最后，通过全连接层（fully-connected layer 或 Dense layer）和L2归一化层得到最终的特征。输出的特征向量：该网络的输出是一个128维的特征向量。这些特征向量通常经过L2归一化处理，以确保其位于单位超球面上，便于计算余弦距离。
-
-如图：ReID-Diagram of DeepSORT\cite{211} CNN-based feature extractor.其中，红色块是简单的卷积层，黄色块是最大池层，蓝色块是残留的块，由三个卷积层组成\cite{213}。最终的绿色块表示具有批归归量的完全连接层和L2归一化。每个块的输出大小在括号中指示。
-
-•训练：此CNN模型通常在大型行人重识别（Person Re-identification, Re-ID）数据集上进行离线训练，例如 MARS 数据集\cite{214} 或 Market-1501 数据集\cite{215}。这些数据集提供了经过标注的行人图像与视频序列，包括身份标签（ID label）与边界框位置（bounding box annotation），从而支持监督学习模型在不同光照、姿态与视角变化条件下的判别能力优化。
-
-\begin{figure}
-    \centering
-    \includegraphics[width=0.8\linewidth]{pictures/ComparisonofEfficient.png}
-    \caption{Comparison of Efficient Net with different neural nets on Imagenet\cite{219}}
-    \label{fig:ComparisonofEfficient}
-\end{figure}
-
-如\textbf{Fig.}~\ref{fig:ComparisonofEfficient}比较了多个先进的模型，我们充分考虑我们的使用场景和前人的研究，考虑参数量和准确率对我们任务的影响，平衡之下决定采用来自Zhu等人的研究\cite{218}提出的EfficientNet-B0作为骨干网络，如\textbf{Tab.}~\ref{tab:EfficientnetB0Architecture}，是EfficientNet-B的网络结构图。我们考虑到效率和准确度，重新训练ReID模型来适合我们系统。基于\textbf{Tab.}~\ref{tab:video_reid_comparison}的实验结果分析，本方法采用的EfficientNet架构在视频行人重识别任务中展现出显著的优势。在计算效率方面，EfficientNet-B模型相比ViT-B将计算复杂度降低了73.6\%（23.5 vs 88.9 GMACs），推理速度提升了3.5倍（78ms vs 272ms per video），同时仅带来0.6\%的mAP性能损失（86.1\% vs 86.7\%）。这种效率提升源于EfficientNet的复合缩放策略和深度可分离卷积设计，其在保持特征提取能力的同时显著减少了参数数量和计算量。更重要的是，该方法在多个基准数据集（MARS、LS-VID、iLiDS-VID、PRID-2011）上均保持了与ViT基准模型相当的识别精度，特别是在rank-1准确率指标上的差距均控制在0.5\%以内。这种计算效率与识别精度的优异平衡使得该方法特别适合于资源受限的实时应用场景，为边缘计算设备上的视频分析任务提供了可行的解决方案。
-
-\begin{table}[H]
-    \centering
-    \caption{EfficientNet B0 Architecture}
-    \label{tab:EfficientnetB0Architecture}
-    \resizebox{0.6\textwidth}{!}{%
-    \begin{tabular}{cccccc}
-    \hline
-    Stage $i$ & Operator $\hat{F}_i$ & Resolution $\hat{H}_i \times \hat{W}_i$ & \#Channels $\hat{C}_i$ & \#Layers $\hat{L}_i$ \\
-    \hline
-    1 & Conv3x3 & $224 \times 224$ & 32 & 1 \\
-    2 & MBConv1, k3x3 & $112 \times 112$ & 16 & 1 \\
-    3 & MBConv6, k3x3 & $112 \times 112$ & 24 & 2 \\
-    4 & MBConv6, k5x5 & $56 \times 56$ & 40 & 2 \\
-    5 & MBConv6, k3x3 & $28 \times 28$ & 80 & 3 \\
-    6 & MBConv6, k5x5 & $14 \times 14$ & 112 & 3 \\
-    7 & MBConv6, k5x5 & $14 \times 14$ & 192 & 4 \\
-    8 & MBConv6, k3x3 & $7 \times 7$ & 320 & 1 \\
-    9 & Conv1x1 \& Pooling \& FC & $7 \times 7$ & 1280 & 1 \\
-    \hline
-    \end{tabular}
-    }
-    \end{table}
-
-
-\begin{table}[H]
-    \centering
-    \caption{Comparison of performance of different methods on video pedestrian re-identification task}
-    \label{tab:video_reid_comparison}
-    \begin{tabular}{lcccccccccc}
-    \toprule
-    \textbf{Method} & \textbf{Backbone} & \textbf{GMACs} & \textbf{ms/video} & \textbf{mAP} & \textbf{MARS rank-1} & \textbf{LS-VID mAP} & \textbf{LS-VID rank-1} & \textbf{iLiDS-VID rank-1} & \textbf{PRID-2011 rank-1} \\
-    \midrule
-    ResNet50 & ResNet50 & 32.7 & 94 & 81.0 & 88.1 & 68.5 & 80.4 & 83.3 & 90.2 \\
-    ViT-B & ViT-B & 88.9 & 272 & 86.7 & 90.0 & 78.3 & 87.4 & 90.0 & 93.8 \\
-    EfficientNet-B & EfficientNet-B & 23.5 & 78 & 86.1 & 89.5 & 71.7 & 86.9 & 89.3 & 93.4 \\
-    ViT-S & ViT-S & 51.1 & 144 & 85.4 & 89.2 & 77.0 & 85.8 & 88.5 & 93.1 \\
-    EfficientNet-S & EfficientNet-S & 14.4 & 45 & 84.8 & 89.1 & 76.5 & 85.4 & 88.0 & 92.8 \\
-    \bottomrule
-    \end{tabular}
-    \end{table}。
-
-
-如\textbf{Fig.}~\ref{OverallFeatureExtraction}所示表示了系统中的特征提取和输出的网络架构.
-
-\begin{figure}
-    \centering
-    \includegraphics[width=0.8\linewidth]{pictures/OverallFeatureExtraction.png}
-    \caption{Railway Platform Crowd Head's Dataset Sample}
-    \label{fig:OverallFeatureExtraction}
-\end{figure}
-
-考虑到实际应用中人体检测框尺寸的多样性，本研究采用智能缩放与填充策略：
-    （1）智能缩放算法：对输入的人体区域图像，计算保持长宽比的最优缩放比例，避免图像变形。
-    （2）统一尺寸处理：将缩放后的图像居中放置在128×128像素的黑色画布上，确保所有样本具有统一的输入尺寸。
-    （3）数据增强：采用水平翻转、随机旋转（±15°）、颜色抖动和随机擦除等技术提升模型的泛化能力。
-    该预处理方式确保了训练与推理阶段的数据分布一致性，避免域偏移问题
-
-ReID模型的损失函数与训练策略
-采用三元组损失作为训练目标函数：
-\begin{equation}
-L_{triplet} = \max(0, d(a,p) - d(a,n) + \alpha)
-\end{equation}
-其中，$d(a,p)$和$d(a,n)$分别为锚点与正样本、锚点与负样本的欧几里得距离，边界参数$\alpha=0.5$。
-训练策略包括：
-(1)使用AdamW优化器（学习率2×10⁻⁴，权重衰减1×10⁻⁴）
-(2)OneCycleLR学习率调度
-(3)混合精度训练加速
-(4)批次大小32
-这些的网络设计，使得DeepSORT能够有效提取目标的判别性外观特征，从而在多目标追踪任务中显著减少ID切换的频率并提高追踪的鲁棒性。
-
-
-4.4.4.数据关联（Data Association）
-数据关联是DeepSORT的关键环节，旨在将当前帧的检测结果与现有的追踪轨迹进行最佳匹配，从而保持目标身份的连续性。DeepSORT通过结合运动学信息和目标外观信息，引入了复杂的数据关联机制。其级联关联阶段（cascade association phase）多模态相似度度量，该度量包含衡量轨迹运动学兼容性的马氏距离（Mahalanobis distance）余弦距离（cosine distance）。这种方法有效地管理了相似外观或快速运动所带来的歧义\cite{141}。
-• 相似性度量：
-    ◦ 马氏距离（Mahalanobis Distance）：用于衡量检测边界框与卡尔曼滤波器预测轨迹之间的运动兼容性。它考虑了数据之间的协方差，能够有效滤除不太可能的关联。当仅使用马氏距离时，目标被长时间遮挡或快速移动可能导致ID切换。
-        ▪ 计算公式：$D_M(i, j) = (d_j - y_i)^T S_i^{-1} (d_j - y_i)$。 其中，$d_j$ 是第 $j$ 个检测框的位置，$y_i$ 是第 $i$ 条轨迹的预测位置，$S_i^{-1}$ 是检测框与轨迹之间的协方差矩阵的逆\cite{105}。
-    ◦ 余弦距离（Cosine Distance）：用于衡量检测到的目标外观特征向量与现有轨迹中存储的外观特征向量之间的相似度。为处理长期遮挡，DeepSORT为每条轨迹维护一个特征库，存储其最近成功关联的100个外观特征描述符。
-        ▪ 计算公式：$D_C(i, j) = \min {1 - \mathbf{r}_j^T \mathbf{r}_k^{(i)} \mid \mathbf{r}_k^{(i)} \in R_i }$。 其中，$\mathbf{r}_j$ 是第 $j$ 个检测的特征向量，$R_i$ 是第 $i$ 条轨迹的特征库，$\mathbf{r}_k^{(i)}$ 是特征库中的特征向量\cite{105}。
-    ◦ 联合距离：DeepSORT通过线性加权的方式结合马氏距离和余弦距离，形成最终的关联度量。
-        ▪ 计算公式：$c_{i,j} = \lambda \cdot D_M(i,j) + (1 - \lambda) \cdot D_C(i,j)$。 其中 $\lambda$ 是权重系数\cite{105}。
-• 匹配策略：
-    ◦ 级联匹配（Cascade Matching）：这是DeepSORT相较于SORT的重要改进。其核心思想是优先匹配那些最近被看到、拥有更长生命周期且成功关联的轨迹。这有助于解决长期遮挡导致的目标丢失问题，并显著减少ID切换的频率\cite{134}。它通常结合了运动信息（通过马氏距离衡量卡尔曼滤波器预测与检测结果的兼容性）和外观信息（通过余弦距离衡量深度特征的相似性）来构建代价矩阵。
-    ◦ IOU匹配：在级联匹配之后，对于仍未匹配的轨迹和检测框，DeepSORT会进行IOU（Intersection over Union）匹配，以处理由外观突变或部分遮挡引起的变化。
-    ◦ 匈牙利算法（Hungarian Algorithm）：在计算出相似性矩阵后，DeepSORT会将其转换为代价矩阵，并结合运动信息等因素构成最终的关联成本矩阵，然后利用匈牙利算法寻找最优的检测-轨迹匹配方案，以最小化总的关联成本\cite{103}。
- 
-4.4.5.Track Management
-DeepSORT包含一套完善的轨迹生命周期管理机制，以确保追踪的鲁棒性。
-• 轨迹初始化：新的检测结果最初被视为"未确认"（Unconfirmed）轨迹。如果一个新轨迹在连续三帧内都成功匹配到检测结果，则被确认为一个新目标并开始持续追踪。
-• 轨迹终止：如果一条轨迹在连续一段时间（例如，超过max_age帧，通常设置为30-70帧）内未能成功匹配到任何检测结果，则认为该目标已离开检测区域或消失，该轨迹将被删除。
-• ID保持与重识别：DeepSORT通过结合运动和外观信息，在目标暂时消失（如被遮挡）后重新出现时，能够尝试重新识别并保留其原始ID。然而，如果目标长时间未被检测到并重新出现时未能成功关联，可能会被分配一个新的ID。
-
-4.5 DeepSORT 组件在不同场景下的自适应性
-
-在实际应用中，物体的运动模式、检测器的可靠性以及外观特征的稳定性在不同场景下可能存在显著差异。为了确保稳健的多目标跟踪性能，DeepSORT 的多个组件需要进行仔细的自适应。以下小节将对各个模块及其可调参数进行结构化概述。
-
-(1) 卡尔曼滤波器
-卡尔曼滤波器是预测被跟踪物体未来状态的核心运动模型。在 DeepSORT 中，默认假设是恒速模型，适用于以匀速或近匀速运动的物体。然而，在更复杂的运动场景中，应重新考虑以下元素：
-状态空间模型（状态向量 X）：对于加速、转弯或非线性轨迹，必须扩展状态转移矩阵或状态向量本身，以更好地捕捉运动动态。
-过程噪声协方差 (Q)：反映物体运动的不确定性。对于加速度较大或运动模式不规则的物体，需要增大 Q 值以避免低估运动变化。
-测量噪声协方差 (R)：表示检测器的噪声水平。当使用像 YOLO 这样精度有限的检测器时，建议使用较高的 R 值，以应对不确定的测量可靠性。
-
-(2) 门控逻辑
-门控逻辑通过在数据关联之前过滤检测结果来降低计算复杂度并消除不合理的关联。
-马氏距离阈值：应根据物体运动的稳定性进行调整；对于不规则轨迹，可能需要更高的阈值。
-外观门控权重：在运动信息不可靠的场景下，应在门控过程中为外观特征分配更高的权重。
-
-(3) 数据关联
-数据关联通过匈牙利算法进行，该算法基于结合运动和外观信息的代价矩阵。以下参数需要调整：
-代价矩阵权重：运动特征与外观特征的相对重要性应根据场景而定。例如，在高速运动场景中，由于运动预测不可靠，外观特征应具有更高的权重。
-级联匹配：DeepSORT 的一项核心贡献是级联匹配，它优先考虑生命周期较长且观测值较新的轨迹，从而减少长期遮挡下的 ID 切换 \cite{134}。在高度动态的环境中，可以调整匹配优先级以平衡召回率和准确率。
-并合比 (IoU) 匹配：对于级联匹配中未匹配的轨迹和检测，可以使用交并比 (IoU) 匹配作为后备方案。在外观发生变化或部分遮挡的情况下，可能需要放宽 IoU 阈值。
-
-(4) 轨迹管理
-轨迹管理控制轨迹的初始化、维护和终止：
-初始化阈值 (n_init)：对于稳定的场景，较低的阈值即可满足要求。对于不稳定的运动，增加 n_init 可以防止出现虚假轨迹。
-最大轨迹年龄 (max_age)：确定轨迹在不更新的情况下保留的时间。较长的值可以提高对遮挡的鲁棒性，而较短的值则可以加快稳定场景中的轨迹回收速度。
-ID 保留和重新识别：通过联合利用运动和外观线索，DeepSORT 可以在暂时遮挡后重新识别目标。然而，对于长期消失的目标，需要更强大的外观模型来减少 ID 碎片化。
-
-(5) 外观特征提取（Re-ID 模型）
-Re-ID 网络提供具有判别性的外观描述符，以支持鲁棒关联。
-增强特征提取：当运动线索不可靠时，提高 Re-ID 模型的判别能力（例如，采用 CNN-Transformer 混合模型）可以显著减少 ID 切换，尤其是在拥挤或视觉相似的物体场景中。
-
-(6)总结
-总而言之，运动相关参数（状态模型、Q、R）、关联逻辑（门控阈值、代价矩阵加权、级联/IoU 匹配）、轨迹管理策略（n_init、max_age）以及外观提取模块是 DeepSORT 的主要组件，应根据不同的应用场景进行调整。适当调整这些模块可以使跟踪器在各种条件下保持稳健性，包括不规则的物体运动、噪声检测、频繁的遮挡以及目标间外观相似度较高等情况。
-
-4.6 计数方法
-在获得YOLOv11与DeepSORT所输出的目标轨迹后，需要设计一套可靠的算法来统计人流量。在视频流场景中，直接统计检测框会导致对同一目标的重复计数，因此计数策略必须基于具有唯一ID的目标轨迹展开。
-
-\paragraph{传统计数方法及其局限性}
-目前，基于追踪的主流计数方法是"虚拟线/区穿越法" \cite{22_hsu_passenger_2020, 204, 68_zhao_detection_2022}。该方法在场景中预设一条虚拟的"计数线"，当目标的轨迹穿越该线时触发计数。这种方法逻辑简单，但在拥挤场景下存在明显局限性：当目标在计数线附近被短暂遮挡时，例如三个人并排通过，但中间一人被完全挡住，计数线可能只会记录到两个穿越事件，从而导致严重的漏计。如第五章的消融实验所示，单纯的计数线方法（即计数带宽度为0）的平均绝对百分比误差（MAPE）高达93.43\%，证明其在真实场景下并不可靠。
-
-\paragraph{本研究的计数方法：虚拟计数带}
-为解决上述问题，本研究设计了一种基于"虚拟计数带"（Virtual Counting Band）的计数方法。我们不再使用单薄的线，而是在画面两侧设置一定宽度的"计数区域"。如\textbf{Fig.}~\ref{fig:VirtualCountingZone}所示，该区域由起始边界（Start）和终止边界（End）定义，其具体数值表示区域边界距离图像边缘的距离占总宽度的比例。
-
-该方法的核心逻辑是：一个目标只有在计数带内连续出现预设的帧数（持续性检测）才被确认为有效计数。这种设计带来了两大优势：
-\begin{itemize}
-    \item \textbf{鲁棒性更强：} 给予了目标一个缓冲区域。即使在区域内发生短暂遮挡或检测抖动，只要目标能在后续帧中被重新稳定跟踪，就不会被遗漏。
-    \item \textbf{计数更稳定：} 避免了因目标在单条线上来回徘徊而导致的重复计数或误计数问题。
-\end{itemize}
-通过这种方式，虚拟计数带能有效减少因遮挡导致的漏计，显著提高计数的稳定性与准确性。
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.8\textwidth]{pictures/VirtualCountingZone.png}
-    \caption{虚拟计数带示意图}
-    \label{fig:VirtualCountingZone}
-\end{figure}
-
-\paragraph{具体实现}
-考虑到监控场景中相机与人群的相对运动，本研究采用双边界计数带设计。如\textbf{Fig.}~\ref{fig:VirtualCountingZone}所示，在视频画面的左右两侧各设置一个计数区域。根据第五章的消融实验结果，我们确定了最优参数：将计数带设置在距离画面边界5\%至20\%宽度的区域内。这一配置既能保证跟踪的稳定性（避免图像边缘的畸变和ID切换问题），又能最大化计数精度。同时，计数带的位置通过相对坐标定义，以确保方法对不同分辨率视频的适应性。
-
-持续帧计数策略：为了提高计数的鲁棒性，避免因跟踪抖动导致的误计数，本研究采用持续帧计数策略，即持续性检测目标，要求目标需要在计数带内连续出现预设的帧数（默认为2帧）才被确认为有效计数。
-因此我们对目标进行了状态管理，即为每个跟踪目标维护计数状态：统计其连续帧数和是否已计数的状态
-
-中心点定位与边界处理：中心点计算：使用跟踪框的几何中心作为目标位置。边界框修正：对于部分超出画面边界的检测框，采用裁剪策略确保显示的完整性，同时保持原始坐标用于计数逻辑。
-
-计数完整性保证：为确保计数的完整性，本研究实现了以下机制：
-（1）最后帧补偿：在视频处理结束时，检查最后一帧中仍在计数带内但尚未达到持续帧阈值的目标，将其纳入最终计数，比如目标在在最后一帧不在计数带内，但是视频已停止，因此我们将其纳入最终计数。
-（2）重复计数避免：通过维护已计数目标的ID集合，确保每个目标在整个视频序列中只被计数一次。
-（3）总计数策略：最终人流统计采用左右两侧计数的最大值，我们考虑只计数一侧的目标。因此为了排除火车进站停靠，非停靠站台带来的影响，我们设置只统计一侧的数据作为最后的统计数值。
-
-\paragraph{可视化与验证}
-为便于结果验证和分析，系统提供实时的可视化反馈：
-计数带显示：在视频中以半透明黄色区域标示计数带位置
-状态指示：已计数目标以填充式绿色框显示，未计数目标以边框形式显示
-计数信息：实时显示左侧、右侧及总计数结果
-该虚拟区域计数法具有参数化灵活、鲁棒性强、适应性好等特点，能够有效处理复杂监控场景下的人流统计任务。
-
-综上所述，本研究采用基于YOLOv11模型的直接检测方法进行火车站台人群计数。YOLOv11模型负责高效准确地检测图像中的每个人，然后通过设置的虚拟计数带，设置约束和补偿条件，来统计检测到的目标数量，并结合适当的后处理技术，采用NMS和置信度阈值过滤，最终实现对火车站台人群数量的估计。
-
-
-4.7 评估指标
-
-4.7.1 检测评估指标
-%=======================  检测评估指标   =================
-检测评估指标在静态图像验证集上报告头部检测的 \textbf{mAP@0.5} 与 \textbf{Recall}等指标，用于衡量微调对平台场景的适配收益，评估方法和公式如下。
-In order to comprehensively evaluate the model's performance, the following metrics were adopted in this study:\\
-
-\textbf{mAP50} 代表在IoU (Intersection over Union) 阈值为 0.5 时的平均精确度（Average Precision, AP）的均值。它主要用于评估模型在相对宽松的定位要求下的性能。
-\begin{equation}
-\text{mAP50} = \frac{1}{N}\sum_{i=1}^{N}\text{AP}_i \quad \text{at IoU threshold of 0.5}
-\end{equation}
-其中，$N$ 是类别总数，$\text{AP}_i$ 是在IoU阈值为0.5时，第$i$个类别的平均精确度。
-
-
-\textbf{mAP50-95} 是在 IoU 阈值从 0.5 到 0.95、步长为 0.05 的一系列阈值下的平均精确度（mAP）的均值。该指标全面评估了模型在不同定位精度要求下的性能。
-\begin{equation}
-\text{mAP50-95} = \frac{1}{10}\sum_{t=0.5}^{0.95}\text{mAP}_t
-\end{equation}
-其中，$\text{mAP}_t$ 是在特定IoU阈值$t$下的平均精确度均值。
-
-
-\textbf{Box Precision} 用于衡量模型在边界框预测方面的精确度。它计算的是正确预测的边界框（True Positives, TP）在所有预测的边界框（TP + False Positives, FP）中所占的比例。
-\begin{equation}
-\text{Box (Precision)} = \frac{TP_{\text{box}}}{TP_{\text{box}} + FP_{\text{box}}}
-\end{equation}
-
-
-\textbf{Recall} 衡量模型识别所有真实边界框（ground truth boxes）的能力。它计算的是正确预测的边界框（TP）在所有真实边界框（TP + False Negatives, FN）中所占的比例。
-\begin{equation}
-\text{Recall} = \frac{TP_{\text{box}}}{TP_{\text{box}} + FN_{\text{box}}}
-\end{equation}
-
-\paragraph{Summary}
-In summary, the detection evaluation metrics provide a comprehensive assessment of the model's performance in accurately detecting and counting people in static images. These metrics help us understand how well the model can generalize to unseen scenarios and how it performs in different density levels of the platform scene.
-
-4.7.2 跟踪评估指标
-%=======================  跟踪评估指标   =================
-\paragraph{跟踪评估指标} 在 MOT-RPCH 上采用 MOTChallenge 常用指标：\textbf{IDF1}、\textbf{MOTA}、\textbf{ID Switches (IDs)}、\textbf{MT/ML} 等。
-For the quantitative evaluation of multi-object tracking (MOT) performance, we employ the widely adopted metrics implemented in the \texttt{py-motmetrics} library\footnote{\url{https://github.com/cheind/py-motmetrics}}, which is consistent with the CLEAR-MOT and ID-based evaluation protocols. Let $TP$ denote the number of true positives, $FP$ the false positives, $FN$ the false negatives (misses), $IDSW$ the number of identity switches, and $d_i$ the distance (e.g., bounding box overlap or object center distance) between matched ground truth and prediction. The metrics are defined as follows:
-
-\paragraph{CLEAR-MOT metrics}
-\begin{align}
-\text{MOTA} &= 1 - \frac{\sum_t (FN_t + FP_t + IDSW_t)}{\sum_t GT_t}, \\
-\text{MOTP} &= \frac{\sum_{i,t} d_{i,t}}{\sum_t TP_t},
-\end{align}
-where $GT_t$ is the number of ground-truth objects at time $t$, and $d_{i,t}$ denotes the distance between a matched hypothesis and ground truth.
-
-\paragraph{Identity-based metrics}
-\begin{align}
-\text{ID Precision (IDP)} &= \frac{IDTP}{IDTP + IDFP}, \\
-\text{ID Recall (IDR)} &= \frac{IDTP}{IDTP + IDFN}, \\
-\text{IDF1} &= \frac{2 \cdot IDTP}{2 \cdot IDTP + IDFP + IDFN},
-\end{align}
-where $IDTP$, $IDFP$, and $IDFN$ represent identity-based true positives, false positives, and false negatives, respectively.
-
-\paragraph{Additional measures}
-\begin{itemize}
-    \item \textbf{ID Switches ($IDSW$)}: the total number of times a tracked identity changes its assigned label.
-    \item \textbf{Matches}: the number of correct associations between predictions and ground truth.
-    \item \textbf{False Positives ($FP$)}: the number of detections not corresponding to any ground truth object.
-    \item \textbf{Misses ($FN$)}: the number of ground-truth objects not detected.
-    \item \textbf{False Alarms per Frame (FAF)}: average number of false positives per frame,
-    \begin{equation}
-    \text{FAF} = \frac{\sum_t FP_t}{\text{Number of frames}}.
-    \end{equation}
-    \item \textbf{Precision} and \textbf{Recall}: standard definitions,
-    \begin{equation}
-    \text{Precision} = \frac{TP}{TP+FP}, \quad \text{Recall} = \frac{TP}{TP+FN}.
-    \end{equation}
-    \item \textbf{Track quality measures}: a trajectory is considered
-    \begin{itemize}
-        \item \textbf{Mostly Tracked (MT)} if it is tracked for at least 80\% of its lifespan,
-        \item \textbf{Partially Tracked (PT)} if it is tracked between 20\% and 80\%,
-        \item \textbf{Mostly Lost (ML)} if it is tracked for less than 20\%.
-    \end{itemize}
-\end{itemize}
-
-\paragraph{Summary}
-In summary, MOTA and MOTP measure the overall tracking accuracy and precision, IDF1 (with IDP and IDR) evaluates identity preservation, and the additional measures (e.g., ID switches, MT/PT/ML) provide further insights into trajectory-level performance. Together, these metrics allow for a comprehensive and standardized assessment of MOT systems.
-
-\
-
-4.7.3 计数评估指标
-%=======================   计数评估指标  =================
-
-\paragraph{Counting Evaluation Metrics}
-
-To quantitatively evaluate the counting accuracy of the proposed system, we report several commonly used error metrics. 
-Let $\hat{C}_i$ denote the predicted unique count of video $i$, and $C_i$ the corresponding ground-truth count. 
-For $N$ test videos, the following metrics are computed:
-% \begin{align}
-% \text{MAE} &= \frac{1}{N} \sum_{i=1}^{N} \big| \hat{C}_i - C_i \big|, \\
-% \text{RMSE} &= \sqrt{\frac{1}{N} \sum_{i=1}^{N} \big(\hat{C}_i - C_i \big)^2}, \\
-% \text{MAPE} &= \frac{100\%}{N} \sum_{i=1}^{N} \frac{|\hat{C}_i - C_i|}{C_i}, \\
-% \text{ME (Bias)} &= \frac{1}{N} \sum_{i=1}^{N} (\hat{C}_i - C_i).
-% \end{align}
-1. 平均绝对误差（MAE）
-平均绝对误差（Mean Absolute Error, MAE）是衡量预测计数与真实计数之间平均误差幅度的核心指标。它计算所有样本的绝对误差之和的平均值。MAE 的优势在于其直观性和易于解释性，它直接反映了系统预测结果偏离真实值的平均绝对量。由于对所有误差项进行线性惩罚，MAE 对异常值不敏感，能稳定地反映系统的整体性能。
-\begin{align}
-\text{MAE} &= \frac{1}{N} \sum_{i=1}^{N} \big| \hat{C}_i - C_i \big|, 
-\end{align}
-2. 均方根误差（RMSE）
-均方根误差（Root Mean Squared Error, RMSE）是另一种评估预测精确度的常用指标。与 MAE 不同，RMSE 首先计算每个样本误差的平方，然后求其平均值，最后再开方。这种平方操作使得较大的误差被赋予更高的权重。因此，RMSE 对异常值或极端错误更加敏感。当系统对大误差的容忍度较低，或者需要评估模型在极端情况下的鲁棒性时，RMSE 是一个比 MAE 更具洞察力的指标。RMSE 总是大于或等于 MAE，其值与 MAE 的差异可以揭示模型是否偶尔会产生较大的预测偏差。
-\begin{align}
-\text{RMSE} &= \sqrt{\frac{1}{N} \sum_{i=1}^{N} \big(\hat{C}_i - C_i \big)^2}, 
-\end{align}
-3. 平均绝对百分比误差（MAPE）
-平均绝对百分比误差（Mean Absolute Percentage Error, MAPE）用于衡量预测误差的相对大小，而非绝对大小。它将每个样本的绝对误差除以其对应的真实值，从而得到百分比误差，最后再求所有样本的平均值。MAPE 的优点在于其无量纲性，使得不同量级的数据集之间的性能比较成为可能。该指标尤其适用于计数范围差异较大的场景，因为它能公平地评估模型在低计数和高计数情况下的表现。然而，需要注意的是，当真实计数$C_i$接近或等于零时，MAPE 将变得不稳定或无意义。
-\begin{align}
-\text{MAPE} &= \frac{100\%}{N} \sum_{i=1}^{N} \frac{|\hat{C}_i - C_i|}{C_i}, 
-\end{align}
-4. 平均误差（ME），又称偏差（Bias）
-平均误差（Mean Error, ME），也常被称为偏差（Bias），用于衡量系统的系统性偏差。它计算预测值与真实值之差的平均值。如果 ME 的值为正，则表明系统倾向于高估真实计数；如果为负，则表明系统倾向于低估真实计数。与 MAE 和 RMSE 关注误差幅度不同，ME 揭示了系统是否存在持续性的过计数或欠计数问题。该指标在需要校准模型以消除系统性偏移的应用中尤为重要。
-\begin{align}
-\text{ME} &= \frac{1}{N} \sum_{i=1}^{N} (\hat{C}_i - C_i), 
-\end{align}
-\fi

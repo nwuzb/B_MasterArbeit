@@ -45,71 +45,9 @@ The remainder of this paper is organized as follows:
 \begin{itemize}
   \item \textbf{Chapter 2: Related Work} reviews mainstream methods, key techniques, and representative systems in object detection and MOT, and clarifies the relationship and distinctions between our work and prior art.
   \item \textbf{Chapter 3: Data} describes the public and self-constructed datasets used in this study, including their sources and salient characteristics, and discusses their suitability for crowd analytics on railway platforms.
-  \item \textbf{Chapter 4: Methods} details the core models used in our study, including the principles, architectures, and key components of YOLOv11 (detector) and DeepSORT (tracker). The chapter presents our detect–track–count pipeline with three Kalman state-space configurations (CV-8D, CA-12D, and Phys-5D), introduces the scene and imaging model with 2D planar trajectory visualization, and defines comprehensive MOT and counting metrics for evaluation.
+  \item \textbf{Chapter 4: Methods} details the core models used in our study, including the principles, architectures, and key components of YOLOv11 (detector) and DeepSORT (tracker). The chapter presents our detect–track–count pipeline with three Kalman state-space configurations (CV-8D, CA-12D, and Phys-6D), introduces the scene and imaging model with 2D planar trajectory visualization, and defines comprehensive MOT and counting metrics for evaluation.
   \item \textbf{Chapter 5: Experiments and Results} presents the experimental setup, implementation details, and comprehensive quantitative and qualitative analyses. The evaluation metrics defined in \textbf{Chapter} 4 are used to quantify performance.
   \item \textbf{Chapter 6: Discussion} analyzes the strengths, limitations, and potential implications of the proposed approach for detection, tracking, and counting on railway platforms.
   \item \textbf{Chapter 7: Conclusion and Future Work} summarizes the main findings and contributions, and outlines directions for future research.
 \end{itemize}
 
-% ----------------------------------------------------------------
-% English translation ends here. Chinese original follows below.
-% ----------------------------------------------------------------
-\iffalse
-
-% 翻译Prompt
-% 以下是中文版本，由于我的母语是中文，我打算先用中文写，然后再将正文翻译成专业的学术英语。，因为我使用PDFTex作为latex的编译器，因此，所有的中文字符包括标点符号都必须注释，不能被解析。英语的内容来自下面的中文版。
-% 假设你是计算机视觉的一名教授，你的学术文章撰写功底非常扎实，能够用学术化的语言对学生的中文稿件进行翻译，符合学术规范及其逻辑性，我希望您能担任我的英文翻译、校对和编辑工作，将我即将推出的中文内容翻译成优雅、精炼且具有学术性的英文,可能有些中文有误，你要根据计算机视觉领域的知识进行更正，但不要改变原意。请在保持原意不变的前提下进行翻译。总体而言，语言风格应类似于计算机视觉顶会文章，要求用词准确，表达自然，语法严谨，要确保句子之间的逻辑清晰流畅。现在请你帮忙将选中的中文翻译成学术英语，注意保留引用和段落结构。翻译后的英语文章放在该文件的最前面，然后将中文部分注释后保留在后面。请帮忙。
-
-% 中文润色Prompt
-% 假设你是计算机视觉的一名教授，你的学术文章撰写功底非常扎实，能够用学术化的语言对学生的中文稿件进行审阅，你修改后的文章非常符合学术规范及其逻辑性，我希望您能担任我的中文校对和编辑工作，将我即将推出的中文内容润色成有学术性的文章,可能有些中文有误，你要根据计算机视觉领域的知识进行更正，但不要改变原意。请在保持原意不变的前提下进行翻译。总体而言，语言风格应类似于计算机视觉顶会文章，要求用词准确，表达自然，语法严谨，要确保句子之间的逻辑清晰流畅。现在请你帮忙，注意保留引用和段落结构。你也可以对文章的段落安排提出新的见解。
-
-\subsection{Research Background}
-近十年来，计算机视觉领域在目标检测、图像分割及多目标跟踪等核心任务上取得了长足的进步。深度学习技术的崛起是驱动这一发展的核心动力，其强大的非线性建模能力使得算法能够从海量数据中自主学习复杂的视觉模式，进而实现对图像与视频中目标的精确识别与定位\cite{113}\cite{28_kaur_comprehensive_2023}。
-
-在众多计算机视觉应用中，多目标跟踪（Multi-Object Tracking, MOT）是一项极具挑战性且意义重大的研究课题\cite{104}。MOT任务的核心不仅在于准确检测场景中的所有目标，更在于在连续视频帧中为每个目标赋予并维持唯一的身份标识\cite{103}。该技术是自动驾驶\cite{117}、智能监控\cite{59_wang_deep_2024}、机器人学\cite{188}、智能交通管理\cite{144}及人群分析\cite{158}等关键领域的核心组成部分。在这些动态且复杂的真实世界场景中，实时、精确的目标检测与跟踪是保障系统可靠性与有效性的基石。
-
-当前，基于检测的跟踪（Tracking-by-Detection）范式因其鲁棒性与灵活性，已成为工业界多目标跟踪系统的主流方案，其整体性能高度依赖于底层目标检测器的精度与效率\cite{132}。在众多检测算法中，YOLO（You Only Look Once）系列模型凭借其在检测速度与准确率之间的卓越平衡，在实时应用中获得了广泛认可\cite{02_noauthor_review_nodate}\cite{141}。YOLO通过将目标检测构建为单阶段的回归问题，直接预测边界框与类别概率，从而实现了高速处理。自诞生以来，YOLO系列算法经历了多次迭代优化，其持续演进为提升多目标跟踪系统的综合性能提供了坚实的基础。
-
-在跟踪算法层面，DeepSORT作为SORT（Simple Online and Realtime Tracking）算法的重要扩展，通过集成深度学习模型，引入了目标的外观特征信息。该算法融合了目标的运动状态与视觉外观，从而能更有效地应对长期遮挡、目标重识别（Re-identification）等复杂情况，显著降低了身份切换（ID Switching）的频率\cite{211}。凭借其高跟踪精度、计算效率以及与各类检测器的无缝集成能力，DeepSORT已在交通监控\cite{138}、仓储物流\cite{212}、体育赛事分析\cite{213}和人群监控\cite{120}等领域展现出卓越的应用价值。
-
-\subsection{问题与挑战}
-尽管深度学习技术显著推动了多目标跟踪领域的发展，但在复杂、高密度场景下的实时应用，特别是人群跟踪分析，依然面临一系列严峻挑战。这些挑战根源于真实世界场景的内在复杂性，主要包括：人群密度的剧烈波动、个体间的严重遮挡、多变的光照条件，以及由视角和尺度变化引起的外观变异\cite{30_khan_passenger_2020}\cite{01_noauthor_deep_2024}\cite{66_zhang_bus_2020}。
-
-首先，高密度与遮挡是人群分析中最普遍的挑战。在拥挤环境中，个体间频繁的相互遮挡导致目标边界模糊，难以精确区分与计数。遮挡的严重程度随人群密度增加而恶化，极大地增加了计数任务的复杂度\cite{33or34_li_lightweight_2023}\cite{30_khan_passenger_2020}\cite{01_noauthor_deep_2024}。
-
-其次，尺度与视角的巨大变化是另一项主要挑战。受相机透视效应影响，同一图像中的个体尺寸差异显著——远景目标小而近景目标大。这种尺度差异使得基于固定尺寸假设的检测与分割方法难以奏效。此外，不同的相机视角会导致人群在图像中的空间分布与外观形态迥异，进一步提升了精确计数的难度\cite{29_kaur_systematic_2024}\cite{30_khan_passenger_2020}。
-
-第三，复杂的背景与多变的光照条件会引入显著的干扰。真实场景中通常包含建筑物、车辆、植被等复杂的背景元素，其纹理与颜色可能与人群目标混淆，导致虚假检测（False Positives）。同时，光照条件的剧烈变化，如强阴影、过曝或低光照，会严重影响图像质量，降低目标的可辨识度，从而阻碍精确识别\cite{33or34_li_lightweight_2023}\cite{30_khan_passenger_2020}。
-
-最后，人体外观的内在多样性增加了额外的复杂性。个体在衣着、姿态、动作上的巨大差异\cite{33or34_li_lightweight_2023}\cite{66_zhang_bus_2020}\cite{30_khan_passenger_2020}\cite{01_noauthor_deep_2024}，对开发具有广泛泛化能力的计数模型提出了极高要求。这些挑战往往相互耦合、共同作用，使得精确的人群计数成为一项需要先进、鲁棒算法才能解决的难题。
-
-\subsection{动机与目标}
-
-针对上述挑战，在铁路站台这类人流高度密集、遮挡频繁的复杂公共交通场景中，实现对人群的精确、实时检测、跟踪与计数具有迫切的现实需求与重要的研究价值。精准的人群管理不仅是保障站台安全运营的关键\cite{214}，也是优化客流疏导\cite{215}和提升应急响应效率\cite{216}的核心技术支撑。
-
-因此，本研究的核心动机在于，面向铁路站台的特定应用场景，构建一个高效、鲁棒的自动化人群分析系统。该系统旨在利用前沿的深度学习技术，有效应对高密度、严重遮挡等现实挑战，为优化站台管理、提升运营效率和改善乘客体验提供可靠的数据支持。
-
-为实现此目标，本研究将采用YOLO系列算法的最新成果YOLOv11作为检测器，并结合DeepSORT算法构建跟踪系统。选择YOLOv11是基于其在速度与精度上的卓越平衡性\cite{141}，及其持续演进的架构有望在小目标检测和复杂场景适应性上取得更优表现。DeepSORT算法则因其高跟踪精度、计算效率以及与各类检测器的优良兼容性，成为应对遮挡和重识别问题的理想选择。通过深度融合YOLOv11强大的检测能力与DeepSORT鲁棒的跟踪机制，我们旨在构建一个在高密度、动态的铁路站台环境中具备高精度、实时性与强鲁棒性的人群检测、跟踪与计数系统，为智能交通与公共安全领域提供有力的技术支持。
-
-\subsection{主要贡献}
-本研究聚焦于火车站台这一特定场景，该场景具有高人群密度、固定视角下的频繁遮挡以及对实时性与准确性的双重高要求。我们旨在探索并验证基于YOLOv11的人群检测与跟踪方法，通过在公开及自建数据集上的综合评估，为该先进检测模型在特定场景下的应用潜力提供实证依据与有价值的参考。
-
-本研究的主要贡献可概括如下：
-首先，我们创新性地将前沿的YOLOv11架构应用于高密度人群计数任务。尽管YOLO系列在通用目标检测领域成就斐然，但将其最新版本直接应用于人群计数并进行深入的性能探究，仍是一项具有开创性的工作。
-其次，我们提出了两种改进的DeepSORT算法，并训练了一个专用于人头特征提取的轻量级卷积神经网络（CNN）EfficientNet-B0，以提升在遮挡情况下的跟踪鲁棒性。
-第三，为全面训练与验证所提模型的性能，我们采用了多个公开数据集（CrowdHuman\cite{shao2018crowdhuman}、NWPU-Crowd\cite{nwpcrowd}、Open Sensor Data for Rail 2023\cite{OpenSensorDataforRail2023}、RailEye3D\cite{RailEye3D_Dataset}）以及一个自建的铁路站台数据集。该自建数据集名为RailwayPlatformCrowdHead (RPCH)，包含885个独立ID，专门用于评估模型在真实场景下的跟踪与计数性能。
-最后，我们将所提出的两种模型与基准的8维卡尔曼滤波模型进行了全面的性能比较。实验结果清晰地展示了我们方法的优越性，验证了YOLOv11与改进DeepSORT相结合在人群分析任务中的可行性与高效性。
-
-\subsection{本文结构}
-
-本文的组织结构如下：
-
-\begin{itemize}
-  \item \textbf{第二章 相关工作}：综述当前目标检测与多目标跟踪领域的主流方法、关键技术与代表性系统，明确本研究与现有工作的关联与区别。
-  \item \textbf{第三章 数据集}：详细介绍本研究使用的公共数据集与自建数据集，阐述其数据来源、关键特征，并分析其对于铁路站台场景下人群分析任务的适用性。
-  \item \textbf{第四章 方法}：深入阐述本研究采用的核心模型，包括YOLOv11检测器与DeepSORT跟踪器的原理、架构与关键技术细节。同时，详细定义用于评估模型性能的多目标跟踪与计数指标。
-  \item \textbf{第五章 实验与结果}：呈现详尽的实验设置、实施细节以及全面的定量与定性分析。第四章中定义的评估指标将用于量化评估本文所提方法的性能。
-  \item \textbf{第六章 讨论}：基于实验结果，对所提方法在铁路站台人群检测、跟踪与计数任务上的综合表现进行深入分析，探讨其优势、局限性及潜在影响。
-  \item \textbf{第七章 结论与展望}：总结本研究的主要工作与核心贡献，并对未来可能的研究方向进行展望。
-\end{itemize}
-\fi
